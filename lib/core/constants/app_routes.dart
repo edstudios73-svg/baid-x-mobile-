@@ -1,0 +1,37 @@
+abstract final class AppRoutes {
+  static const splash = '/splash';
+  static const onboarding = '/onboarding';
+  static const signIn = '/sign-in';
+  static const signUp = '/sign-up';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
+  static const emailVerification = '/verify-email';
+  static const accountType = '/account-type';
+  static const home = '/home';
+  static const discover = '/discover';
+  static const work = '/work';
+  static const myJobs = '/my-jobs';
+  static const postJob = '/jobs/new';
+  static const workers = '/workers';
+  static const editWorker = '/workers/edit';
+  static const projects = '/projects';
+  static const createProject = '/projects/new';
+  static const companyAccess = '/company-access';
+  static const marketplace = '/marketplace';
+  static const messages = '/messages';
+  static const profile = '/profile';
+  static const settings = '/settings';
+  static const verification = '/verification';
+  static const billing = '/billing';
+  static const companyBilling = '/company-billing';
+  static const xid = '/xid';
+  static const promotions = '/promotions';
+  static const verificationReview = '/verification-review';
+  static const notifications = '/notifications';
+  static const applications = '/applications';
+  static const listings = '/listings';
+  static const createListing = '/listings/new';
+  static const tasks = '/tasks';
+  static const reports = '/reports';
+  static const team = '/team';
+}
