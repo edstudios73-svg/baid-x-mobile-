@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BAID X — Project Handover and Recovery Guide</title>
+<style>
+:root {
+  --bg: #101418;
+  --bg-2: #171d24;
+  --surface: #1e2630;
+  --line: #31404d;
+  --text: #f4f1ea;
+  --muted: #b7b1a6;
+  --blue: #5b9bd5;
+  --navy: #0e3a5d;
+  --orange: #ff7a1a;
+  --yellow: #ffd100;
+  --danger: #f97066;
+  --ok: #22c55e;
+  --warn: #f5b942;
+  --shadow: 0 10px 30px rgba(0,0,0,.22);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.55 "Segoe UI", Arial, sans-serif;
+}
+a { color: var(--blue); }
+header, main, footer { width: min(1180px, calc(100% - 32px)); margin-inline: auto; }
+header { padding: 28px 0 8px; }
+.eyebrow { color: var(--yellow); letter-spacing: .08em; text-transform: uppercase; font-size: 12px; font-weight: 700; }
+h1 { margin: 6px 0 8px; font-size: clamp(32px, 5vw, 52px); line-height: 1.05; }
+h2 { margin: 0 0 14px; font-size: 28px; }
+h3 { margin: 18px 0 8px; font-size: 18px; }
+p, li { color: var(--text); }
+.lede, .muted { color: var(--muted); }
+.banner {
+  background: #3a2414;
+  border: 1px solid var(--orange);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 18px 0 22px;
+}
+nav.toc {
+  position: sticky; top: 0; z-index: 5;
+  background: rgba(16,20,24,.94);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+.toc-inner { width: min(1180px, calc(100% - 32px)); margin: auto; display: flex; gap: 10px; align-items: center; }
+#search { flex: 1; min-width: 180px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; }
+.toc-links { display: flex; gap: 8px; overflow: auto; }
+.toc-links a { color: var(--text); text-decoration: none; white-space: nowrap; font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.card, section, .callout {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+section { margin: 16px 0; }
+.card strong { display: block; margin-bottom: 6px; }
+.badge { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; color: #111; }
+.unverified { background: var(--warn); }
+.partial { background: var(--yellow); }
+.blocked { background: var(--danger); color: #fff; }
+.progress { background: var(--blue); color: #07131c; }
+.config { background: #d7e7f5; }
+.notstarted { background: #d9d4cb; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; padding: 8px; }
+th { color: var(--yellow); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+code, pre { font-family: Consolas, "Courier New", monospace; }
+pre { background: #0c1014; border-radius: 10px; padding: 12px; overflow: auto; position: relative; }
+.copy { position: absolute; right: 8px; top: 8px; border: 0; background: var(--yellow); color: #111; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+.diagram { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.diagram div { background: var(--navy); border-radius: 10px; padding: 10px; min-height: 74px; }
+.diagram strong { color: var(--yellow); }
+details { border-top: 1px solid var(--line); padding: 8px 0; }
+summary { cursor: pointer; font-weight: 700; }
+.check { list-style: none; padding: 0; }
+.check li { margin: 8px 0; }
+.hidden { display: none; }
+footer { color: var(--muted); padding: 24px 0 40px; }
+@media (max-width: 800px) { .diagram { grid-template-columns: 1fr; } .toc-inner { flex-direction: column; align-items: stretch; } }
+@media print {
+  body { background: #fff; color: #111; }
+  nav.toc, .copy { display: none; }
+  .card, section, .callout, pre { background: #fff; color: #111; border-color: #ccc; box-shadow: none; }
+  a { color: #111; }
+  details > *:not(summary) { display: block !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Baiden Studios · BAID X</div>
+  <h1>Project handover and recovery guide</h1>
+  <p class="lede">Generated 26 September 2026 from the local Flutter repository. This page is for continuing the existing app in Claude Code after Windows is reinstalled.</p>
+  <div class="banner"><strong>This document is a project handover and recovery guide. It does not prove that the application is production-ready.</strong> Always verify the current code, tests, integrations, and deployment configuration before release.</div>
+</header>
+<nav class="toc">
+  <div class="toc-inner">
+    <input id="search" type="search" placeholder="Filter sections and issues" aria-label="Filter handover">
+    <div class="toc-links">
+      <a href="#summary">Summary</a><a href="#product">Product</a><a href="#architecture">Architecture</a><a href="#history">History</a><a href="#bugs">Bugs</a><a href="#roadmap">Roadmap</a><a href="#accounts">Accounts</a><a href="#secrets">Secrets</a><a href="#backup">Backup</a><a href="#recovery">Recovery</a><a href="#claude">Claude Code</a><a href="#commands">Commands</a>
+    </div>
+  </div>
+</nav>
+<main>
+<section id="summary" data-section>
+  <h2>Current status</h2>
+  <div class="grid">
+    <article class="card"><strong>Project identity</strong><span class="badge partial">VERIFIED</span><p>BAID X Flutter app, package <code>com.baidx.baid_x_mobile</code>, version <code>1.0.0+1</code>.</p></article>
+    <article class="card"><strong>Current phase</strong><span class="badge progress">IN PROGRESS</span><p>Phase 14 visual code is committed. Phase 15 device QA has not passed.</p></article>
+    <article class="card"><strong>Latest commit</strong><span class="badge partial">VERIFIED</span><p><code>321ede404ab5c0e4e412e6428f039dd369347c9a</code> on local and <code>origin/main</code>.</p></article>
+    <article class="card"><strong>Flutter tests</strong><span class="badge unverified">UNVERIFIED</span><p>Source contains 83 test declarations. No current full passing run was verified.</p></article>
+    <article class="card"><strong>Analyzer</strong><span class="badge unverified">UNVERIFIED</span><p>The latest analyzer run in this session was interrupted. Do not treat it as clean.</p></article>
+    <article class="card"><strong>Physical device QA</strong><span class="badge blocked">BLOCKED</span><p>OPPO CPH2201 was detected, but interactive QA did not complete.</p></article>
+    <article class="card"><strong>Authentication</strong><span class="badge partial">PARTIALLY COMPLETE</span><p>Email/password code exists. Email session and Google OAuth are not verified.</p></article>
+    <article class="card"><strong>Core roles</strong><span class="badge partial">PARTIALLY COMPLETE</span><p>Five account types and screens exist. Several flows are unfinished or untested.</p></article>
+    <article class="card"><strong>Messaging</strong><span class="badge unverified">UNVERIFIED</span><p>Repository and realtime subscription code exist. Delivery was not tested.</p></article>
+    <article class="card"><strong>Notifications</strong><span class="badge partial">PARTIALLY COMPLETE</span><p>In-app list exists. Push notifications are not implemented.</p></article>
+    <article class="card"><strong>Billing</strong><span class="badge partial">PARTIALLY COMPLETE</span><p>Test-mode Paystack only. Callback success is not verified.</p></article>
+    <article class="card"><strong>Verification</strong><span class="badge partial">PARTIALLY COMPLETE</span><p>Request screens exist. No reviewer is seeded in the documented database.</p></article>
+    <article class="card"><strong>Security</strong><span class="badge unverified">UNVERIFIED</span><p>RLS migrations and docs exist. Live cross-role tests were not completed.</p></article>
+    <article class="card"><strong>Release readiness</strong><span class="badge blocked">NOT READY</span><p>Release signing files exist locally, but a validated release build does not.</p></article>
+  </div>
+</section>
+
+<section id="product" data-section>
+  <h2>What BAID X is</h2>
+  <p>BAID X is trust infrastructure for Africa’s workforce, built by BAID X under Baiden Studios. The app connects workers, employers, businesses, project managers, and companies through profiles, work, projects, marketplace listings, messages, reviews, and verification. A subscription is not verification.</p>
+  <p>The local package description is “BAID X trust infrastructure for Africa’s workforce.” The positioning in code is: “The future of work in Africa isn’t about connections — it’s about capability.” Ghana is the first market, but prices and country behavior are intended to come from backend configuration.</p>
+  <div class="diagram">
+    <div><strong>Worker</strong><br>Profile, jobs, applications, reputation.</div>
+    <div><strong>Employer</strong><br>Individual hirer. Separate from Business.</div>
+    <div><strong>Business</strong><br>Marketplace seller. Not a hiring role.</div>
+    <div><strong>Project manager</strong><br>Projects, tasks, reports, company request.</div>
+    <div><strong>Company</strong><br>Projects, team, approvals, billing.</div>
+  </div>
+  <h3>What is implemented versus planned</h3>
+  <table>
+    <tr><th>Role</th><th>Present in code</th><th>Not verified or missing</th></tr>
+    <tr><td>Worker</td><td>Account type, home, jobs, applications, profile, edit screen.</td><td>Edit screen starts with empty controllers and can overwrite saved data. Device QA not done.</td></tr>
+    <tr><td>Employer</td><td>Separate account type, worker discovery, jobs, marketplace destination.</td><td>End-to-end hiring behavior is not device-tested.</td></tr>
+    <tr><td>Business</td><td>Listings for product, equipment, rental, and service. Owner edit/delete code exists.</td><td>No listing image column or storage bucket is documented. Not a hiring role in navigation.</td></tr>
+    <tr><td>Project manager</td><td>Projects, company-code request, members, tasks, reports, and expenses inside a project.</td><td>Tasks and Reports bottom tabs open the Projects list.</td></tr>
+    <tr><td>Company</td><td>Team screen, approve/reject access requests, projects, company billing route.</td><td>Approval workflow was not exercised on device. No reviewer seed is documented.</td></tr>
+  </table>
+</section>
+
+<section id="architecture" data-section>
+  <h2>Architecture</h2>
+  <p>Flutter app using Riverpod and GoRouter. Entry is <code>lib/main.dart</code>, which initializes Supabase from <code>.env</code> and runs <code>ProviderScope</code> around <code>BaidXApp</code>. Routes live in <code>lib/core/router/app_router.dart</code>. Account types live in <code>lib/features/account_type/domain/account_type.dart</code>.</p>
+  <pre><code>Splash → Onboarding → Sign in / Sign up
+        → Email verification → Account type → Role setup
+        → Role shell: Home, Discover, Work, Projects, Marketplace, Profile
+Supabase Auth + Postgres RLS
+Paystack test checkout through Edge Function paystack-initialize</code></pre>
+  <table>
+    <tr><th>Component</th><th>Location</th><th>State</th></tr>
+    <tr><td>Flutter / Dart</td><td><code>pubspec.yaml</code> SDK <code>^3.13.3</code></td><td>Verified locally: Flutter 3.47.4, Dart 3.13.3.</td></tr>
+    <tr><td>State</td><td><code>flutter_riverpod</code> ^3.4.3</td><td>Used across features. Completeness of every provider is unverified.</td></tr>
+    <tr><td>Routing</td><td><code>go_router</code> ^18.0.1</td><td>Implemented. Tasks/Reports routes are wrong.</td></tr>
+    <tr><td>Auth</td><td><code>lib/features/auth</code></td><td>Email/password, reset, resend. No Google OAuth method in the client.</td></tr>
+    <tr><td>Supabase client</td><td><code>lib/core/config/supabase_config.dart</code></td><td>Reads URL and publishable key. Refuses placeholders. Never reads a service-role key.</td></tr>
+    <tr><td>Theme</td><td><code>lib/core/theme</code></td><td>Light/dark palette exists. Visual QA unverified.</td></tr>
+    <tr><td>Jobs</td><td><code>lib/features/jobs</code></td><td>List, create, apply code exists. Live RLS behavior unverified this session.</td></tr>
+    <tr><td>Marketplace</td><td><code>lib/features/marketplace</code></td><td>CRUD code exists. Image storage is not implemented.</td></tr>
+    <tr><td>Projects</td><td><code>lib/features/projects</code></td><td>Project detail contains tasks, reports, expenses, and access review.</td></tr>
+    <tr><td>Messaging</td><td><code>lib/features/messaging</code></td><td>Inbox, send, mark read, realtime watch code exists. Not device-tested.</td></tr>
+    <tr><td>Notifications</td><td><code>lib/features/notifications</code> and notification repository</td><td>In-app only. Docs say no Firebase or device tokens.</td></tr>
+    <tr><td>Billing</td><td><code>lib/features/billing</code></td><td>Server checkout plus test Paystack launch. Client return does not activate a plan.</td></tr>
+    <tr><td>Trust</td><td><code>lib/features/trust</code></td><td>Verification and review screens exist. Reviewer workflow is incomplete.</td></tr>
+    <tr><td>Tests</td><td><code>test/unit</code>, <code>test/widget</code></td><td>83 <code>test</code>/<code>testWidgets</code> declarations. Current pass status unverified.</td></tr>
+    <tr><td>Android</td><td><code>android/app</code></td><td>Application ID verified. Release signing reads ignored <code>key.properties</code>.</td></tr>
+    <tr><td>iOS</td><td><code>ios/Runner/Info.plist</code></td><td>Login URL scheme <code>com.baidx.baid_x_mobile</code> is committed. iOS build was not run.</td></tr>
+  </table>
+  <h3>Database evidence in this repository</h3>
+  <p><code>docs/supabase-architecture.md</code> documents the schema. It was not rechecked against the live database during this handover. <code>README.md</code> still says tables were not inspected; that README statement is stale relative to the architecture document.</p>
+  <p>Documented tables include profiles, profile_private, worker profiles/skills/experience, business profiles/listings, jobs, job applications, companies, company members, company access requests, projects, project members/tasks/reports/expenses, reviews, verifications, conversations, conversation members, messages, notifications, plans, subscriptions, payments, payment events, founding programs, and verification products.</p>
+  <p>Migrations in the repo:</p>
+  <ul>
+    <li><code>supabase/migrations/phase11_billing_schema.sql</code></li>
+    <li><code>supabase/migrations/phase13_break_jobs_rls_recursion.sql</code> — defines <code>private.worker_has_application</code> and <code>private.owns_job</code>, then recreates job read policies.</li>
+    <li><code>supabase/migrations/phase13c_fix_my_billing_entitlements.sql</code></li>
+  </ul>
+  <p>There is no <code>supabase/functions</code> directory and no <code>supabase/config.toml</code>. Docs refer to deployed Edge Functions <code>paystack-initialize</code> and <code>paystack-webhook</code>. Their deployed source is NOT VERIFIED in this repository.</p>
+</section>
+
+<section id="history" data-section>
+  <h2>Development history</h2>
+  <table>
+    <tr><th>Commit</th><th>Date</th><th>Meaning</th></tr>
+    <tr><td><code>1f91e349eda56f612d5d29ca94a91372a5ed1091</code></td><td>2026-09-24</td><td>Initial BAID X mobile app.</td></tr>
+    <tr><td><code>321ede404ab5c0e4e412e6428f039dd369347c9a</code></td><td>2026-09-26</td><td><code>feat: save latest BAID X mobile app progress</code>. Includes the Phase 14 UI files, auth/billing screen edits, Android signing config, iOS callback, and the two Phase 13 SQL files.</td></tr>
+  </table>
+  <div class="callout"><strong>Historical report contradiction:</strong> an earlier note said Phase 14 had not been committed. That is no longer true. On 26 September 2026, <code>git status</code> was clean and local <code>main</code> matched <code>origin/main</code> at <code>321ede4</code>.</div>
+  <h3>Code versus proof</h3>
+  <ul>
+    <li><strong>Code implemented:</strong> a screen, route, repository, or migration exists in Git.</li>
+    <li><strong>Code tested:</strong> the current test suite passed. This is unverified now.</li>
+    <li><strong>Visually verified:</strong> the installed app was inspected on the OPPO device. This did not happen.</li>
+    <li><strong>Production confirmed:</strong> live users, live payments, and store release. None of this is confirmed.</li>
+  </ul>
+  <p>A historical report said 83 Flutter tests passed and the analyzer was clean before later billing, verification, and authentication edits. Those edits are now inside commit <code>321ede4</code>. The historical result does not prove the current tree passes. This session’s analyzer and full test commands were interrupted.</p>
+  <h3>Phase 14 visual work now in Git</h3>
+  <p>Shared files added by the latest commit include <code>app_palette.dart</code> and twelve widgets: avatar, list, search field, auth header, bottom action bar, brand logo, form message, page body, quick actions, role header, section header, and status badge. Brand colors in code are ink <code>#111111</code>, yellow <code>#FFD100</code>, orange <code>#FF7A1A</code>, and blue <code>#0E3A5D</code>, with a dark palette. Backend routes and queries were not intentionally redesigned, but Tasks and Reports still point at <code>ProjectsScreen</code>.</p>
+</section>
+
+<section id="figma" data-section>
+  <h2>Figma</h2>
+  <p>Design file: <a href="https://www.figma.com/design/Ex2WXH3gCDtT04Gx2Fyney">https://www.figma.com/design/Ex2WXH3gCDtT04Gx2Fyney</a></p>
+  <p>The following comes from the prior design session and was not reopened in Figma for this handover: 23 color tokens, spacing and radius tokens, ten text styles, components for buttons, badges, search, list rows, home header, and bottom navigation, plus Worker Home, Jobs, Job Detail, Marketplace, and Project Manager Home. The selected Home tab was reported as a black pill instead of yellow. The Figma plan allowed one color mode, so dark colors were documented and implemented in Flutter. Claude Code must inspect the file before editing it. Do not assume Figma and Flutter match.</p>
+  <p>Figma account email, seat, and current MCP connection: NOT VERIFIED — REQUIRES MANUAL CHECK.</p>
+</section>
+
+<section id="bugs" data-section>
+  <h2>Known bugs and unfinished work</h2>
+  <table>
+    <tr><th>ID</th><th>Issue</th><th>Status</th><th>Severity</th><th>Evidence and next action</th></tr>
+    <tr><td>BUG-01</td><td>Worker edit profile starts empty</td><td>Code-confirmed risk</td><td>Critical</td><td><code>EditWorkerScreen</code> creates empty controllers and <code>saveProfile</code> writes them. Load the signed-in profile before editing and test reopen/save. Device reproduction is unverified.</td></tr>
+    <tr><td>BUG-02</td><td>PM Tasks and Reports tabs</td><td>Code-confirmed</td><td>High</td><td>Both routes build <code>ProjectsScreen</code>. Build real cross-project task and report queries under RLS.</td></tr>
+    <tr><td>BUG-03</td><td>Messages has no bottom tab</td><td>Code-confirmed</td><td>High</td><td>TODO in <code>app_bottom_navigation.dart</code>. Reachable from a profile message icon. Decide navigation before adding a sixth tab.</td></tr>
+    <tr><td>BUG-04</td><td>Email verification session</td><td>Unverified</td><td>High</td><td>Deep link <code>com.baidx.baid_x_mobile://login-callback</code> exists on Android and iOS. Fresh confirmation was not tested.</td></tr>
+    <tr><td>BUG-05</td><td>Google OAuth</td><td>Not implemented in client</td><td>High</td><td>No OAuth call in the auth data source. Architecture doc says Google sign-in is not enabled. Dashboard setting is unverified.</td></tr>
+    <tr><td>BUG-06</td><td>PM approval and rejection</td><td>Code exists, untested</td><td>High</td><td><code>review_company_access</code> is documented and the Team screen has Approve/Reject. Live workflow is unverified.</td></tr>
+    <tr><td>BUG-07</td><td>Verification reviewer</td><td>Incomplete</td><td>High</td><td>Reviewer screen exists. Docs say <code>private.verification_reviewers</code> has no seeded reviewer and clients cannot change status.</td></tr>
+    <tr><td>BUG-08</td><td>Messaging realtime</td><td>Unverified</td><td>High</td><td>Realtime watch is coded for <code>messages</code>. Delivery, unread state, and access were not tested.</td></tr>
+    <tr><td>BUG-09</td><td>Notifications</td><td>Partial</td><td>Medium/High</td><td>In-app repository exists. Push, Firebase, and device tokens are documented as absent.</td></tr>
+    <tr><td>BUG-10</td><td>Paystack sandbox</td><td>Unverified</td><td>High</td><td>Client calls <code>paystack-initialize</code> and warns that return does not activate payment. Sandbox callback was not completed.</td></tr>
+    <tr><td>BUG-11</td><td>Jobs RLS recursion</td><td>Migration present, live behavior unverified</td><td>Critical</td><td>Phase 13 migration exists. Do not weaken policies. Retest owner, applicant, and stranger access.</td></tr>
+    <tr><td>BUG-12</td><td>Cross-role authorization</td><td>Unverified</td><td>Critical</td><td>Client navigation differs by role, but live RLS isolation was not tested in this session.</td></tr>
+    <tr><td>BUG-13</td><td>Release validation</td><td>Blocked</td><td>High</td><td>Keystore file exists outside the repo. No successful validated release install was recorded.</td></tr>
+    <tr><td>BUG-14</td><td>Analyzer and latest tests</td><td>Unverified</td><td>High</td><td>Historical clean analyzer is stale. Current <code>_phone</code> warning was not found in <code>app_previews.dart</code>. Rerun analyze and all tests.</td></tr>
+    <tr><td>BUG-15</td><td>Figma Home tab color</td><td>Reported design issue</td><td>Low/Medium</td><td>Selected Home pill reportedly black instead of yellow. Not rechecked in Figma.</td></tr>
+  </table>
+</section>
+
+<section id="roadmap" data-section>
+  <h2>Roadmap</h2>
+  <p>Phases 1–14 are represented by the current repository. They are not all functionally complete. Phase 15 is the next safe phase.</p>
+  <details open><summary>Phase 15 — Stabilization and device QA</summary><p>Rerun analyzer and the full test suite. Build and install a debug APK on the OPPO CPH2201. Capture all five role homes and the redesigned flows. Fix overflow, keyboard, scrolling, and empty/error states found on device. Test dark mode. Do not mark this complete until the phone actually shows the app.</p></details>
+  <details><summary>Phase 16 — Authentication</summary><p>Test registration, email confirmation, session restore, password reset, deep links, and error states. Google OAuth is not in the client; treat it as new work, not a small bugfix, unless Supabase is later shown to have it enabled.</p></details>
+  <details><summary>Phase 17 — Roles and data integrity</summary><p>Fix worker profile loading before any other profile polish. Separate PM tasks and reports from the project list. Retest company access approval and rejection. Prove Business cannot hire and Employer is not treated as Business.</p></details>
+  <details><summary>Phase 18 — Messaging and notifications</summary><p>Test conversations and realtime. Decide where Messages belongs in navigation. Keep push notifications out until a real provider and token design exist.</p></details>
+  <details><summary>Phase 19 — Verification and billing</summary><p>Complete reviewer authorization. Validate Paystack test checkout, webhook, duplicate events, and subscription state. Do not enable live payments without explicit authorization.</p></details>
+  <details><summary>Phase 20 — Security regression</summary><p>Retest jobs RLS, applications, listings, projects, messages, company membership, profiles, and subscriptions. Do not disable RLS to make a test pass.</p></details>
+  <details><summary>Phase 21 — Release readiness</summary><p>Confirm signing without printing secrets. Produce a real release artifact only after debug QA. iOS, store listing, and production Supabase checks remain open. The app is not ready for publication.</p></details>
+</section>
+
+<section id="accounts" data-section>
+  <h2>Accounts and integrations</h2>
+  <table>
+    <tr><th>Service</th><th>Evidence</th><th>Status</th><th>Reconnect after reinstall</th></tr>
+    <tr><td>GitHub</td><td><code>origin</code> is <a href="https://github.com/edstudios73-svg/baid-x-mobile-">edstudios73-svg/baid-x-mobile-</a>, branch <code>main</code>.</td><td>Verified</td><td>Install Git, sign in with GitHub CLI or Git Credential Manager, clone the same URL. Do not create a new repository.</td></tr>
+    <tr><td>Supabase</td><td>Local <code>.env</code> host is <code>vxixalejbnvqivaytxzt.supabase.co</code>. Project ref <code>vxixalejbnvqivaytxzt</code>. Publishable key name is configured. Docs call the project BAID X MOBILE APP.</td><td>Client configured. Live dashboard access unverified.</td><td>Sign in to the existing project. Do not create a replacement project. Restore URL and publishable key only in <code>.env</code>.</td></tr>
+    <tr><td>Figma</td><td>File URL above.</td><td>Account/MCP access unverified.</td><td>Sign in to the existing file. Inspect before editing.</td></tr>
+    <tr><td>Claude Code</td><td>Chosen as the next development assistant. Not installed or authenticated by this inspection.</td><td>REQUIRES CONFIGURATION</td><td>Install Claude Code, sign in, and open the restored project folder.</td></tr>
+    <tr><td>Cursor</td><td>Used to produce the current work. Project rules live in <code>.cursor</code>, which is gitignored.</td><td>Optional after reinstall.</td><td>Reinstall only if needed. The GitHub repository is the source of truth.</td></tr>
+    <tr><td>Flutter</td><td>3.47.4 stable and Dart 3.13.3 verified on this PC.</td><td>Local SDK present now. It will be lost on flash.</td><td>Reinstall the same stable versions and run <code>flutter doctor -v</code>.</td></tr>
+    <tr><td>Android SDK / ADB</td><td><code>android/local.properties</code> points at the user SDK. Direct <code>adb</code> was not on PATH; the SDK <code>platform-tools\adb.exe</code> worked. Device <code>8LONJJBAUCNFWOPJ</code>, CPH2201, Android 12, API 31.</td><td>Verified earlier this session, then ADB became unreliable.</td><td>Reinstall SDK, USB driver, and authorize the phone again.</td></tr>
+    <tr><td>Paystack</td><td>Test publishable key is hardcoded in <code>lib/core/config/app_config.dart</code>. Secret name documented as <code>PAYSTACK_SECRET_KEY</code> on the Edge Function. Checkout refuses non-<code>pk_test_</code> keys.</td><td>Test mode only. Sandbox not completed.</td><td>Recover the secret in Supabase, not in Git. Do not switch to live mode.</td></tr>
+    <tr><td>Google OAuth</td><td>No client implementation. Docs say it is not enabled.</td><td>Not active in app code.</td><td>Requires a later Google Cloud OAuth client, Supabase provider, and redirect setup.</td></tr>
+    <tr><td>Netlify / Vercel</td><td>No project deployment config found in this Flutter repo. A separate website has existed at baid-x.vercel.app.</td><td>Not part of this mobile repo.</td><td>Do not recreate hosting for the mobile app unless a later release plan says so.</td></tr>
+    <tr><td>Firebase / maps / analytics</td><td>No Firebase, FCM, or Google Maps dependency in <code>pubspec.yaml</code>.</td><td>Not implemented.</td><td>Not required for the first recovery.</td></tr>
+  </table>
+</section>
+
+<section id="secrets" data-section>
+  <h2>Environment and secret recovery</h2>
+  <p>No secret values are recorded here. Restore them from the secure backup or the issuing dashboard.</p>
+  <table>
+    <tr><th>Name</th><th>Purpose</th><th>Required for</th><th>Safe to record?</th><th>Restore</th></tr>
+    <tr><td><code>SUPABASE_URL</code></td><td>Project API URL.</td><td>Any real backend use.</td><td>Host is already in docs. Keep the full local file private.</td><td>Copy <code>.env</code> or recreate from the Supabase project settings.</td></tr>
+    <tr><td><code>SUPABASE_PUBLISHABLE_KEY</code></td><td>Client key.</td><td>Auth and database calls.</td><td>No. Do not commit it.</td><td>Supabase API settings. Never use the service-role key in Flutter.</td></tr>
+    <tr><td><code>PAYSTACK_SECRET_KEY</code></td><td>Server payment secret.</td><td>Edge Function checkout and webhook.</td><td>No.</td><td>Paystack dashboard, then Supabase Edge Function secrets.</td></tr>
+    <tr><td>Paystack test public key</td><td>Client checkout guard.</td><td>Test checkout.</td><td>The value is already in source. Do not copy it into new docs.</td><td>Leave test mode until live activation is explicitly approved.</td></tr>
+    <tr><td><code>key.properties</code></td><td><code>storePassword</code>, <code>keyPassword</code>, <code>keyAlias</code>, <code>storeFile</code>.</td><td>Release signing.</td><td>No.</td><td>Secure backup. File exists at <code>android/key.properties</code> and is gitignored.</td></tr>
+    <tr><td><code>baid-x-release-key.jks</code></td><td>Android release identity.</td><td>Future updates with the same signature.</td><td>No. File exists at <code>C:\Users\Administrator\baid-x-release-key.jks</code>.</td><td>Copy the file and passwords to secure storage before flashing. Loss can block same-identity Play updates.</td></tr>
+    <tr><td><code>.env</code></td><td>Bundled Flutter asset and local secrets.</td><td>Development and release builds.</td><td>No. Gitignored, but referenced as an asset.</td><td>Back up the file itself. A Git clone will not contain it. <code>.env.example</code> only lists the two Supabase names.</td></tr>
+  </table>
+</section>
+
+<section id="backup" data-section>
+  <h2>Before flashing Windows</h2>
+  <p>GitHub currently contains the committed source at <code>321ede4</code>. Cloning GitHub is not enough, because ignored secrets and the keystore are not in Git.</p>
+  <ul class="check">
+    <li><label><input type="checkbox"> Confirm GitHub <code>main</code> still matches the local commit before shutdown.</label></li>
+    <li><label><input type="checkbox"> Confirm <code>git status</code> has no important uncommitted work. It was clean when this page was generated.</label></li>
+    <li><label><input type="checkbox"> Back up <code>.env</code>.</label></li>
+    <li><label><input type="checkbox"> Back up <code>android/key.properties</code>.</label></li>
+    <li><label><input type="checkbox"> Back up <code>C:\Users\Administrator\baid-x-release-key.jks</code> and its passwords.</label></li>
+    <li><label><input type="checkbox"> Back up <code>android/local.properties</code> only as a reference. Recreate SDK paths on the new machine.</label></li>
+    <li><label><input type="checkbox"> Confirm Supabase, GitHub, Figma, Paystack, and Claude Code account access can be recovered.</label></li>
+    <li><label><input type="checkbox"> Export any Supabase Edge Function secrets through the dashboard. They are not in this repo.</label></li>
+    <li><label><input type="checkbox"> Do not flash until every checked item above is actually done.</label></li>
+  </ul>
+  <p>Flutter SDK, Android SDK, Cursor, and local build folders can be reinstalled. They are large and do not need to be copied unless you want to save time. Do not copy <code>build/</code> as a substitute for source.</p>
+</section>
+
+<section id="recovery" data-section>
+  <h2>Windows 11 recovery sequence</h2>
+  <ol>
+    <li>Install Git, Flutter 3.47.4 stable, Dart 3.13.3, Android Studio or the Android command-line tools, platform-tools, and a browser.</li>
+    <li>Install Claude Code and sign in. Also install GitHub authentication.</li>
+    <li>Clone <code>https://github.com/edstudios73-svg/baid-x-mobile-.git</code> or copy the backed-up project folder. Open that existing directory. Do not run <code>flutter create</code>.</li>
+    <li>Check <code>main</code>, <code>origin</code>, and commit <code>321ede4</code>. If the remote has newer commits, inspect them. Do not force-push.</li>
+    <li>Restore <code>.env</code> and <code>android/key.properties</code>. Put the keystore where <code>storeFile</code> expects it. Do not commit either file.</li>
+    <li>Run <code>flutter pub get</code>, <code>flutter doctor -v</code>, <code>flutter analyze</code>, and <code>flutter test</code>.</li>
+    <li>Reconnect the OPPO phone, enable USB debugging, and accept the computer authorization. Verify with the SDK <code>adb.exe</code>.</li>
+    <li>Sign in again to GitHub, Supabase, Figma, Claude Code, and Paystack. Confirm the Supabase ref is still <code>vxixalejbnvqivaytxzt</code> before running migrations.</li>
+  </ol>
+</section>
+
+<section id="claude" data-section>
+  <h2>CLAUDE CODE: READ THIS BEFORE TOUCHING THE PROJECT</h2>
+  <div class="banner">Continue the existing BAID X Flutter application. Do not rebuild it, do not create a new backend, and do not replace Supabase.</div>
+  <ul>
+    <li>Inspect Git, structure, dependencies, <code>.env</code> presence, migrations, and this document before editing.</li>
+    <li>Preserve routes, schema, and working behavior unless a change is required.</li>
+    <li>Do not disable authentication, authorization, or RLS to make a test pass.</li>
+    <li>Do not switch Paystack to live mode or place secrets in code, logs, commits, or docs.</li>
+    <li>Do not delete migrations, rewrite history, or force-push.</li>
+    <li>Do not run destructive SQL or delete users without explicit authorization.</li>
+    <li>Keep changes small. Record what was tested and what remains unverified.</li>
+    <li>Ask before irreversible operations.</li>
+  </ul>
+  <p>First session: verify the commit, read this page, run analyzer and the full test suite, confirm Phase 14 is already committed, then propose a Phase 15 plan. Do not start with a redesign, and do not claim success without command results.</p>
+</section>
+
+<section id="commands" data-section>
+  <h2>Command reference</h2>
+  <p>These commands match this Flutter project. None of the release commands were run successfully as part of creating this page.</p>
+  <pre><code>flutter pub get</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter analyze</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter test</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter devices</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter build apk --debug</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter install</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>flutter build apk --release</code><button class="copy" type="button">Copy</button></pre>
+  <pre><code>git status
+git branch --show-current
+git remote -v
+git log -1 --oneline</code><button class="copy" type="button">Copy</button></pre>
+  <p>Use debug builds for Phase 15. Use the release build only after signing files are restored and debug QA has passed. A debug APK is not a production release.</p>
+</section>
+
+<section id="business" data-section>
+  <h2>Business model</h2>
+  <p>The billing migration defines plan tiers <code>access</code>, <code>pro</code>, <code>premium</code>, and <code>enterprise</code>. Payment purposes include subscription, verification, boost, promotion, XID, and protected-payment fee. Prices are intended to come from server plan rows. No current price was verified from the live database, and no price should be hardcoded as truth.</p>
+  <p>Verification is a separate pending/verified/rejected record. Buying verification is documented to create a pending row, not a verified badge. Client payment return does not activate a subscription. Live payments are not active.</p>
+</section>
+
+<section id="design" data-section>
+  <h2>UI direction</h2>
+  <p>The implemented Flutter theme is mobile-first, ink, yellow, orange, and blue, with light and dark palettes. Shared widgets hold buttons, lists, badges, headers, search, forms, and page layout. The product direction avoids decorative gradients, glow, and crowded cards. Figma may still differ, including the reported black selected Home pill. Device screenshots are still required before calling the redesign visually accepted.</p>
+</section>
+
+<section id="final" data-section>
+  <h2>Final recovery checklist</h2>
+  <ul class="check">
+    <li><label><input type="checkbox"> GitHub backup verified.</label></li>
+    <li><label><input type="checkbox"> Local ignored secrets backed up.</label></li>
+    <li><label><input type="checkbox"> Release keystore and passwords backed up.</label></li>
+    <li><label><input type="checkbox"> Supabase project access confirmed.</label></li>
+    <li><label><input type="checkbox"> Claude Code account ready.</label></li>
+    <li><label><input type="checkbox"> Figma file access confirmed.</label></li>
+    <li><label><input type="checkbox"> Paystack test account and Edge Function secret recoverable.</label></li>
+    <li><label><input type="checkbox"> Phone, USB debugging, and ADB plan recorded.</label></li>
+  </ul>
+</section>
+</main>
+<footer>BAID X — Project Handover &amp; Recovery Guide. Prepared for continued development using Claude Code.</footer>
+<script>
+const search = document.querySelector('#search');
+search.addEventListener('input', () => {
+  const query = search.value.toLowerCase().trim();
+  document.querySelectorAll('[data-section]').forEach((section) => {
+    section.classList.toggle('hidden', query.length > 0 && !section.innerText.toLowerCase().includes(query));
+  });
+});
+document.querySelectorAll('.copy').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const code = button.parentElement.querySelector('code').innerText;
+    await navigator.clipboard.writeText(code);
+    button.textContent = 'Copied';
+    setTimeout(() => { button.textContent = 'Copy'; }, 1200);
+  });
+});
+</script>
+</body>
+</html>
