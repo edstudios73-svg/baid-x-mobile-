@@ -122,15 +122,24 @@ class SupabaseBillingRepository implements BillingRepository {
 
   @override
   Future<List<Map<String, dynamic>>> myListings() async {
-    final rows = await _client.from('business_listings').select('id, title').order('created_at', ascending: false);
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return const [];
+    final rows = await _client
+        .from('business_listings')
+        .select('id, title')
+        .eq('business_profile_id', userId)
+        .order('created_at', ascending: false);
     return [for (final raw in rows as List) Map<String, dynamic>.from(raw as Map)];
   }
 
   @override
   Future<Map<String, dynamic>?> activePromotion() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return null;
     final rows = await _client
         .from('promotions')
         .select('package, listing_limit, starts_at, ends_at')
+        .eq('business_profile_id', userId)
         .order('ends_at', ascending: false)
         .limit(1);
     if (rows.isEmpty) return null;

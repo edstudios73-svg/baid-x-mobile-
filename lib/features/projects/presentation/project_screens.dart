@@ -4,14 +4,23 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_routes.dart';
 import '../../../core/errors/error_handler.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_view.dart';
+import '../../../shared/widgets/app_list.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/bottom_action_bar.dart';
+import '../../../shared/widgets/form_message.dart';
+import '../../../shared/widgets/page_body.dart';
+import '../../../shared/widgets/section_header.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../../billing/presentation/product_screens.dart';
 import '../../messaging/presentation/messaging_screens.dart';
 import '../../trust/presentation/trust_screens.dart';
@@ -24,6 +33,52 @@ String _friendly(Object error, String fallback) {
   return fallback;
 }
 
+String _amountLabel(Object? amount, String currency) {
+  final value = amount is num ? amount.toDouble() : double.tryParse('$amount');
+  return value == null ? '$currency $amount'.trim() : Formatters.price(value, currency);
+}
+
+/// Small muted line for an empty section inside a detail page.
+class _Quiet extends StatelessWidget {
+  const _Quiet(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: AppTextStyles.bodyMuted.copyWith(color: context.palette.textMuted));
+  }
+}
+
+/// One input with an add button beside it, used for tasks, reports and expenses.
+class _Composer extends StatelessWidget {
+  const _Composer({required this.field, required this.label, required this.onAdd});
+
+  final Widget field;
+  final String label;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: field),
+        const SizedBox(width: AppSpacing.xs),
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 56),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            textStyle: AppTextStyles.label,
+          ),
+          onPressed: onAdd,
+          child: Text(label),
+        ),
+      ],
+    );
+  }
+}
+
 class ProjectsScreen extends ConsumerWidget {
   const ProjectsScreen({super.key});
 
@@ -31,41 +86,61 @@ class ProjectsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final type = ref.watch(accountProfileProvider).asData?.value?.accountType;
     final projects = ref.watch(projectListProvider);
+    final company = ref.watch(myCompanyProvider).asData?.value;
+    final canCreate = type == 'company' || type == 'project_manager';
     return Scaffold(
       appBar: AppBar(title: const Text('Projects')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      bottomNavigationBar: canCreate
+          ? BottomActionBar(child: AppButton(label: 'Create project', onPressed: () => context.push(AppRoutes.createProject)))
+          : null,
+      body: PageBody(
         children: [
-          if (canRequestCompanyAccess(type))
-            AppButton(label: 'Request company access', outlined: true, onPressed: () => context.push(AppRoutes.companyAccess)),
-          if (ref.watch(myCompanyProvider).asData?.value != null)
-            AppButton(
-              label: 'Company messages',
-              outlined: true,
-              onPressed: () => openContextConversation(ref, context, contextType: 'company', contextId: ref.read(myCompanyProvider).asData!.value!.id),
+          if (canRequestCompanyAccess(type) || company != null) ...[
+            AppListGroup(
+              children: [
+                if (canRequestCompanyAccess(type))
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.key_outlined, size: 40),
+                    title: 'Request company access',
+                    subtitle: 'Work on a company\'s projects once they approve you.',
+                    onTap: () => context.push(AppRoutes.companyAccess),
+                  ),
+                if (company != null)
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.forum_outlined, size: 40),
+                    title: 'Company messages',
+                    subtitle: company.name,
+                    onTap: () => openContextConversation(ref, context, contextType: 'company', contextId: company.id),
+                  ),
+              ],
             ),
-          if (type == 'company' || type == 'project_manager') ...[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(label: 'Create project', onPressed: () => context.push(AppRoutes.createProject)),
+            const SizedBox(height: AppSpacing.lg),
           ],
-          const SizedBox(height: AppSpacing.md),
+          const SectionHeader(title: 'Your projects'),
           projects.when(
-            loading: () => const AppLoader(message: 'Loading projects'),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: AppLoader(message: 'Loading projects'),
+            ),
             error: (error, _) => AppErrorView(
               message: _friendly(error, "We couldn't load your projects."),
               onRetry: () => ref.invalidate(projectListProvider),
             ),
             data: (rows) {
               if (rows.isEmpty) {
-                return const AppEmptyState(title: 'No projects yet', message: 'Projects you manage will appear here.');
+                return const AppEmptyState(
+                  icon: Icons.account_tree_outlined,
+                  title: 'No projects yet',
+                  message: 'Projects you manage will appear here.',
+                );
               }
-              return Column(
+              return AppListGroup(
                 children: [
                   for (final project in rows)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(project.title),
-                      subtitle: Text(project.status),
+                    AppListRow(
+                      leading: AppAvatar(name: project.title),
+                      title: project.title,
+                      badge: StatusBadge.forStatus(project.status),
                       onTap: () => context.push('/projects/${project.id}'),
                     ),
                 ],
@@ -106,15 +181,14 @@ class _CreateProjectScreenState extends ConsumerState<CreateProjectScreen> {
     }
     return Scaffold(
       appBar: AppBar(title: const Text('Create project')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      bottomNavigationBar: BottomActionBar(child: AppButton(label: 'Save', isLoading: _saving, onPressed: _save)),
+      body: PageBody(
         children: [
-          AppTextField(label: 'Title', controller: _title),
+          const SizedBox(height: AppSpacing.xs),
+          AppTextField(label: 'Title', controller: _title, hint: 'e.g. East Legon villa'),
           const SizedBox(height: AppSpacing.md),
-          AppTextField(label: 'Summary', controller: _summary),
-          if (_error != null) ...[const SizedBox(height: AppSpacing.md), Text(_error!, style: AppTextStyles.bodyMuted)],
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(label: 'Save', isLoading: _saving, onPressed: _save),
+          AppTextField(label: 'Summary', controller: _summary, maxLines: 5, minLines: 3),
+          if (_error != null) ...[const SizedBox(height: AppSpacing.md), FormMessage(_error!)],
         ],
       ),
     );
@@ -171,12 +245,16 @@ class ProjectDetailScreen extends ConsumerWidget {
           if (record == null) {
             return const AppEmptyState(title: "You don't have access to this project.", message: 'Private projects stay with the people authorized to work on them.');
           }
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          final palette = context.palette;
+          return PageBody(
             children: [
-              Text(record.title, style: AppTextStyles.title),
-              Text(record.status, style: AppTextStyles.bodyMuted),
-              if (record.summary.isNotEmpty) Text(record.summary),
+              Align(alignment: Alignment.centerLeft, child: StatusBadge.forStatus(record.status)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(record.title, style: AppTextStyles.headline.copyWith(color: palette.text)),
+              if (record.summary.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(record.summary, style: AppTextStyles.body.copyWith(color: palette.text)),
+              ],
               const SizedBox(height: AppSpacing.md),
               AppButton(
                 label: 'Project messages',
@@ -184,19 +262,19 @@ class ProjectDetailScreen extends ConsumerWidget {
                 onPressed: () => openContextConversation(ref, context, contextType: 'project', contextId: id),
               ),
               const SizedBox(height: AppSpacing.lg),
-              BoostPanel(targetType: 'project', targetId: id, title: 'Boost project'),
-              const SizedBox(height: AppSpacing.lg),
-              const Text('Members', style: AppTextStyles.label),
-              _MemberSection(projectId: id, companyId: record.companyId),
-              const SizedBox(height: AppSpacing.lg),
-              const Text('Tasks', style: AppTextStyles.label),
+              const SectionHeader(title: 'Tasks'),
               _TaskSection(projectId: id),
               const SizedBox(height: AppSpacing.lg),
-              const Text('Reports', style: AppTextStyles.label),
+              const SectionHeader(title: 'Members'),
+              _MemberSection(projectId: id, companyId: record.companyId),
+              const SizedBox(height: AppSpacing.lg),
+              const SectionHeader(title: 'Reports'),
               _ReportSection(projectId: id),
               const SizedBox(height: AppSpacing.lg),
-              const Text('Expenses', style: AppTextStyles.label),
+              const SectionHeader(title: 'Expenses'),
               _ExpenseSection(projectId: id),
+              const SizedBox(height: AppSpacing.lg),
+              BoostPanel(targetType: 'project', targetId: id, title: 'Boost project'),
             ],
           );
         },
@@ -230,57 +308,68 @@ class _MemberSectionState extends ConsumerState<_MemberSection> {
   Widget build(BuildContext context) {
     final members = ref.watch(_members);
     final companyMembers = ref.watch(_companyMembers);
+    final me = ref.watch(authStateProvider).asData?.value?.id;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         members.when(
           loading: () => const AppLoader(),
           error: (error, _) => Text(_friendly(error, "You don't have access to this project.")),
-          data: (rows) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (rows.isEmpty) const Text('No project members yet'),
-              for (final member in rows) ...[
-                Text(
-                  member['display_name'] == null
-                      ? '${member['member_role']}'
-                      : '${member['display_name']} · ${member['member_role']}',
-                ),
-                if (ref.watch(authStateProvider).asData?.value?.id != '${member['profile_id']}')
-                  ReviewForm(subjectId: '${member['profile_id']}', projectId: widget.projectId),
+          data: (rows) {
+            if (rows.isEmpty) return const _Quiet('No project members yet');
+            return AppListGroup(
+              children: [
+                for (final member in rows) ...[
+                  AppListRow(
+                    leading: AppAvatar(name: '${member['display_name'] ?? member['member_role']}', size: 40),
+                    title: '${member['display_name'] ?? statusLabel('${member['member_role']}')}',
+                    subtitle: member['display_name'] == null ? null : statusLabel('${member['member_role']}'),
+                  ),
+                  if (me != '${member['profile_id']}')
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+                      child: ReviewForm(subjectId: '${member['profile_id']}', projectId: widget.projectId),
+                    ),
+                ],
               ],
-            ],
-          ),
+            );
+          },
         ),
         companyMembers.when(
           loading: () => const SizedBox.shrink(),
           error: (_, _) => const SizedBox.shrink(),
           data: (rows) {
             if (rows.isEmpty) return const SizedBox.shrink();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DropdownButton<String>(
-                  isExpanded: true,
-                  hint: const Text('Choose a company member'),
-                  value: _profileId,
-                  items: [
-                    for (final member in rows)
-                      DropdownMenuItem(value: '${member['profile_id']}', child: Text('${member['member_role']}')),
-                  ],
-                  onChanged: (value) => setState(() => _profileId = value),
-                ),
-                DropdownButton<String>(
-                  value: _role,
-                  items: const [
-                    DropdownMenuItem(value: 'worker', child: Text('Worker')),
-                    DropdownMenuItem(value: 'project_manager', child: Text('Project manager')),
-                  ],
-                  onChanged: (value) => setState(() => _role = value ?? 'worker'),
-                ),
-                TextButton(onPressed: _add, child: const Text('Add member')),
-                if (_error != null) Text(_error!, style: AppTextStyles.bodyMuted),
-              ],
+            return Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Company member'),
+                    initialValue: _profileId,
+                    items: [
+                      for (final member in rows)
+                        DropdownMenuItem(value: '${member['profile_id']}', child: Text(statusLabel('${member['member_role']}'))),
+                    ],
+                    onChanged: (value) => setState(() => _profileId = value),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Role on this project'),
+                    initialValue: _role,
+                    items: const [
+                      DropdownMenuItem(value: 'worker', child: Text('Worker')),
+                      DropdownMenuItem(value: 'project_manager', child: Text('Project manager')),
+                    ],
+                    onChanged: (value) => setState(() => _role = value ?? 'worker'),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  AppButton(label: 'Add member', outlined: true, onPressed: _add),
+                  if (_error != null) ...[const SizedBox(height: AppSpacing.xs), FormMessage(_error!)],
+                ],
+              ),
             );
           },
         ),
@@ -324,36 +413,55 @@ class _TaskSectionState extends ConsumerState<_TaskSection> {
   @override
   Widget build(BuildContext context) {
     final tasks = ref.watch(_tasks);
+    final palette = context.palette;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         tasks.when(
           loading: () => const AppLoader(),
           error: (error, _) => Text(_friendly(error, "We couldn't load tasks.")),
-          data: (rows) => Column(
-            children: [
-              if (rows.isEmpty) const Text('No tasks yet'),
-              for (final task in rows)
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('${task['title'] ?? ''}'),
-                  value: task['is_done'] == true,
-                  onChanged: (value) async {
-                    await ref.read(projectRepositoryProvider).setTaskDone(taskId: '${task['id']}', done: value ?? false);
-                    ref.invalidate(_tasks);
-                  },
+          data: (rows) {
+            if (rows.isEmpty) return const _Quiet('No tasks yet');
+            final done = rows.where((task) => task['is_done'] == true).length;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('$done of ${rows.length} done', style: AppTextStyles.caption.copyWith(color: palette.textMuted)),
+                const SizedBox(height: AppSpacing.xs),
+                AppListGroup(
+                  children: [
+                    for (final task in rows)
+                      CheckboxListTile(
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(
+                          '${task['title'] ?? ''}',
+                          style: AppTextStyles.body.copyWith(
+                            color: task['is_done'] == true ? palette.textMuted : palette.text,
+                            decoration: task['is_done'] == true ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        value: task['is_done'] == true,
+                        onChanged: (value) async {
+                          await ref.read(projectRepositoryProvider).setTaskDone(taskId: '${task['id']}', done: value ?? false);
+                          ref.invalidate(_tasks);
+                        },
+                      ),
+                  ],
                 ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
-        AppTextField(label: 'New task', controller: _title),
-        TextButton(
-          onPressed: () async {
+        const SizedBox(height: AppSpacing.sm),
+        _Composer(
+          field: AppTextField(label: 'New task', controller: _title),
+          label: 'Add task',
+          onAdd: () async {
             if (_title.text.trim().isEmpty) return;
             await ref.read(projectRepositoryProvider).addTask(projectId: widget.projectId, title: _title.text);
             _title.clear();
             ref.invalidate(_tasks);
           },
-          child: const Text('Add task'),
         ),
       ],
     );
@@ -383,29 +491,35 @@ class _ReportSectionState extends ConsumerState<_ReportSection> {
   Widget build(BuildContext context) {
     final reports = ref.watch(_reports);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         reports.when(
           loading: () => const AppLoader(),
           error: (error, _) => Text(_friendly(error, "We couldn't save this report.")),
-          data: (rows) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (rows.isEmpty) const Text('No reports yet'),
-              for (final report in rows) Text('${report['body'] ?? ''}'),
-            ],
-          ),
+          data: (rows) {
+            if (rows.isEmpty) return const _Quiet('No reports yet');
+            return AppListGroup(
+              children: [
+                for (final report in rows)
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.description_outlined, size: 40),
+                    title: '${report['body'] ?? ''}',
+                  ),
+              ],
+            );
+          },
         ),
-        AppTextField(label: 'Report', controller: _body),
-        TextButton(
-          onPressed: () async {
+        const SizedBox(height: AppSpacing.sm),
+        _Composer(
+          field: AppTextField(label: 'Report', controller: _body, maxLines: 4),
+          label: 'Add report',
+          onAdd: () async {
             final user = ref.read(authStateProvider).asData?.value;
             if (user == null || _body.text.trim().isEmpty) return;
             await ref.read(projectRepositoryProvider).addReport(projectId: widget.projectId, userId: user.id, body: _body.text);
             _body.clear();
             ref.invalidate(_reports);
           },
-          child: const Text('Add report'),
         ),
       ],
     );
@@ -437,24 +551,43 @@ class _ExpenseSectionState extends ConsumerState<_ExpenseSection> {
   @override
   Widget build(BuildContext context) {
     final expenses = ref.watch(_expenses);
+    final palette = context.palette;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         expenses.when(
           loading: () => const AppLoader(),
           error: (error, _) => Text(_friendly(error, "We couldn't load expenses.")),
-          data: (rows) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (rows.isEmpty) const Text('No expenses yet'),
-              for (final expense in rows) Text('${expense['description'] ?? ''} · ${expense['currency'] ?? ''} ${expense['amount'] ?? ''}'),
-            ],
-          ),
+          data: (rows) {
+            if (rows.isEmpty) return const _Quiet('No expenses yet');
+            return AppListGroup(
+              children: [
+                for (final expense in rows)
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.receipt_outlined, size: 40),
+                    title: '${expense['description'] ?? ''}'.isEmpty ? 'Expense' : '${expense['description']}',
+                    trailing: Text(
+                      _amountLabel(expense['amount'], '${expense['currency'] ?? ''}'),
+                      style: AppTextStyles.label.copyWith(color: palette.text, fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
+        const SizedBox(height: AppSpacing.sm),
         AppTextField(label: 'Expense', controller: _description),
-        AppTextField(label: 'Amount', controller: _amount, keyboardType: TextInputType.number),
-        if (_error != null) Text(_error!, style: AppTextStyles.bodyMuted),
-        TextButton(onPressed: _add, child: const Text('Add expense')),
+        const SizedBox(height: AppSpacing.xs),
+        _Composer(
+          field: AppTextField(
+            label: 'Amount (GH₵)',
+            controller: _amount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          label: 'Add expense',
+          onAdd: _add,
+        ),
+        if (_error != null) ...[const SizedBox(height: AppSpacing.xs), FormMessage(_error!)],
       ],
     );
   }
@@ -499,23 +632,47 @@ class TeamScreen extends ConsumerWidget {
           if (record == null) {
             return const AppEmptyState(title: 'No company yet', message: 'Finish company setup to see your team.');
           }
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          final palette = context.palette;
+          return PageBody(
             children: [
-              Text(record.name, style: AppTextStyles.title),
-              Text('${record.industry} · ${record.publicCode}', style: AppTextStyles.bodyMuted),
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  AppAvatar(name: record.name, size: 56),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(record.name, style: AppTextStyles.title.copyWith(color: palette.text)),
+                        if (record.industry.isNotEmpty) Text(record.industry, style: AppTextStyles.bodyMuted.copyWith(color: palette.textMuted)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: AppSpacing.md),
-              AppButton(
-                label: 'Company messages',
-                outlined: true,
-                onPressed: () => openContextConversation(ref, context, contextType: 'company', contextId: record.id),
+              AppListGroup(
+                children: [
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.tag, size: 40),
+                    title: 'Company code: ${record.publicCode}',
+                    subtitle: 'Project managers use this to request access. It does not grant access by itself.',
+                    subtitleLines: 2,
+                  ),
+                  AppListRow(
+                    leading: const AppAvatar.icon(Icons.forum_outlined, size: 40),
+                    title: 'Company messages',
+                    onTap: () => openContextConversation(ref, context, contextType: 'company', contextId: record.id),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text('Members', style: AppTextStyles.label),
-              _Members(companyId: record.id),
-              const SizedBox(height: AppSpacing.lg),
-              const Text('Access requests', style: AppTextStyles.label),
+              const SectionHeader(title: 'Access requests'),
               const _Requests(),
+              const SizedBox(height: AppSpacing.lg),
+              const SectionHeader(title: 'Members'),
+              _Members(companyId: record.id),
             ],
           );
         },
@@ -536,14 +693,15 @@ class _Members extends ConsumerWidget {
       loading: () => const AppLoader(),
       error: (error, _) => Text(_friendly(error, "We couldn't load your team.")),
       data: (rows) {
-        if (rows.isEmpty) return const Text('No team members yet');
-        return Column(
+        if (rows.isEmpty) return const _Quiet('No team members yet');
+        return AppListGroup(
           children: [
             for (final member in rows)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('${member['member_role']}'),
-                subtitle: Text('${member['status']}'),
+              AppListRow(
+                leading: AppAvatar(name: '${member['display_name'] ?? member['member_role']}', size: 40),
+                title: '${member['display_name'] ?? statusLabel('${member['member_role']}')}',
+                subtitle: member['display_name'] == null ? null : statusLabel('${member['member_role']}'),
+                trailing: StatusBadge.forStatus('${member['status']}'),
               ),
           ],
         );
@@ -569,22 +727,39 @@ class _Requests extends ConsumerWidget {
         onRetry: () => ref.invalidate(accessRequestsProvider),
       ),
       data: (rows) {
-        if (rows.isEmpty) return const Text('No access requests');
-        return Column(
+        if (rows.isEmpty) return const _Quiet('No access requests');
+        return AppListGroup(
           children: [
             for (final request in rows)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(request.status),
-                trailing: request.status == 'pending'
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.key_outlined, size: 20),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(child: Text('Project manager access', style: AppTextStyles.label.copyWith(color: context.palette.text))),
+                        StatusBadge.forStatus(request.status),
+                      ],
+                    ),
+                    if (request.status == 'pending') ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
                         children: [
-                          TextButton(onPressed: () => _review(ref, request.id, true), child: const Text('Approve')),
-                          TextButton(onPressed: () => _review(ref, request.id, false), child: const Text('Reject')),
+                          Expanded(
+                            child: AppButton(label: 'Reject', outlined: true, onPressed: () => _review(ref, request.id, false)),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: AppButton(label: 'Approve', onPressed: () => _review(ref, request.id, true)),
+                          ),
                         ],
-                      )
-                    : null,
+                      ),
+                    ],
+                  ],
+                ),
               ),
           ],
         );
@@ -626,26 +801,38 @@ class _CompanyAccessScreenState extends ConsumerState<CompanyAccessScreen> {
     final requests = ref.watch(accessRequestsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Company access')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      body: PageBody(
         children: [
-          const Text('Enter the company code. Knowing the code does not grant access.', style: AppTextStyles.bodyMuted),
+          Text(
+            'Enter the company code. Knowing the code does not grant access.',
+            style: AppTextStyles.bodyMuted.copyWith(color: context.palette.textMuted),
+          ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(label: 'Company code', controller: _code),
-          if (_message != null) ...[const SizedBox(height: AppSpacing.md), Text(_message!)],
+          if (_message != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            FormMessage(_message!, success: _message!.startsWith('Request sent')),
+          ],
           const SizedBox(height: AppSpacing.md),
           AppButton(label: 'Submit request', isLoading: _saving, onPressed: _submit),
           const SizedBox(height: AppSpacing.lg),
+          const SectionHeader(title: 'Your requests'),
           requests.when(
             loading: () => const AppLoader(),
             error: (error, _) => Text(_friendly(error, "We couldn't submit the access request.")),
-            data: (rows) => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (rows.isEmpty) const Text('No request yet'),
-                for (final request in rows) Text(request.status, style: AppTextStyles.body),
-              ],
-            ),
+            data: (rows) {
+              if (rows.isEmpty) return const _Quiet('No request yet');
+              return AppListGroup(
+                children: [
+                  for (final request in rows)
+                    AppListRow(
+                      leading: const AppAvatar.icon(Icons.key_outlined, size: 40),
+                      title: 'Company access',
+                      trailing: StatusBadge.forStatus(request.status),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),

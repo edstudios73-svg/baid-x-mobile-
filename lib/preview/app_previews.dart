@@ -8,7 +8,7 @@ import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 
 /// Phone frame used by the Flutter Widget Previewer.
-const _phone = Size(390, 844);
+const phone = Size(390, 844);
 
 Widget previewApp(Widget child) {
   return ProviderScope(
@@ -20,11 +20,11 @@ Widget previewApp(Widget child) {
   );
 }
 
-@Preview(name: 'Splash', group: 'BAID X', size: _phone, wrapper: previewApp)
+@Preview(name: 'Splash', group: 'BAID X', size: phone, wrapper: previewApp)
 Widget splashPreview() => const SplashScreen();
 
-@Preview(name: 'Get started', group: 'BAID X', size: _phone, wrapper: previewApp)
+@Preview(name: 'Get started', group: 'BAID X', size: phone, wrapper: previewApp)
 Widget onboardingPreview() => const OnboardingScreen();
 
-@Preview(name: 'Sign in', group: 'BAID X', size: _phone, wrapper: previewApp)
+@Preview(name: 'Sign in', group: 'BAID X', size: phone, wrapper: previewApp)
 Widget signInPreview() => const SignInScreen();

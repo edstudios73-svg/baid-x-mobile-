@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/error_handler.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_view.dart';
+import '../../../shared/widgets/app_list.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/form_message.dart';
+import '../../../shared/widgets/page_body.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../../billing/domain/product_rules.dart';
 import '../../billing/presentation/billing_providers.dart';
 import '../../billing/presentation/paystack_checkout.dart';
@@ -39,15 +47,18 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
         ),
         data: (rows) {
           if (rows.isEmpty) {
-            return const Center(child: Text('No verification products are offered for this account.'));
+            return const AppEmptyState(
+              icon: Icons.verified_user_outlined,
+              title: 'No checks offered',
+              message: 'No verification products are offered for this account.',
+            );
           }
           final mine = records.asData?.value ?? const <Map<String, dynamic>>[];
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          return PageBody(
             children: [
-              const Text('Payment asks BAID X to review the check. It does not mark the account verified.'),
+              const InfoNote('Payment asks BAID X to review the check. It does not mark the account verified.'),
               const SizedBox(height: AppSpacing.md),
-              for (final product in rows) _product(product, mine),
+              AppListGroup(children: [for (final product in rows) _product(product, mine)]),
             ],
           );
         },
@@ -60,16 +71,34 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
     final match = mine.where((row) => row['verification_kind'] == kind);
     final status = match.isEmpty ? null : '${match.first['status']}';
     final open = canPurchaseVerification(status);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text('${product['label']} · ${catalogPrice(product)}'),
-      subtitle: Text('${verificationStateLabel(status)}. A paid plan does not verify this account.'),
-      trailing: open
-          ? TextButton(
-              onPressed: _busy ? null : () => _buy('${product['product_code']}'),
-              child: const Text('Purchase'),
-            )
-          : null,
+    final palette = context.palette;
+    final tone = switch (status) {
+      'verified' => BadgeTone.success,
+      'pending' => BadgeTone.warning,
+      'rejected' => BadgeTone.danger,
+      _ => BadgeTone.neutral,
+    };
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('${product['label']}', style: AppTextStyles.label.copyWith(color: palette.text, fontSize: 15))),
+              StatusBadge(label: verificationStateLabel(status), tone: tone),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(catalogPrice(product), style: AppTextStyles.numeric.copyWith(color: palette.text, fontSize: 18)),
+          const SizedBox(height: AppSpacing.xxs),
+          Text('A paid plan does not verify this account.', style: AppTextStyles.caption.copyWith(color: palette.textMuted)),
+          if (open) ...[
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(label: 'Purchase', isLoading: _busy, onPressed: () => _buy('${product['product_code']}')),
+          ],
+        ],
+      ),
     );
   }
 
@@ -113,14 +142,29 @@ class _ReviewFormState extends ConsumerState<ReviewForm> {
 
   @override
   Widget build(BuildContext context) {
+    final selected = int.tryParse(_rating.text.trim()) ?? 0;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AppTextField(label: 'Rating from 1 to 5', controller: _rating, keyboardType: TextInputType.number),
+        Text('Rate this work', style: AppTextStyles.label.copyWith(color: context.palette.text)),
+        Row(
+          children: [
+            for (var star = 1; star <= 5; star++)
+              IconButton(
+                tooltip: '$star of 5',
+                onPressed: () => setState(() => _rating.text = '$star'),
+                icon: Icon(
+                  star <= selected ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 30,
+                  color: star <= selected ? AppColors.yellowPressed : context.palette.textMuted,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        AppTextField(label: 'Review', controller: _body, maxLines: 4),
         const SizedBox(height: AppSpacing.sm),
-        AppTextField(label: 'Review', controller: _body),
-        const SizedBox(height: AppSpacing.sm),
-        AppButton(label: 'Send review', isLoading: _saving, onPressed: _send),
+        AppButton(label: 'Send review', outlined: true, isLoading: _saving, onPressed: _send),
       ],
     );
   }

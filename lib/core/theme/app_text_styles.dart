@@ -11,9 +11,25 @@ abstract final class AppTextStyles {
     letterSpacing: -0.5,
   );
 
+  static const headline = TextStyle(
+    fontSize: 26,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    color: AppColors.text,
+    letterSpacing: -0.4,
+  );
+
   static const title = TextStyle(
     fontSize: 22,
     height: 1.25,
+    fontWeight: FontWeight.w700,
+    color: AppColors.text,
+    letterSpacing: -0.2,
+  );
+
+  static const section = TextStyle(
+    fontSize: 18,
+    height: 1.3,
     fontWeight: FontWeight.w700,
     color: AppColors.text,
   );
@@ -32,6 +48,22 @@ abstract final class AppTextStyles {
     color: AppColors.textMuted,
   );
 
+  static const caption = TextStyle(
+    fontSize: 13,
+    height: 1.35,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textMuted,
+  );
+
+  static const numeric = TextStyle(
+    fontFeatures: [FontFeature.tabularFigures()],
+    fontSize: 20,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    color: AppColors.text,
+    letterSpacing: -0.3,
+  );
+
   static const label = TextStyle(
     fontSize: 14,
     height: 1.3,
@@ -42,7 +74,7 @@ abstract final class AppTextStyles {
   static const button = TextStyle(
     fontSize: 16,
     height: 1.2,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
   );
 }

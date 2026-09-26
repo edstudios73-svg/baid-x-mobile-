@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/providers/app_providers.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/auth_header.dart';
+import '../../../../shared/widgets/form_message.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -36,18 +37,23 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final action = ref.watch(authActionProvider);
     final error = action.hasError ? action.error : null;
     return Scaffold(
-      appBar: AppBar(title: const Text('New password')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Text(
-              _saved
-                  ? 'Your password is updated. Sign in with the new one.'
-                  : 'Open the reset link from your email first. Then choose a new password here.',
-              style: AppTextStyles.bodyMuted,
-            ),
-            const SizedBox(height: AppSpacing.lg),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        children: [
+          const AuthHeader(
+            title: 'New password',
+            subtitle: 'Open the reset link from your email first. Then choose a new password here.',
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+            if (_saved) ...[
+              const FormMessage('Your password is updated. Sign in with the new one.', success: true),
+              const SizedBox(height: AppSpacing.md),
+            ],
             Form(
               key: _formKey,
               child: Column(
@@ -72,10 +78,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             ),
             if (error != null) ...[
               const SizedBox(height: AppSpacing.md),
-              Text(
-                error is AppException ? error.message : 'Couldn\'t update the password.',
-                style: AppTextStyles.bodyMuted,
-              ),
+              FormMessage(error is AppException ? error.message : 'Couldn\'t update the password.'),
             ],
             const SizedBox(height: AppSpacing.lg),
             AppButton(
@@ -94,8 +97,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 onPressed: () => context.go(AppRoutes.signIn),
                 child: const Text('Sign in'),
               ),
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -23,9 +23,11 @@ class AppErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 40, color: AppColors.ink),
+            const Icon(Icons.error_outline, size: 32, color: AppColors.ink),
             const SizedBox(height: AppSpacing.md),
-            Text(message, style: AppTextStyles.body, textAlign: TextAlign.center),
+            Text('Something went wrong.', style: AppTextStyles.section, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.xs),
+            Text(message, style: AppTextStyles.bodyMuted, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.lg),
               AppButton(label: 'Try again', onPressed: onRetry),

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/constants/app_routes.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/providers/app_providers.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/auth_header.dart';
+import '../../../../shared/widgets/form_message.dart';
 
 class EmailVerificationScreen extends ConsumerStatefulWidget {
   const EmailVerificationScreen({super.key});
@@ -39,20 +39,21 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
     final shownEmail = user?.email.isNotEmpty == true ? user!.email : _email.text;
     final error = action.hasError ? action.error : null;
     return Scaffold(
-      backgroundColor: AppColors.canvas,
-      appBar: AppBar(title: const Text(AppConfig.name)),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            const Text('Check your email', style: AppTextStyles.display),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              shownEmail.isEmpty
-                  ? 'Open the BAID X email and confirm your address. This screen waits for Supabase, not a local switch.'
-                  : 'We sent a confirmation link to $shownEmail. Open it, then check again.',
-              style: AppTextStyles.body,
-            ),
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          AuthHeader(
+            title: 'Check your email',
+            subtitle: shownEmail.isEmpty
+                ? 'Open the BAID X email and confirm your address. This screen waits for Supabase, not a local switch.'
+                : 'We sent a confirmation link to $shownEmail. Open it, then check again.',
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+            const Icon(Icons.mark_email_unread_outlined, size: 40, color: AppColors.orange),
             if (user == null) ...[
               const SizedBox(height: AppSpacing.lg),
               Form(
@@ -67,14 +68,11 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
             ],
             if (_notice != null) ...[
               const SizedBox(height: AppSpacing.md),
-              Text(_notice!, style: AppTextStyles.bodyMuted),
+              FormMessage(_notice!, success: true),
             ],
             if (error != null) ...[
               const SizedBox(height: AppSpacing.md),
-              Text(
-                error is AppException ? error.message : 'Couldn\'t resend the email.',
-                style: AppTextStyles.bodyMuted,
-              ),
+              FormMessage(error is AppException ? error.message : 'Couldn\'t resend the email.'),
             ],
             const SizedBox(height: AppSpacing.lg),
             AppButton(
@@ -114,8 +112,10 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
               },
               child: const Text('Sign out'),
             ),
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

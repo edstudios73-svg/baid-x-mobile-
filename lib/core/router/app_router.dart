@@ -47,6 +47,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref
     ..listen(authStateProvider, (_, _) => refresh.value++)
     ..listen(accountProfileProvider, (_, _) => refresh.value++)
+    ..listen(splashReleasedProvider, (_, _) => refresh.value++)
     ..onDispose(refresh.dispose);
 
   final router = GoRouter(
@@ -61,6 +62,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         profileLoading: profile.isLoading,
         accountType: profile.asData?.value?.accountType,
         path: state.matchedLocation,
+        splashHold: !ref.read(splashReleasedProvider),
       );
     },
     routes: [
@@ -132,13 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ReviewerScreen(),
       ),
       ShellRoute(
-        builder: (context, state, child) {
-          final stored = ref.read(accountProfileProvider).asData?.value?.accountType;
-          return MainShell(
-            accountType: AccountType.fromDatabase(stored),
-            child: child,
-          );
-        },
+        builder: (context, state, child) => RoleShell(child: child),
         routes: [
           GoRoute(
             path: AppRoutes.home,

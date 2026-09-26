@@ -44,7 +44,9 @@ String? guardRedirect({
   required bool profileLoading,
   required String? accountType,
   required String path,
+  bool splashHold = false,
 }) {
+  if (splashHold && path == AppRoutes.splash) return null;
   if (authLoading || gate == SessionGate.unknown) {
     return path == AppRoutes.splash ? null : AppRoutes.splash;
   }

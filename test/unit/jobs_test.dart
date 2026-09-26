@@ -5,6 +5,52 @@ import 'package:baid_x_mobile/core/router/route_guards.dart';
 import 'package:baid_x_mobile/features/jobs/domain/job_rules.dart';
 
 void main() {
+  test('a visitor cannot open their applications', () {
+    expect(
+      guardRedirect(
+        authLoading: false,
+        gate: SessionGate.signedOut,
+        profileLoading: false,
+        accountType: null,
+        path: AppRoutes.applications,
+      ),
+      AppRoutes.signIn,
+    );
+  });
+
+  test('a worker can open jobs and applications, and cannot open another role home', () {
+    expect(
+      guardRedirect(
+        authLoading: false,
+        gate: SessionGate.verified,
+        profileLoading: false,
+        accountType: 'worker',
+        path: AppRoutes.work,
+      ),
+      isNull,
+    );
+    expect(
+      guardRedirect(
+        authLoading: false,
+        gate: SessionGate.verified,
+        profileLoading: false,
+        accountType: 'worker',
+        path: AppRoutes.applications,
+      ),
+      isNull,
+    );
+    expect(
+      guardRedirect(
+        authLoading: false,
+        gate: SessionGate.verified,
+        profileLoading: false,
+        accountType: 'worker',
+        path: '/role/company',
+      ),
+      '/role/worker',
+    );
+  });
+
   test('a visitor can browse open jobs', () {
     expect(
       guardRedirect(

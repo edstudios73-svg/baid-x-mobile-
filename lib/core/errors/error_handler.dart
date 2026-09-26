@@ -1,9 +1,25 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_exception.dart';
 
 abstract final class ErrorHandler {
+  /// Debug-only. Logs a query failure without tokens, keys, or contact details.
+  static void logSafe(Object error) {
+    assert(() {
+      if (error is PostgrestException) {
+        debugPrint('data query failed code=${error.code ?? ''} message=${_redact(error.message)}');
+      } else if (error is AuthException) {
+        debugPrint('auth step failed');
+      } else {
+        debugPrint('request failed type=${error.runtimeType}');
+      }
+      return true;
+    }());
+  }
+
   static AppException toAppException(Object error) {
+    logSafe(error);
     if (error is AppException) return error;
     if (error is AuthException) {
       return AuthFlowException(_authMessage(error.message));
@@ -46,6 +62,15 @@ abstract final class ErrorHandler {
 
   static String _dataMessage(String message) {
     return _sharedMessage(message) ?? 'Couldn\'t save that. Try again.';
+  }
+
+  static String _redact(String message) {
+    return message
+        .replaceAll(RegExp(r'eyJ[A-Za-z0-9_\-.]+'), '[redacted]')
+        .replaceAll(
+          RegExp(r'[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}', caseSensitive: false),
+          '[redacted]',
+        );
   }
 
   static String? _sharedMessage(String message) {

@@ -4,10 +4,19 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_routes.dart';
 import '../../../core/errors/error_handler.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_list.dart';
+import '../../../shared/widgets/app_search_field.dart';
+import '../../../shared/widgets/bottom_action_bar.dart';
+import '../../../shared/widgets/page_body.dart';
+import '../../../shared/widgets/section_header.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_view.dart';
 import '../../../shared/widgets/app_loader.dart';
@@ -39,34 +48,42 @@ class _WorkersScreenState extends ConsumerState<WorkersScreen> {
     final workers = ref.watch(workerSearchProvider(query));
     return Scaffold(
       appBar: AppBar(title: const Text('Workers')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      body: PageBody(
         children: [
-          AppTextField(label: 'Trade or description', controller: _search, onChanged: (_) => setState(() {})),
-          const SizedBox(height: AppSpacing.sm),
-          AppTextField(label: 'Location', controller: _location, onChanged: (_) => setState(() {})),
+          AppSearchField(controller: _search, hint: 'Trade or skill, e.g. mason', onChanged: (_) => setState(() {})),
+          const SizedBox(height: AppSpacing.xs),
+          AppSearchField(
+            controller: _location,
+            hint: 'Location',
+            icon: Icons.place_outlined,
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: AppSpacing.md),
           workers.when(
-            loading: () => const AppLoader(message: 'Loading professionals'),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: AppLoader(message: 'Loading professionals'),
+            ),
             error: (error, _) => AppErrorView(
               message: ErrorHandler.toAppException(error).message,
               onRetry: () => ref.invalidate(workerSearchProvider(query)),
             ),
             data: (rows) {
               if (rows.isEmpty) {
-                return const AppEmptyState(title: 'No professionals found.', message: 'Listed workers will appear here.');
+                return const AppEmptyState(
+                  icon: Icons.person_search_outlined,
+                  title: 'No professionals found.',
+                  message: 'Listed workers will appear here.',
+                );
               }
-              return Column(
+              return AppListGroup(
                 children: [
                   for (final worker in rows)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(worker.name.isEmpty ? worker.trade : worker.name),
-                      subtitle: Text([
-                        if (worker.verified) 'Verified',
-                        worker.trade,
-                        worker.location,
-                      ].where((part) => part.isNotEmpty).join(' · ')),
+                    AppListRow(
+                      leading: AppAvatar(name: worker.name.isEmpty ? worker.trade : worker.name),
+                      title: worker.name.isEmpty ? worker.trade : worker.name,
+                      subtitle: [worker.trade, worker.location].where((part) => part.isNotEmpty).join(' · '),
+                      badge: worker.verified ? const StatusBadge.verified() : null,
                       onTap: () => context.push('/workers/${worker.id}'),
                     ),
                 ],
@@ -90,6 +107,11 @@ class WorkerDetailScreen extends ConsumerWidget {
     final mine = ref.watch(authStateProvider).asData?.value?.id == id;
     return Scaffold(
       appBar: AppBar(title: const Text('Worker')),
+      bottomNavigationBar: mine
+          ? BottomActionBar(
+              child: AppButton(label: 'Edit profile', outlined: true, onPressed: () => context.push(AppRoutes.editWorker)),
+            )
+          : null,
       body: profile.when(
         loading: () => const AppLoader(message: 'Loading profile'),
         error: (error, _) => AppErrorView(message: ErrorHandler.toAppException(error).message, onRetry: () => ref.invalidate(workerProfileProvider(id))),
@@ -97,51 +119,119 @@ class WorkerDetailScreen extends ConsumerWidget {
           if (data == null) {
             return const AppEmptyState(title: 'Profile not available', message: 'This worker is not listed.');
           }
+          final palette = context.palette;
           final person = data['profile'] as Map<String, dynamic>;
           final worker = data['worker'] as Map<String, dynamic>?;
           final skills = (data['skills'] as List).cast<String>();
           final experience = (data['experience'] as List).cast<Map<String, dynamic>>();
           final reviews = ref.watch(subjectReviewsProvider(id));
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          final name = '${person['display_name'] ?? 'Worker'}';
+          final meta = ['${worker?['trade'] ?? ''}', '${person['location_label'] ?? ''}'].where((v) => v.isNotEmpty).join(' · ');
+          final about = '${worker?['summary'] ?? person['headline'] ?? ''}';
+          final availability = '${worker?['availability'] ?? ''}';
+          return PageBody(
             children: [
-              Text('${person['display_name'] ?? 'Worker'}', style: AppTextStyles.title),
-              Text('${worker?['trade'] ?? ''} · ${person['location_label'] ?? ''}', style: AppTextStyles.bodyMuted),
-              if (data['verified'] == true) const Text('Verified', style: AppTextStyles.label),
-              const SizedBox(height: AppSpacing.md),
-              Text('${worker?['summary'] ?? person['headline'] ?? ''}', style: AppTextStyles.body),
-              if ('${worker?['availability'] ?? ''}'.isNotEmpty)
-                Text('Available: ${worker?['availability']}', style: AppTextStyles.bodyMuted),
-              if (skills.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Row(
+                children: [
+                  AppAvatar(name: name, size: 64),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: AppTextStyles.title.copyWith(color: palette.text)),
+                        if (meta.isNotEmpty) Text(meta, style: AppTextStyles.bodyMuted.copyWith(color: palette.textMuted)),
+                        if (data['verified'] == true) ...[
+                          const SizedBox(height: AppSpacing.xxs),
+                          const StatusBadge.verified(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (availability.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.md),
-                Text('Skills', style: AppTextStyles.label),
-                Text(skills.join(', ')),
+                Row(
+                  children: [
+                    Icon(Icons.schedule, size: 18, color: palette.success),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(child: Text('Available: $availability', style: AppTextStyles.body.copyWith(color: palette.text))),
+                  ],
+                ),
+              ],
+              if (about.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const SectionHeader(title: 'About'),
+                Text(about, style: AppTextStyles.body.copyWith(color: palette.text)),
+              ],
+              if (skills.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                const SectionHeader(title: 'Skills'),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [for (final skill in skills) Chip(label: Text(skill))],
+                ),
               ],
               if (experience.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.md),
-                Text('Experience', style: AppTextStyles.label),
-                for (final item in experience) Text('${item['title'] ?? ''} · ${item['organization'] ?? ''}'),
+                const SizedBox(height: AppSpacing.lg),
+                const SectionHeader(title: 'Experience'),
+                AppListGroup(
+                  children: [
+                    for (final item in experience)
+                      AppListRow(
+                        leading: const AppAvatar.icon(Icons.work_history_outlined, size: 40),
+                        title: '${item['title'] ?? ''}',
+                        subtitle: '${item['organization'] ?? ''}',
+                      ),
+                  ],
+                ),
               ],
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               reviews.when(
                 loading: () => const Text('Loading reviews'),
                 error: (error, _) => Text(ErrorHandler.toAppException(error).message),
                 data: (rows) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(rows.isEmpty ? 'No reviews yet' : '${rows.length} reviews', style: AppTextStyles.bodyMuted),
-                    for (final review in rows) Text('${review.rating} · ${review.body}', style: AppTextStyles.body),
+                    SectionHeader(title: rows.isEmpty ? 'No reviews yet' : '${rows.length} reviews'),
+                    if (rows.isNotEmpty)
+                      AppListGroup(
+                        children: [
+                          for (final review in rows)
+                            AppListRow(
+                              leading: _Rating(value: review.rating),
+                              title: review.body.isEmpty ? 'No comment' : review.body,
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
-              if (mine) ...[
-                const SizedBox(height: AppSpacing.lg),
-                AppButton(label: 'Edit profile', outlined: true, onPressed: () => context.push(AppRoutes.editWorker)),
-              ],
             ],
           );
         },
       ),
+    );
+  }
+}
+
+class _Rating extends StatelessWidget {
+  const _Rating({required this.value});
+
+  final num value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star_rounded, size: 18, color: AppColors.yellowPressed),
+        const SizedBox(width: 2),
+        Text('$value', style: AppTextStyles.label.copyWith(color: context.palette.text)),
+      ],
     );
   }
 }

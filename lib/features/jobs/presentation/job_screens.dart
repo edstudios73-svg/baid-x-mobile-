@@ -5,14 +5,22 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/errors/error_handler.dart';
 import '../../../core/router/auth_gate.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/providers/app_providers.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_view.dart';
+import '../../../shared/widgets/app_list.dart';
 import '../../../shared/widgets/app_loader.dart';
+import '../../../shared/widgets/app_search_field.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/bottom_action_bar.dart';
+import '../../../shared/widgets/page_body.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../data/job_repository.dart';
 import '../../messaging/presentation/messaging_screens.dart';
 import '../../trust/presentation/trust_screens.dart';
@@ -47,15 +55,22 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
     final page = ref.watch(openJobsProvider(_query));
     return Scaffold(
       appBar: AppBar(title: const Text('Jobs')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      body: PageBody(
         children: [
-          AppTextField(label: 'Search title', controller: _search, onChanged: (_) => _reset()),
-          const SizedBox(height: AppSpacing.sm),
-          AppTextField(label: 'Location', controller: _location, onChanged: (_) => _reset()),
+          AppSearchField(controller: _search, hint: 'Search job title', onChanged: (_) => _reset()),
+          const SizedBox(height: AppSpacing.xs),
+          AppSearchField(
+            controller: _location,
+            hint: 'Location, e.g. Adenta or Kumasi',
+            icon: Icons.place_outlined,
+            onChanged: (_) => _reset(),
+          ),
           const SizedBox(height: AppSpacing.md),
           page.when(
-            loading: () => const AppLoader(message: 'Loading jobs'),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: AppLoader(message: 'Loading jobs'),
+            ),
             error: (error, _) => AppErrorView(
               message: ErrorHandler.toAppException(error).message,
               onRetry: () => ref.invalidate(openJobsProvider(_query)),
@@ -69,17 +84,20 @@ class _JobsScreenState extends ConsumerState<JobsScreen> {
                 );
               }
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final job in shown) _JobTile(job: job),
-                  if (rows.length == jobPageSize)
-                    TextButton(
+                  AppListGroup(children: [for (final job in shown) _JobTile(job: job)]),
+                  if (rows.length == jobPageSize) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: 'Load more',
+                      outlined: true,
                       onPressed: () => setState(() {
                         _jobs.addAll(rows);
                         _offset += jobPageSize;
                       }),
-                      child: const Text('Load more'),
                     ),
+                  ],
                 ],
               );
             },
@@ -102,14 +120,23 @@ class _JobTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preview = job.description.length > 80 ? '${job.description.substring(0, 80)}…' : job.description;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(job.title, style: AppTextStyles.label),
-      subtitle: Text([job.locationLabel, job.status, preview].where((part) => part.isNotEmpty).join(' · ')),
+    return AppListRow(
+      leading: AppAvatar(name: job.title, size: 40),
+      title: job.title,
+      subtitle: jobMeta(job),
+      badge: StatusBadge.forStatus(job.status),
       onTap: () => context.push('/jobs/${job.id}'),
     );
   }
+}
+
+/// "Adenta, Accra · 2 days ago · 4 applied"
+String jobMeta(JobRecord job) {
+  return [
+    job.locationLabel,
+    if (job.createdAt != null) Formatters.relativeDate(job.createdAt!),
+    if (job.applicationCount > 0) '${job.applicationCount} applied',
+  ].where((part) => part.isNotEmpty).join(' · ');
 }
 
 class JobDetailScreen extends ConsumerWidget {
@@ -123,8 +150,19 @@ class JobDetailScreen extends ConsumerWidget {
     final user = ref.watch(authStateProvider).asData?.value;
     final accountType = ref.watch(accountProfileProvider).asData?.value?.accountType;
     final applied = ref.watch(hasAppliedProvider(id));
+    final record = job.asData?.value;
+    final decision = record == null
+        ? null
+        : decideApply(
+            signedIn: user != null && user.emailConfirmed,
+            accountType: accountType,
+            jobStatus: record.status,
+            isOwner: user?.id == record.ownerId,
+            alreadyApplied: applied.asData?.value ?? false,
+          );
     return Scaffold(
       appBar: AppBar(title: const Text('Job')),
+      bottomNavigationBar: decision == null ? null : BottomActionBar(child: _Action(decision: decision, jobId: id)),
       body: job.when(
         loading: () => const AppLoader(message: 'Loading job'),
         error: (error, _) => AppErrorView(message: ErrorHandler.toAppException(error).message, onRetry: () => ref.invalidate(jobDetailProvider(id))),
@@ -132,25 +170,23 @@ class JobDetailScreen extends ConsumerWidget {
           if (record == null) {
             return const AppEmptyState(title: 'Job not available', message: 'This job is closed or not public.');
           }
-          final decision = decideApply(
-            signedIn: user != null && user.emailConfirmed,
-            accountType: accountType,
-            jobStatus: record.status,
-            isOwner: user?.id == record.ownerId,
-            alreadyApplied: applied.asData?.value ?? false,
-          );
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          final palette = context.palette;
+          return PageBody(
             children: [
-              Text(record.title, style: AppTextStyles.title),
+              Align(alignment: Alignment.centerLeft, child: StatusBadge.forStatus(record.status)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(record.title, style: AppTextStyles.headline.copyWith(color: palette.text)),
               const SizedBox(height: AppSpacing.xs),
-              Text('${record.locationLabel} · ${record.status}', style: AppTextStyles.bodyMuted),
-              if (record.createdAt != null)
-                Text('Posted ${record.createdAt!.toLocal().toString().split(' ').first}', style: AppTextStyles.bodyMuted),
+              Text(jobMeta(record), style: AppTextStyles.bodyMuted.copyWith(color: palette.textMuted)),
               const SizedBox(height: AppSpacing.md),
-              Text(record.description.isEmpty ? 'No description yet.' : record.description, style: AppTextStyles.body),
-              const SizedBox(height: AppSpacing.lg),
-              _Action(decision: decision, jobId: id),
+              const Divider(),
+              const SizedBox(height: AppSpacing.md),
+              Text('About this job', style: AppTextStyles.section.copyWith(color: palette.text)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                record.description.isEmpty ? 'No description yet.' : record.description,
+                style: AppTextStyles.body.copyWith(color: palette.text),
+              ),
               if (user?.id == record.ownerId) ...[
                 const SizedBox(height: AppSpacing.lg),
                 BoostPanel(targetType: 'job', targetId: id, title: 'Boost job'),
@@ -181,10 +217,32 @@ class _Action extends ConsumerWidget {
         onPressed: () => requireAuthentication(context, ref, () {}),
       ),
       ApplyDecision.ownJob => AppButton(label: 'Manage job', onPressed: () => context.push('/jobs/$jobId/applications')),
-      ApplyDecision.alreadyApplied => const Text('You already applied to this job.'),
-      ApplyDecision.closed => const Text('This job is not open for applications.'),
-      ApplyDecision.notWorker => const Text('Only worker accounts can apply.'),
+      ApplyDecision.alreadyApplied => const _Notice(icon: Icons.check_circle_outline, text: 'You already applied to this job.'),
+      ApplyDecision.closed => const _Notice(icon: Icons.lock_outline, text: 'This job is not open for applications.'),
+      ApplyDecision.notWorker => const _Notice(icon: Icons.info_outline, text: 'Only worker accounts can apply.'),
     };
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    return SizedBox(
+      height: AppSpacing.buttonHeight,
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: palette.textMuted),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(child: Text(text, style: AppTextStyles.body.copyWith(color: palette.text))),
+        ],
+      ),
+    );
   }
 }
 
@@ -337,16 +395,20 @@ class MyJobsScreen extends ConsumerWidget {
           if (rows.isEmpty) {
             return const AppEmptyState(title: 'No jobs yet', message: 'Jobs you post will appear here.');
           }
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          return PageBody(
             children: [
-              for (final job in rows)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(job.title),
-                  subtitle: Text('${job.status} · ${job.applicationCount} applications'),
-                  onTap: () => context.push('/jobs/${job.id}/applications'),
-                ),
+              AppListGroup(
+                children: [
+                  for (final job in rows)
+                    AppListRow(
+                      leading: AppAvatar(name: job.title, size: 40),
+                      title: job.title,
+                      subtitle: job.applicationCount == 1 ? '1 application' : '${job.applicationCount} applications',
+                      badge: StatusBadge.forStatus(job.status),
+                      onTap: () => context.push('/jobs/${job.id}/applications'),
+                    ),
+                ],
+              ),
             ],
           );
         },
@@ -370,24 +432,30 @@ class ApplicationsScreen extends ConsumerWidget {
           if (rows.isEmpty) {
             return const AppEmptyState(title: "You haven't applied to any jobs yet.", message: 'Applications you send will appear here.');
           }
-          return ListView(
+          return PageBody(
             children: [
-              for (final application in rows) ...[
-                ListTile(
-                  title: Text(application.jobTitle.isEmpty ? 'Job' : application.jobTitle),
-                  subtitle: Text('${application.status} · ${application.createdAt?.toLocal().toString().split(' ').first ?? ''}'),
-                  trailing: TextButton(
-                    onPressed: () => openContextConversation(ref, context, contextType: 'job_application', contextId: application.id),
-                    child: const Text('Message'),
-                  ),
-                  onTap: () => context.push('/jobs/${application.jobId}'),
-                ),
-                if (application.status == 'accepted' && application.ownerProfileId.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: ReviewForm(subjectId: application.ownerProfileId),
-                  ),
-              ],
+              AppListGroup(
+                children: [
+                  for (final application in rows) ...[
+                    AppListRow(
+                      leading: AppAvatar(name: application.jobTitle.isEmpty ? 'Job' : application.jobTitle, size: 40),
+                      title: application.jobTitle.isEmpty ? 'Job' : application.jobTitle,
+                      subtitle: application.createdAt == null ? null : 'Applied ${Formatters.relativeDate(application.createdAt!).toLowerCase()}',
+                      badge: StatusBadge.forStatus(application.status),
+                      trailing: TextButton(
+                        onPressed: () => openContextConversation(ref, context, contextType: 'job_application', contextId: application.id),
+                        child: const Text('Message'),
+                      ),
+                      onTap: () => context.push('/jobs/${application.jobId}'),
+                    ),
+                    if (application.status == 'accepted' && application.ownerProfileId.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: ReviewForm(subjectId: application.ownerProfileId),
+                      ),
+                  ],
+                ],
+              ),
             ],
           );
         },
@@ -413,23 +481,28 @@ class JobApplicationsScreen extends ConsumerWidget {
           if (rows.isEmpty) {
             return const AppEmptyState(title: 'No applications yet', message: 'Applications to this job will appear here.');
           }
-          return ListView(
+          return PageBody(
             children: [
-              for (final application in rows) ...[
-                ListTile(
-                  title: Text(application.status),
-                  subtitle: Text(application.message.isEmpty ? 'No message' : application.message),
-                  trailing: TextButton(
-                    onPressed: () => openContextConversation(ref, context, contextType: 'job_application', contextId: application.id),
-                    child: const Text('Message'),
-                  ),
-                ),
-                if (application.status == 'accepted' && application.workerProfileId.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: ReviewForm(subjectId: application.workerProfileId),
-                  ),
-              ],
+              AppListGroup(
+                children: [
+                  for (final application in rows) ...[
+                    AppListRow(
+                      title: statusLabel(application.status),
+                      subtitle: application.message.isEmpty ? 'No message' : application.message,
+                      subtitleLines: 3,
+                      trailing: TextButton(
+                        onPressed: () => openContextConversation(ref, context, contextType: 'job_application', contextId: application.id),
+                        child: const Text('Message'),
+                      ),
+                    ),
+                    if (application.status == 'accepted' && application.workerProfileId.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: ReviewForm(subjectId: application.workerProfileId),
+                      ),
+                  ],
+                ],
+              ),
             ],
           );
         },

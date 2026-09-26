@@ -6,11 +6,18 @@ import '../../../core/config/app_config.dart';
 import '../../../core/errors/app_exception.dart';
 
 import '../../../core/errors/error_handler.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_error_view.dart';
+import '../../../shared/widgets/app_list.dart';
 import '../../../shared/widgets/app_loader.dart';
+import '../../../shared/widgets/form_message.dart';
+import '../../../shared/widgets/page_body.dart';
+import '../../../shared/widgets/section_header.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../domain/billing_rules.dart';
 import 'billing_providers.dart';
 
@@ -36,51 +43,73 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
         loading: () => const AppLoader(message: 'Loading billing'),
         error: (error, _) => AppErrorView(message: ErrorHandler.toAppException(error).message, onRetry: () => ref.invalidate(billingSnapshotProvider)),
         data: (snapshot) {
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+          final palette = context.palette;
+          return PageBody(
             children: [
-              Text(_statusLine(snapshot), style: AppTextStyles.body),
-              if (snapshot.refundDeadline != null)
-                Text('Refund window ends ${snapshot.refundDeadline!.toUtc()} UTC', style: AppTextStyles.bodyMuted),
-              if (snapshot.foundingEligible) const Text('Founding price is available until the slot or the 90-day program ends.'),
-              const Text('A paid plan does not verify this account.'),
-              const Text('Protected payments are off.'),
+              Text('Current plan', style: AppTextStyles.caption.copyWith(color: palette.textMuted)),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(_statusLine(snapshot), style: AppTextStyles.title.copyWith(color: palette.text)),
+              if (snapshot.refundDeadline != null) ...[
+                const SizedBox(height: AppSpacing.xxs),
+                Text('Refund window ends ${snapshot.refundDeadline!.toUtc()} UTC', style: AppTextStyles.bodyMuted.copyWith(color: palette.textMuted)),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              if (snapshot.foundingEligible) ...[
+                const InfoNote('Founding price is available until the slot or the 90-day program ends.'),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+              const InfoNote('A paid plan does not verify this account.'),
+              const SizedBox(height: AppSpacing.xs),
+              const InfoNote('Protected payments are off.'),
               const SizedBox(height: AppSpacing.md),
               if (snapshot.subscription != null && snapshot.subscription!['status'] != 'cancel_at_period_end')
                 AppButton(label: 'Cancel renewal', outlined: true, isLoading: _busy, onPressed: _cancel),
               if ((snapshot.subscription?['trial_end'] == null) && snapshot.subscription == null)
                 AppButton(label: 'Start 30-day Pro trial', outlined: true, isLoading: _busy, onPressed: _trial),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
+              const SectionHeader(title: 'Plans'),
               SegmentedButton<bool>(
                 segments: const [
                   ButtonSegment(value: false, label: Text('Monthly')),
                   ButtonSegment(value: true, label: Text('Annual')),
                 ],
                 selected: {_annual},
+                showSelectedIcon: false,
                 onSelectionChanged: (value) => setState(() => _annual = value.first),
               ),
+              const SizedBox(height: AppSpacing.sm),
               plans.when(
                 loading: () => const AppLoader(message: 'Loading plans'),
                 error: (error, _) => Text(ErrorHandler.toAppException(error).message),
-                data: (rows) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                data: (rows) => AppListGroup(
                   children: [
                     for (final plan in rows) _planTile(snapshot, plan),
                   ],
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              Text('Payments', style: AppTextStyles.label),
+              const SectionHeader(title: 'Payments'),
               history.when(
                 loading: () => const Text('Loading payments'),
                 error: (error, _) => Text(ErrorHandler.toAppException(error).message),
                 data: (rows) => rows.isEmpty
-                    ? const Text('No payments yet')
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ? Text('No payments yet', style: AppTextStyles.bodyMuted.copyWith(color: palette.textMuted))
+                    : AppListGroup(
                         children: [
                           for (final row in rows)
-                            Text('${row['purpose']} · ${row['status']} · ${row['amount_minor']} ${row['currency_code']} · ${row['created_at']} · ${row['invoice_reference'] ?? ''}'),
+                            AppListRow(
+                              leading: const AppAvatar.icon(Icons.receipt_long_outlined, size: 40),
+                              title: statusLabel('${row['purpose']}'),
+                              subtitle: [
+                                '${row['created_at'] ?? ''}'.split('T').first,
+                                if (row['invoice_reference'] != null) '${row['invoice_reference']}',
+                              ].where((part) => part.isNotEmpty).join(' · '),
+                              badge: StatusBadge.forStatus('${row['status']}'),
+                              trailing: Text(
+                                _paymentAmount(row),
+                                style: AppTextStyles.label.copyWith(color: palette.text, fontFeatures: const [FontFeature.tabularFigures()]),
+                              ),
+                            ),
                         ],
                       ),
               ),
@@ -99,17 +128,37 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
     if (amount == null) return const SizedBox.shrink();
     final price = formatMinorAmount(amount, symbol: plan.symbol);
     final interval = _annual ? 'year' : 'month';
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text('${plan.tier} · $price / $interval'),
-      subtitle: Text(plan.tier == 'access' ? 'Included' : 'Renews at this price unless you cancel. Access stays until the period ends.'),
-      trailing: plan.tier == 'access'
-          ? null
-          : TextButton(
-              onPressed: _busy ? null : () => _checkout(plan, interval),
-              child: const Text('Choose'),
-            ),
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(statusLabel(plan.tier), style: AppTextStyles.label.copyWith(color: palette.text, fontSize: 15))),
+              Text('$price / $interval', style: AppTextStyles.numeric.copyWith(color: palette.text, fontSize: 18)),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            plan.tier == 'access' ? 'Included' : 'Renews at this price unless you cancel. Access stays until the period ends.',
+            style: AppTextStyles.caption.copyWith(color: palette.textMuted),
+          ),
+          if (plan.tier != 'access') ...[
+            const SizedBox(height: AppSpacing.sm),
+            AppButton(label: 'Choose', outlined: true, onPressed: _busy ? null : () => _checkout(plan, interval)),
+          ],
+        ],
+      ),
     );
+  }
+
+  String _paymentAmount(Map<String, dynamic> row) {
+    final minor = row['amount_minor'];
+    final currency = '${row['currency_code'] ?? ''}';
+    if (minor is! int) return '$minor $currency'.trim();
+    return formatMinorAmount(minor, symbol: currency.toUpperCase() == 'GHS' ? 'GH₵' : '$currency ');
   }
 
   String _statusLine(BillingSnapshot snapshot) {

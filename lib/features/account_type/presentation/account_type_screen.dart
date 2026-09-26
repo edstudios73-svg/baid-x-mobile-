@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -39,7 +40,7 @@ class _AccountTypeScreenState extends ConsumerState<AccountTypeScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        const Text('How will you use BAID X?', style: AppTextStyles.display),
+        const Text('How will you use BAID X?', style: AppTextStyles.headline),
         const SizedBox(height: AppSpacing.xs),
         const Text(
           'Choose the account type that best matches what you do.',
@@ -126,28 +127,62 @@ class _RoleOption extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  IconData _roleIcon(AccountType type) {
+    return switch (type) {
+      AccountType.worker => Icons.handyman_outlined,
+      AccountType.employer => Icons.person_search_outlined,
+      AccountType.business => Icons.storefront_outlined,
+      AccountType.projectManager => Icons.account_tree_outlined,
+      AccountType.company => Icons.apartment_outlined,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.yellow : AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        side: BorderSide(color: selected ? AppColors.ink : AppColors.line),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(type.label, style: AppTextStyles.label),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(type.summary, style: AppTextStyles.bodyMuted),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(type.examples, style: AppTextStyles.bodyMuted),
-            ],
+    final palette = context.palette;
+    return Semantics(
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: Material(
+        color: selected ? AppColors.yellow.withValues(alpha: 0.14) : palette.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+          side: BorderSide(color: selected ? AppColors.ink : palette.line, width: selected ? 1.6 : 1),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.yellow : palette.subtle,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                  child: Icon(_roleIcon(type), color: selected ? AppColors.ink : palette.textMuted),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(type.label, style: AppTextStyles.label.copyWith(color: palette.text, fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text(type.summary, style: AppTextStyles.caption.copyWith(color: palette.textMuted)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Icon(
+                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: selected ? AppColors.ink : palette.line,
+                ),
+              ],
+            ),
           ),
         ),
       ),

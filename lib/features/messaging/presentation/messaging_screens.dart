@@ -6,14 +6,17 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_handler.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/providers/app_providers.dart';
-import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/app_avatar.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import '../../../shared/widgets/app_error_view.dart';
+import '../../../shared/widgets/app_list.dart';
 import '../../../shared/widgets/app_loader.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/status_badge.dart';
 import '../domain/message_rules.dart';
 import 'messaging_providers.dart';
 
@@ -33,18 +36,33 @@ class InboxScreen extends ConsumerWidget {
         ),
         data: (rows) {
           if (rows.isEmpty) {
-            return const AppEmptyState(title: 'No messages yet', message: 'Conversations for your jobs, projects, and company will appear here.');
+            return const AppEmptyState(icon: Icons.chat_bubble_outline, title: 'No messages yet', message: 'Conversations for your jobs, projects, and company will appear here.');
           }
-          return ListView(
-            children: [
-              for (final conversation in rows)
-                ListTile(
-                  title: Text(conversation.title),
-                  subtitle: Text(conversation.latestBody.isEmpty ? conversation.contextType.replaceAll('_', ' ') : conversation.latestBody),
-                  trailing: conversation.unread ? const Icon(Icons.circle, size: 12, color: AppColors.blue) : Text(conversation.latestAt == null ? '' : formatMessageTime(conversation.latestAt!)),
-                  onTap: () => context.push('/messages/${conversation.id}'),
+          return ListView.separated(
+            itemCount: rows.length,
+            separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
+            itemBuilder: (context, index) {
+              final conversation = rows[index];
+              final palette = context.palette;
+              return AppListRow(
+                leading: AppAvatar(name: conversation.title),
+                title: conversation.title,
+                subtitle: conversation.latestBody.isEmpty ? statusLabel(conversation.contextType) : conversation.latestBody,
+                trailing: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (conversation.latestAt != null)
+                      Text(formatMessageTime(conversation.latestAt!), style: AppTextStyles.caption.copyWith(color: palette.textMuted)),
+                    if (conversation.unread) ...[
+                      const SizedBox(height: AppSpacing.xxs),
+                      Icon(Icons.circle, size: 10, color: palette.link, semanticLabel: 'Unread'),
+                    ],
+                  ],
                 ),
-            ],
+                onTap: () => context.push('/messages/${conversation.id}'),
+              );
+            },
           );
         },
       ),
@@ -144,37 +162,38 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ? const AppEmptyState(title: 'No messages yet', message: 'Send the first message about this work.')
                         : ListView(
                             controller: _scroll,
+                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                             padding: const EdgeInsets.all(AppSpacing.md),
                             children: [
                               for (final message in _messages)
-                                Align(
-                                  alignment: message.senderProfileId == userId ? Alignment.centerRight : Alignment.centerLeft,
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                                    padding: const EdgeInsets.all(AppSpacing.sm),
-                                    constraints: const BoxConstraints(maxWidth: 280),
-                                    color: message.senderProfileId == userId ? AppColors.yellow : AppColors.blue.withValues(alpha: 0.08),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(message.senderProfileId == userId ? 'You' : (message.senderName.isEmpty ? 'Participant' : message.senderName), style: AppTextStyles.label),
-                                        Text(message.body),
-                                        Text(formatMessageTime(message.createdAt), style: AppTextStyles.bodyMuted),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                _Bubble(message: message, mine: message.senderProfileId == userId),
                             ],
                           ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                Expanded(child: AppTextField(label: 'Message', controller: _body)),
-                const SizedBox(width: AppSpacing.sm),
-                AppButton(label: 'Send', isLoading: _sending, onPressed: _send),
-              ],
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: context.palette.surface,
+              border: Border(top: BorderSide(color: context.palette.line)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: AppTextField(label: 'Message', controller: _body, textInputAction: TextInputAction.send)),
+                    const SizedBox(width: AppSpacing.xs),
+                    FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size(72, AppSpacing.buttonHeight)),
+                      onPressed: _sending ? null : _send,
+                      child: _sending
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4))
+                          : const Text('Send'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -214,5 +233,54 @@ Future<void> openContextConversation(WidgetRef ref, BuildContext context, {requi
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ErrorHandler.toAppException(error).message)));
     }
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  const _Bubble({required this.message, required this.mine});
+
+  final MessageRecord message;
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    const radius = Radius.circular(AppSpacing.radiusLg);
+    const tail = Radius.circular(4);
+    final fg = mine ? AppColors.ink : palette.text;
+    return Align(
+      alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.xs, AppSpacing.sm, AppSpacing.xs),
+        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+        decoration: BoxDecoration(
+          color: mine ? AppColors.yellow : palette.surface,
+          border: mine ? null : Border.all(color: palette.line),
+          borderRadius: BorderRadius.only(
+            topLeft: radius,
+            topRight: radius,
+            bottomLeft: mine ? radius : tail,
+            bottomRight: mine ? tail : radius,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!mine)
+              Text(
+                message.senderName.isEmpty ? 'Participant' : message.senderName,
+                style: AppTextStyles.caption.copyWith(color: palette.link, fontWeight: FontWeight.w700),
+              ),
+            Text(message.body, style: AppTextStyles.body.copyWith(color: fg)),
+            const SizedBox(height: 2),
+            Text(
+              formatMessageTime(message.createdAt),
+              style: AppTextStyles.caption.copyWith(color: mine ? AppColors.ink.withValues(alpha: 0.65) : palette.textMuted, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
