@@ -27,16 +27,16 @@ void main() {
     );
     expect(continueButton.onPressed, isNull);
 
-    await tester.tap(find.text('Worker'));
+    await tester.tap(find.text('Professional'));
     await tester.pump();
-    await tester.tap(find.text('Business'));
+    await tester.tap(find.text('Supplier'));
     await tester.pump();
     await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
     await tester.pump();
 
-    expect(find.text('You selected Business.'), findsOneWidget);
-    expect(find.text('You selected Worker.'), findsNothing);
+    expect(find.text('You selected Supplier.'), findsOneWidget);
+    expect(find.text('You selected Professional.'), findsNothing);
 
     await tester.tap(find.text('Back'));
     await tester.pump();

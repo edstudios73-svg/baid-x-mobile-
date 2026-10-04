@@ -101,18 +101,10 @@ class _AccountTypeScreenState extends ConsumerState<AccountTypeScreen> {
     );
   }
 
+  /// The account type is saved together with the profile on the next screen,
+  /// the same way the website creates it (one insert; the database adds the role).
   Future<void> _save(AccountType type) async {
-    final ok = await ref.read(authActionProvider.notifier).run(() async {
-      await ref.read(authRepositoryProvider).setAccountType(type.dbValue);
-      ref.invalidate(accountProfileProvider);
-      final profile = await ref.read(accountProfileProvider.future);
-      if (profile?.accountType != type.dbValue) {
-        throw const AuthFlowException(
-          'BAID X did not confirm this account type. Try again.',
-        );
-      }
-    });
-    if (ok && mounted) context.go(type.setupPath);
+    context.go(type.setupPath);
   }
 }
 

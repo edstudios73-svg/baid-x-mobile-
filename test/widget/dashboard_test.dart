@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:baid_x_mobile/features/account_type/domain/role_categories.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:baid_x_mobile/core/constants/app_routes.dart';
@@ -138,17 +139,27 @@ class _FakeAuth implements AuthRepository {
   Future<void> sendPasswordReset(String email) async {}
 
   @override
-  Future<void> setAccountType(String dbValue) async {}
+  Future<void> signInWithEmail({required String email, required String password}) async {}
 
   @override
-  Future<AuthUser?> signIn({required String email, required String password}) async => null;
+  Future<void> signInWithPhone({required String phone, required String password}) async {}
 
   @override
-  Future<AuthUser?> signUp({
-    required String displayName,
-    required String email,
-    required String password,
-  }) async => null;
+  Future<void> startPhoneCode({required String phone, required PhoneCodePurpose purpose}) async {}
+
+  @override
+  Future<void> verifyPhoneCode({required String phone, required String code}) async {}
+
+  @override
+  Future<void> setPhonePassword(String password) async {}
+
+  @override
+  Future<void> createRoleProfile({
+    required AccountType type,
+    required String name,
+    RoleCategory? category,
+    String phone = '',
+  }) async {}
 
   @override
   Future<void> updatePassword(String password) async {}

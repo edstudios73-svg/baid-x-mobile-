@@ -1,3 +1,5 @@
+import '../../account_type/domain/account_type.dart';
+import '../../account_type/domain/role_categories.dart';
 import '../domain/auth_repository.dart';
 import '../domain/auth_user.dart';
 import 'auth_remote_data_source.dart';
@@ -14,22 +16,23 @@ class AuthRepositoryImpl implements AuthRepository {
   Stream<AuthUser?> authStateChanges() => _remote.authStateChanges();
 
   @override
-  Future<AuthUser?> signIn({required String email, required String password}) {
-    return _remote.signIn(email: email, password: password);
-  }
+  Future<void> signInWithEmail({required String email, required String password}) =>
+      _remote.signInWithEmail(email: email, password: password);
 
   @override
-  Future<AuthUser?> signUp({
-    required String displayName,
-    required String email,
-    required String password,
-  }) {
-    return _remote.signUp(
-      displayName: displayName,
-      email: email,
-      password: password,
-    );
-  }
+  Future<void> signInWithPhone({required String phone, required String password}) =>
+      _remote.signInWithPhone(phone: phone, password: password);
+
+  @override
+  Future<void> startPhoneCode({required String phone, required PhoneCodePurpose purpose}) =>
+      _remote.startPhoneCode(phone: phone, purpose: purpose);
+
+  @override
+  Future<void> verifyPhoneCode({required String phone, required String code}) =>
+      _remote.verifyPhoneCode(phone: phone, code: code);
+
+  @override
+  Future<void> setPhonePassword(String password) => _remote.setPhonePassword(password);
 
   @override
   Future<AuthUser?> refreshUser() => _remote.refreshUser();
@@ -38,7 +41,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AccountProfile?> loadProfile() => _remote.loadProfile();
 
   @override
-  Future<void> setAccountType(String dbValue) => _remote.setAccountType(dbValue);
+  Future<void> createRoleProfile({
+    required AccountType type,
+    required String name,
+    RoleCategory? category,
+    String phone = '',
+  }) =>
+      _remote.createRoleProfile(type: type, name: name, category: category, phone: phone);
 
   @override
   Future<void> sendPasswordReset(String email) => _remote.sendPasswordReset(email);

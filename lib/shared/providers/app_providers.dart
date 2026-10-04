@@ -26,6 +26,16 @@ final accountProfileProvider = FutureProvider<AccountProfile?>((ref) async {
   return ref.read(authRepositoryProvider).loadProfile();
 });
 
+/// The number a member just verified during sign-up, so account setup can put it
+/// on their profile (phone accounts sign in with an internal placeholder email).
+final pendingPhoneProvider = NotifierProvider<PendingPhone, String>(PendingPhone.new);
+
+class PendingPhone extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String phone) => state = phone;
+}
+
 final onboardingCompleteProvider =
     AsyncNotifierProvider<OnboardingController, bool>(OnboardingController.new);
 

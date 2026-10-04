@@ -25,12 +25,15 @@ class SignInScreen extends ConsumerStatefulWidget {
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _password = TextEditingController();
   var _showPassword = false;
+  var _usePhone = true;
 
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -44,7 +47,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         padding: EdgeInsets.zero,
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         children: [
-          const AuthHeader(title: 'Sign in', subtitle: 'Use the same email you use on the BAID X website.'),
+          const AuthHeader(title: 'Welcome back', subtitle: 'Sign in with the same phone number or email you use on the BAID X website.'),
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
@@ -58,14 +61,36 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       child: AutofillGroup(
                         child: Column(
                           children: [
-                            AppTextField(
-                              label: 'Email',
-                              controller: _email,
-                              validator: Validators.email,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.email],
+                            SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(value: true, label: Text('Phone'), icon: Icon(Icons.phone_iphone)),
+                                ButtonSegment(value: false, label: Text('Email'), icon: Icon(Icons.alternate_email)),
+                              ],
+                              selected: {_usePhone},
+                              onSelectionChanged: (v) => setState(() => _usePhone = v.first),
                             ),
+                            const SizedBox(height: AppSpacing.md),
+                            if (_usePhone)
+                              AppTextField(
+                                key: const Key('signInPhone'),
+                                label: 'Phone number',
+                                hint: '024 123 4567',
+                                controller: _phone,
+                                validator: Validators.ghanaPhone,
+                                keyboardType: TextInputType.phone,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.telephoneNumber],
+                              )
+                            else
+                              AppTextField(
+                                key: const Key('signInEmail'),
+                                label: 'Email',
+                                controller: _email,
+                                validator: Validators.email,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                              ),
                             const SizedBox(height: AppSpacing.md),
                             AppTextField(
                               label: 'Password',
@@ -95,10 +120,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                       onPressed: () async {
                         if (!_formKey.currentState!.validate()) return;
                         final ok = await ref.read(authActionProvider.notifier).run(() {
-                          return ref.read(authRepositoryProvider).signIn(
-                            email: _email.text.trim(),
-                            password: _password.text,
-                          );
+                          final auth = ref.read(authRepositoryProvider);
+                          return _usePhone
+                              ? auth.signInWithPhone(phone: _phone.text.trim(), password: _password.text)
+                              : auth.signInWithEmail(email: _email.text.trim(), password: _password.text);
                         });
                         if (!context.mounted) return;
                         final message = ref.read(authActionProvider).error;
@@ -114,6 +139,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           context.go(AppRoutes.emailVerification);
                           return;
                         }
+                        ref.invalidate(accountProfileProvider);
                         final profile = await ref.read(authRepositoryProvider).loadProfile();
                         if (!context.mounted) return;
                         final home = AccountType.fromDatabase(profile?.accountType)?.homePath;

@@ -71,7 +71,8 @@ String? guardRedirect({
       if (profileLoading) return null;
       final home = accountType == null ? AppRoutes.accountType : roleHomeFor(accountType);
       if (accountType == null) {
-        if (path == AppRoutes.splash || path == AppRoutes.emailVerification || isRolePath(path)) {
+        // account setup (/setup/<type>) creates the profile, so it stays open until then
+        if (path == AppRoutes.splash || path == AppRoutes.emailVerification || path.startsWith('/role/')) {
           return AppRoutes.accountType;
         }
         return null;
@@ -82,7 +83,7 @@ String? guardRedirect({
           path == AppRoutes.emailVerification) {
         return home;
       }
-      if (path.startsWith('/setup/') && path != '/setup/$accountType') return home;
+      if (path.startsWith('/setup/')) return home; // the profile already exists
       if (path.startsWith('/role/') && path != home) return home;
       return null;
   }
