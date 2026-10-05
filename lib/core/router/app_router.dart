@@ -73,11 +73,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.signIn,
-        builder: (context, state) => const AuthFlowScreen(start: AuthStart.signIn),
+        builder: (context, state) => AuthFlowScreen(start: AuthStart.signIn, group: state.uri.queryParameters['group']),
       ),
       GoRoute(
         path: AppRoutes.signUp,
-        builder: (context, state) => const AuthFlowScreen(),
+        builder: (context, state) => AuthFlowScreen(group: state.uri.queryParameters['group']),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
@@ -130,6 +130,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verificationReview,
         builder: (context, state) => const ReviewerScreen(),
       ),
+      // full-screen like the website's checklist (no tab bar)
+      GoRoute(
+        path: AppRoutes.checklist,
+        builder: (context, state) => const ChecklistScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.checklist}/step/:n',
+        builder: (context, state) => ChecklistStepScreen(index: int.tryParse(state.pathParameters['n'] ?? '') ?? 0),
+      ),
       ShellRoute(
         builder: (context, state, child) => RoleShell(child: child),
         routes: [
@@ -150,14 +159,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               return const MemberHomeScreen();
             },
-          ),
-          GoRoute(
-            path: AppRoutes.checklist,
-            builder: (context, state) => const ChecklistScreen(),
-          ),
-          GoRoute(
-            path: '${AppRoutes.checklist}/step/:n',
-            builder: (context, state) => ChecklistStepScreen(index: int.tryParse(state.pathParameters['n'] ?? '') ?? 0),
           ),
           GoRoute(
             path: AppRoutes.notifications,

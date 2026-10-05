@@ -17,12 +17,16 @@ Future<void> showGlassSheet(BuildContext context, {required String title, requir
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // the glass panel below draws its own handle and edge; the theme's would double them
+    showDragHandle: false,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(),
     backgroundColor: Colors.transparent,
     builder: (context) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xF20E0E0E),
+          color: Color(0xFF0E0E0E),
           borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
           border: Border(top: BorderSide(color: Color(0x1FFFFFFF))),
         ),

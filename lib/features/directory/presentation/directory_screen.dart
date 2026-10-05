@@ -10,7 +10,9 @@ import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/baid_ui.dart';
 import '../../../shared/widgets/brand_logo.dart';
 import '../../../shared/widgets/verified_badge.dart';
+import '../../account_type/domain/account_type.dart';
 import '../data/directory_repository.dart';
+import 'member_sheet.dart';
 
 /// The website's member directory (index.html #screen-directory): Home for
 /// visitors, Discover for members. Logo bar, search, type chips, member cards.
@@ -24,6 +26,15 @@ class DirectoryScreen extends ConsumerStatefulWidget {
 class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
   final _q = TextEditingController();
   var _filter = 'all';
+  var _roleDefaultSet = false;
+
+  // What each role most likely wants to find first (website DEFAULT_CHIP).
+  static const _defaultChip = {
+    AccountType.company: 'professionals',
+    AccountType.employer: 'professionals',
+    AccountType.projectManager: 'companies',
+    AccountType.business: 'companies',
+  };
 
   @override
   void dispose() {
@@ -33,7 +44,13 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final signedIn = ref.watch(authStateProvider).asData?.value != null;
+    final user = ref.watch(authStateProvider).asData?.value;
+    final signedIn = user != null;
+    final myType = ref.watch(accountProfileProvider).asData?.value?.type;
+    if (!_roleDefaultSet && myType != null) {
+      _roleDefaultSet = true;
+      _filter = _defaultChip[myType] ?? 'all';
+    }
     final data = ref.watch(directoryProvider);
     final q = _q.text.trim().toLowerCase();
     return Scaffold(
@@ -55,7 +72,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                       if (signedIn)
                         GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications))
                       else
-                        PillButton(label: 'Join as a Pro', expand: false, height: 42, onPressed: () => context.push(AppRoutes.signUp)),
+                        PillButton(label: 'Join as a Pro', expand: false, height: 42, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -103,7 +120,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                       sliver: SliverList.separated(
                         itemCount: list.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 14),
-                        itemBuilder: (context, i) => MemberCard(member: list[i], signedIn: signedIn),
+                        itemBuilder: (context, i) => MemberCard(member: list[i], signedIn: signedIn, myId: user?.id),
                       ),
                     ),
                   ];
@@ -175,9 +192,10 @@ class _Chip extends StatelessWidget {
 /// A member card (`.card.c2`): cover band with the type tag, overlapping avatar,
 /// name with the verification seal, trade, place, short description, two stats.
 class MemberCard extends StatelessWidget {
-  const MemberCard({required this.member, required this.signedIn, super.key});
+  const MemberCard({required this.member, required this.signedIn, this.myId, super.key});
   final DirectoryMember member;
   final bool signedIn;
+  final String? myId;
 
   static const _cover = {
     'worker': [Color(0xFF2B2B2B), Color(0xFF0C0C0C), Color(0xFF1C1C1C)],
@@ -189,7 +207,7 @@ class MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = member;
-    return Container(
+    final card = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
@@ -293,9 +311,9 @@ class MemberCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(child: _CardBtn(label: 'View profile', light: true, onTap: () => _open(context))),
-                    if (signedIn) ...[
+                    if (signedIn && m.id != myId) ...[
                       const SizedBox(width: 8),
-                      Expanded(child: _CardBtn(label: 'Message', onTap: () => context.push(AppRoutes.messages))),
+                      Expanded(child: _CardBtn(label: 'Message', onTap: () => startMemberChat(context, m))),
                     ],
                   ]),
                 ],
@@ -305,15 +323,11 @@ class MemberCard extends StatelessWidget {
         ],
       ),
     );
+    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _open(context), child: card);
   }
 
-  void _open(BuildContext context) {
-    if (!signedIn) {
-      context.push(AppRoutes.signIn);
-      return;
-    }
-    if (member.kind == 'worker') context.push('/workers/${member.id}');
-  }
+  // the whole card opens the profile sheet, like the website
+  void _open(BuildContext context) => showMemberSheet(context, member: member, signedIn: signedIn, isMe: member.id == myId);
 }
 
 class _CardBtn extends StatelessWidget {

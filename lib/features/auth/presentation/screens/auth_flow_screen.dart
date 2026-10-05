@@ -15,22 +15,27 @@ import '../../../../shared/providers/app_providers.dart';
 import '../../../../shared/widgets/baid_ui.dart';
 import '../../../account_type/domain/account_type.dart';
 import '../../../account_type/domain/role_categories.dart';
+import '../../data/remembered_accounts.dart';
 import '../../domain/auth_repository.dart';
 
 /// Where the flow opens.
 enum AuthStart { type, signIn, reset, onboard }
 
-enum _View { type, signin, phone, code, name, cat, pass }
+enum _View { choose, type, signin, phone, code, name, cat, pass }
 
 /// Sign-in and sign-up, built to match the website's auth.html view for view:
 /// choose type → phone → code → name → category → password, plus the
 /// "Welcome back" sign-in, password reset by phone, and account setup for
 /// signed-in members who have no account type yet.
 class AuthFlowScreen extends ConsumerStatefulWidget {
-  const AuthFlowScreen({this.start = AuthStart.type, this.presetType, super.key});
+  const AuthFlowScreen({this.start = AuthStart.type, this.presetType, this.group, super.key});
 
   final AuthStart start;
   final AccountType? presetType;
+
+  /// "pro" (professionals, project managers, suppliers) or "client" (home
+  /// clients, companies), like auth.html?group=..; null shows every type.
+  final String? group;
 
   @override
   ConsumerState<AuthFlowScreen> createState() => _AuthFlowScreenState();
@@ -52,6 +57,10 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   var _showPw = false;
   String? _error;
   var _otpState = _OtpState.idle;
+  // signing in from a guest page: the type is chosen first and checked after sign-in
+  var _intent = false;
+  String? _welcome;
+  List<RememberedAccount> _accs = const [];
   int _resendLeft = 0;
   Timer? _resendTimer;
 
@@ -67,17 +76,63 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
 
   _View get _view => _history.last;
 
+  static const _groups = {
+    'pro': ([AccountType.worker, AccountType.projectManager, AccountType.business], 'Join as a Pro', 'Pick how you work on BAID X.', 'Sign in as a Pro'),
+    'client': ([AccountType.employer, AccountType.company], 'Join as a client', 'Hiring for your home, or for your company?', 'Sign in as a client'),
+  };
+
+  List<AccountType> get _roles => _groups[widget.group]?.$1 ?? AccountType.pickerOrder;
+
+  RememberedAccounts get _remembered => RememberedAccounts(ref.read(keyValueStoreProvider));
+
+  /// Accounts used on this device open the website's "Continue with" list first.
+  Future<void> _loadAccounts() async {
+    final accs = await _remembered.list();
+    if (!mounted || accs.isEmpty || _history.length != 1 || _view != _View.type) return;
+    setState(() {
+      _accs = accs;
+      _history = [_View.choose];
+    });
+  }
+
+  void _pickAccount(RememberedAccount a) {
+    final local = a.phone.replaceAll(RegExp(r'\D'), '').replaceFirst(RegExp(r'^233'), '');
+    setState(() {
+      _intent = false;
+      _mode = 'signin';
+      _usePhone = true;
+      _siPhone.text = local.isEmpty ? '' : '0$local';
+      _siPass.clear();
+      _welcome = 'Welcome back, ${a.name}. Enter your password to continue.';
+    });
+    _go(_View.signin);
+  }
+
+  Future<void> _rememberMe() async {
+    final me = await _auth.loadProfile();
+    final type = me?.type;
+    if (me == null || type == null) return;
+    final (photoCol, _, _) = switch (type) {
+      AccountType.company => ('company_logo_url', '', ''),
+      AccountType.business => ('logo_url', '', ''),
+      _ => ('profile_photo_url', '', ''),
+    };
+    await _remembered.remember(RememberedAccount(id: me.id, name: me.displayName.isEmpty ? type.label : me.displayName, role: type.dbValue, phone: me.phone, photo: me.row[photoCol] as String?));
+  }
+
   @override
   void initState() {
     super.initState();
-    _role = widget.presetType ?? AccountType.worker;
+    _role = widget.presetType ?? _roles.first;
     switch (widget.start) {
       case AuthStart.type:
         _mode = 'signup';
         _history = [_View.type];
       case AuthStart.signIn:
         _mode = 'signin';
-        _history = [_View.type, _View.signin];
+        _intent = true;
+        _history = [_View.type];
+        _loadAccounts();
       case AuthStart.reset:
         _mode = 'reset';
         _history = [_View.phone];
@@ -111,14 +166,15 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       if (context.canPop()) {
         context.pop();
       } else {
-        context.go(AppRoutes.marketplace);
+        context.go(AppRoutes.discover);
       }
       return;
     }
     setState(() {
       _error = null;
       _history = _history.sublist(0, _history.length - 1);
-      if (_view == _View.type && _mode != 'onboard') _mode = 'signup';
+      if (_view == _View.type && _mode != 'onboard') _mode = _intent ? 'signin' : 'signup';
+      if (_view != _View.signin) _welcome = null;
     });
   }
 
@@ -203,6 +259,13 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         final me = await _auth.loadProfile();
         if (!mounted) return;
         final type = me?.type;
+        // they chose an account type first, so make sure the account really is that type
+        if (_intent && type != null && type != _role) {
+          await _auth.signOut();
+          throw AuthFlowException('That account is a ${type.label} account. Go back and choose ${type.label}.');
+        }
+        if (type != null) await _rememberMe();
+        if (!mounted) return;
         if (type == null) {
           setState(() {
             _mode = 'onboard';
@@ -230,6 +293,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         }
         ref.invalidate(accountProfileProvider);
         await ref.read(accountProfileProvider.future);
+        await _rememberMe();
         if (mounted) context.go(_role.homePath);
       });
 
@@ -246,8 +310,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   Widget build(BuildContext context) {
     final flow = _flows[_mode] ?? const <_View>[];
     final idx = flow.indexOf(_view);
-    final showHead = _view != _View.type;
-    final showBrand = _view == _View.type || _view == _View.signin;
+    final showHead = _view != _View.type && _view != _View.choose;
+    final showBrand = _view == _View.type || _view == _View.signin || _view == _View.choose;
     return PopScope(
       canPop: _history.length <= 1,
       onPopInvokedWithResult: (didPop, _) {
@@ -315,6 +379,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   }
 
   Widget _body() => switch (_view) {
+        _View.choose => _chooseView(),
         _View.type => _typeView(),
         _View.signin => _signinView(),
         _View.phone => _phoneView(),
@@ -367,20 +432,22 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   // type
   Widget _typeView() {
     final onboard = _mode == 'onboard';
+    final g = _groups[widget.group];
     return _page(
-      title: onboard ? 'Finish setting up' : 'Choose type',
-      sub: onboard ? 'Choose the account that fits how you use BAID X.' : 'Pick the account that fits how you use BAID X.',
+      title: onboard ? 'Finish setting up' : _intent ? (g?.$4 ?? 'Sign in') : (g?.$2 ?? 'Choose type'),
+      sub: onboard ? 'Choose the account that fits how you use BAID X.' : _intent ? 'Choose your account type to continue.' : (g?.$3 ?? 'Pick the account that fits how you use BAID X.'),
       children: [
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 10,
           runSpacing: 10,
           children: [
-            for (final t in AccountType.pickerOrder)
-              LayoutBuilder(builder: (context, _) {
-                final w = (MediaQuery.sizeOf(context).width.clamp(0, 440) - 36 - 10) / 2;
-                return SizedBox(width: w, child: _TypeTile(type: t, selected: _role == t, onTap: () => setState(() => _role = t)));
-              }),
+            // sized from the screen, not a LayoutBuilder: this sits inside IntrinsicHeight
+            for (final t in _roles)
+              SizedBox(
+                width: (MediaQuery.sizeOf(context).width.clamp(0, 440) - 36 - 10) / 2,
+                child: _TypeTile(type: t, selected: _role == t, onTap: () => setState(() => _role = t)),
+              ),
           ],
         ),
         const SizedBox(height: 14),
@@ -391,7 +458,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           PillButton(label: 'Continue', onPressed: () => _go(_View.name))
         else ...[
           PillButton(
-            label: 'Sign in',
+            label: _intent ? 'Continue' : 'Sign in',
             onPressed: () => setState(() {
               _mode = 'signin';
               _go(_View.signin);
@@ -400,12 +467,74 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           const SizedBox(height: 6),
           TextButton(
             onPressed: () => setState(() {
+              _intent = false;
               _mode = 'signup';
               _go(_View.phone);
             }),
-            child: Text('Create an account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
+            child: Text(_intent ? 'New here? Create an account' : 'Create an account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
           ),
         ],
+      ],
+    );
+  }
+
+  // continue with (accounts used on this device)
+  Widget _chooseView() {
+    return _page(
+      title: 'Continue with',
+      sub: 'Accounts used on this device.',
+      children: [
+        for (final a in _accs)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Glass(
+              radius: 18,
+              padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+              onTap: () => _pickAccount(a),
+              child: Row(children: [
+                InitialsAvatar(name: a.name, photoUrl: a.photo, size: 44, radius: 14),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 15, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        '${AccountType.fromDatabase(a.role)?.label ?? 'BAID X'} account',
+                        if (a.phone.replaceAll(RegExp(r'\D'), '').length > 6) () {
+                          final d = a.phone.replaceAll(RegExp(r'\D'), '');
+                          return '+${d.substring(0, 3)} ••• ${d.substring(d.length - 3)}';
+                        }(),
+                      ].join(' · '),
+                      style: AppTextStyles.caption.copyWith(fontSize: 12.5, color: AppColors.muted),
+                    ),
+                  ]),
+                ),
+                Text('Password', style: AppTextStyles.caption.copyWith(fontSize: 12, color: const Color(0xFFD6D6D6), fontWeight: FontWeight.w600)),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              ]),
+            ),
+          ),
+      ],
+      foot: [
+        PillButton(
+          label: 'Use another account',
+          light: false,
+          onPressed: () => setState(() {
+            _intent = true;
+            _mode = 'signin';
+            _go(_View.type);
+          }),
+        ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () => setState(() {
+            _intent = false;
+            _mode = 'signup';
+            _go(_View.type);
+          }),
+          child: Text('Create a new account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
+        ),
       ],
     );
   }
@@ -414,7 +543,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   Widget _signinView() {
     return _page(
       title: 'Welcome back',
-      sub: 'Sign in to your BAID X account.',
+      sub: _welcome ?? (_intent ? 'Signing in as ${_role.label}.' : 'Sign in to your BAID X account.'),
       children: [
         _Seg(phone: _usePhone, onChanged: (v) => setState(() {
               _usePhone = v;

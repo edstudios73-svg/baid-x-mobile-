@@ -29,14 +29,14 @@ class GuestProfileView extends StatelessWidget {
                 icon: Icons.work_outline,
                 title: 'Sign in as a Pro',
                 sub: 'For professionals, project managers and suppliers',
-                onTap: () => context.push(AppRoutes.signIn),
+                onTap: () => context.push('${AppRoutes.signIn}?group=pro'),
               ),
               const SizedBox(height: 12),
               _GuestOption(
                 icon: Icons.home_outlined,
                 title: 'Sign in as a client',
                 sub: 'For homeowners hiring, and for companies',
-                onTap: () => context.push(AppRoutes.signIn),
+                onTap: () => context.push('${AppRoutes.signIn}?group=client'),
               ),
               const SizedBox(height: 18),
               Text(
