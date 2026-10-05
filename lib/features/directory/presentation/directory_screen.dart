@@ -92,7 +92,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                         ]),
                       ]
                       else
-                        PillButton(label: 'Join as a Pro', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
+                        PillButton(label: 'Get verified', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -114,6 +114,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (!signedIn) const _GuestHero(),
                 ]),
               ),
               ...data.when(
@@ -209,20 +210,15 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// A member card (`.card.c2`): cover band with the type tag, overlapping avatar,
-/// name with the verification seal, trade, place, short description, two stats.
+/// A member card (website `.card.c3`): identity row with the avatar beside the
+/// name, a short description, one facts line and a trust line.
 class MemberCard extends ConsumerWidget {
   const MemberCard({required this.member, required this.signedIn, this.myId, super.key});
   final DirectoryMember member;
   final bool signedIn;
   final String? myId;
 
-  static const _cover = {
-    'worker': [Color(0xFF2B2B2B), Color(0xFF0C0C0C), Color(0xFF1C1C1C)],
-    'company': [Color(0xFF262626), Color(0xFF0A0A0A), Color(0xFF161616)],
-    'pm': [Color(0xFF1F1F1F), Color(0xFF0B0B0B), Color(0xFF2A2A2A)],
-    'business': [Color(0xFF2A2A2A), Color(0xFF090909), Color(0xFF181818)],
-  };
+  static String _fact(String v) => v.replaceAllMapped(RegExp(r'^(\d+) (\d+)$'), (m) => '${m[1]}–${m[2]}');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -231,119 +227,67 @@ class MemberCard extends ConsumerWidget {
     final mine = ref.watch(accountProfileProvider).asData?.value?.type;
     final canInvite = signedIn && ((mine == AccountType.company && (m.kind == 'worker' || m.kind == 'pm')) || (mine == AccountType.projectManager && m.kind == 'worker'));
     void primary() => canInvite ? openInvite(context, ref, kind: m.kind, personId: m.id) : _open(context);
+    const muted = Color(0xFFB9B9B9);
+    final facts = <Widget>[
+      Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.location_on_outlined, size: 14, color: muted), const SizedBox(width: 4), Text(m.place, style: const TextStyle(fontSize: 12.5, color: muted))]),
+      for (final (v, l) in m.stats)
+        Text.rich(TextSpan(children: [
+          TextSpan(text: _fact(v), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+          TextSpan(text: ' ${l.toLowerCase()}'),
+        ]), style: const TextStyle(fontSize: 12.5, color: muted)),
+    ];
     final card = Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF131313), Color(0xFF0F0F0F)]),
-        border: Border.all(color: AppColors.lineGlass),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.lineGlass)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 104,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (m.cover != null)
-                  Image.network(m.cover!, fit: BoxFit.cover, errorBuilder: (_, _, _) => const SizedBox.shrink())
-                else
-                  DecoratedBox(
-                    decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: _cover[m.kind] ?? _cover['worker']!, stops: const [0, .6, 1])),
-                    child: CustomPaint(painter: _Stripes()),
-                  ),
-                const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment(0, -.2), end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xD908090B)]))),
-                Positioned(
-                  left: 14,
-                  top: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(99)),
-                    child: Text(m.kindLabel.toUpperCase(), style: const TextStyle(fontFamily: AppTextStyles.family, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .7, color: Colors.black)),
-                  ),
-                ),
-              ],
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            InitialsAvatar(name: m.name, photoUrl: m.image, size: 52, radius: 16),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(m.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -.1)),
+                const SizedBox(height: 2),
+                Text(m.tag, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, color: muted)),
+              ]),
             ),
-          ),
-          Transform.translate(
-            offset: const Offset(0, -30),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFF0E0E0E), width: 3), boxShadow: const [BoxShadow(color: Color(0x80000000), blurRadius: 22, offset: Offset(0, 8))]),
-                    child: InitialsAvatar(name: m.name, photoUrl: m.image, size: 58, radius: 17),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            Flexible(child: Text(m.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 16.5, fontWeight: FontWeight.w800, letterSpacing: -.1))),
-                            const SizedBox(width: 6),
-                            VerifiedBadge(m.badge),
-                          ]),
-                          const SizedBox(height: 1),
-                          Text(m.tag.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: .7, color: Color(0xBFFFFFFF))),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.lineGlass)),
+              child: Text(m.kindLabel.toUpperCase(), style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: .5, color: Color(0xFFD6D6D6))),
             ),
-          ),
-          Transform.translate(
-            offset: const Offset(0, -18),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(children: [
-                    const Icon(Icons.location_on_outlined, size: 15, color: Color(0xFFAEB3BC)),
+          ]),
+          const SizedBox(height: 12),
+          Text(m.desc, maxLines: 3, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 13, color: const Color(0xFFA3A8B1), height: 1.45)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            for (var i = 0; i < facts.length; i++) ...[
+              if (i > 0) Container(width: 3, height: 3, decoration: const BoxDecoration(color: Color(0xFF666666), shape: BoxShape.circle)),
+              facts[i],
+            ],
+          ]),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(color: const Color(0x0AFFFFFF), borderRadius: BorderRadius.circular(12)),
+            child: m.badge == null
+                ? const Text('Verification in progress', style: TextStyle(fontSize: 12.5, color: Color(0xFF9A9A9A)))
+                : Row(children: [
+                    VerifiedBadge(m.badge, size: 16),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(m.place, style: AppTextStyles.caption.copyWith(fontSize: 12.5, color: const Color(0xFFAEB3BC)))),
+                    Text('${VerifiedBadge.labels[m.badge] ?? 'Verified'} by BAID X', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFFE8E8E8))),
                   ]),
-                  const SizedBox(height: 8),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 38),
-                    child: Text(m.desc, maxLines: 3, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 13, color: const Color(0xFFA3A8B1), height: 1.45)),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(children: [
-                    for (var i = 0; i < m.stats.length; i++) ...[
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                          decoration: BoxDecoration(color: const Color(0x0AFFFFFF), borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.lineGlass)),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(m.stats[i].$1, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 16, fontWeight: FontWeight.w800)),
-                            Text(m.stats[i].$2, style: AppTextStyles.caption.copyWith(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.muted)),
-                          ]),
-                        ),
-                      ),
-                      if (i < m.stats.length - 1) const SizedBox(width: 8),
-                    ],
-                  ]),
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    Expanded(child: _CardBtn(label: canInvite ? 'Invite to project' : 'View profile', light: true, onTap: primary)),
-                    if (signedIn && m.id != myId) ...[
-                      const SizedBox(width: 8),
-                      Expanded(child: _CardBtn(label: 'Message', onTap: () => startMemberChat(context, m))),
-                    ],
-                  ]),
-                ],
-              ),
-            ),
           ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: _CardBtn(label: canInvite ? 'Invite to project' : 'View profile', light: true, onTap: primary)),
+            if (signedIn && m.id != myId) ...[
+              const SizedBox(width: 8),
+              Expanded(child: _CardBtn(label: 'Message', onTap: () => startMemberChat(context, m))),
+            ],
+          ]),
         ],
       ),
     );
@@ -377,21 +321,6 @@ class _CardBtn extends StatelessWidget {
   }
 }
 
-class _Stripes extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()
-      ..color = const Color(0x0DFFFFFF)
-      ..strokeWidth = 1;
-    for (double x = -size.height; x < size.width; x += 12) {
-      canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class _Skeleton extends StatelessWidget {
   const _Skeleton();
 
@@ -422,4 +351,35 @@ class _State extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Signed-out Home intro (website `.g-hero`): what BAID X does differently.
+class _GuestHero extends StatelessWidget {
+  const _GuestHero();
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.lineGlass)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Hire verified people. Pay only when the work is done.', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.25, letterSpacing: -.2)),
+          const SizedBox(height: 12),
+          for (final (t, d) in const [
+            ('Ghana Card checked', 'Every profile is reviewed by BAID X before it shows a badge.'),
+            ('Money held safely', 'Your payment waits in escrow until you approve the work.'),
+            ('Run the whole job', 'Projects, crews, materials and payments in one place.'),
+          ])
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(left: 12),
+              decoration: const BoxDecoration(border: Border(left: BorderSide(color: Colors.white, width: 2))),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                Text(d, style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
+              ]),
+            ),
+          const SizedBox(height: 4),
+          PillButton(label: 'Get started', height: 46, onPressed: () => context.push(AppRoutes.signUp)),
+        ]),
+      );
 }

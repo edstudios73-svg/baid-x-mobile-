@@ -13,10 +13,10 @@ Widget _auth(AuthFlowScreen screen, {KeyValueStore? store}) => ProviderScope(
     );
 
 void main() {
-  testWidgets('Join as a Pro shows only the pro account types', (tester) async {
+  testWidgets('Join as a professional shows only the pro account types', (tester) async {
     await tester.pumpWidget(_auth(const AuthFlowScreen(group: 'pro')));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Join as a Pro'), findsOneWidget);
+    expect(find.text('Join as a professional'), findsOneWidget);
     expect(find.text('Professional'), findsOneWidget);
     expect(find.text('Project Manager'), findsOneWidget);
     expect(find.text('Supplier'), findsOneWidget);
@@ -24,10 +24,10 @@ void main() {
     expect(find.text('Client'), findsNothing);
   });
 
-  testWidgets('Sign in as a client picks the type first, like the website', (tester) async {
+  testWidgets('Client sign-in picks the type first, like the website', (tester) async {
     await tester.pumpWidget(_auth(const AuthFlowScreen(start: AuthStart.signIn, group: 'client')));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Sign in as a client'), findsOneWidget);
+    expect(find.text('Client sign-in'), findsOneWidget);
     expect(find.text('Choose your account type to continue.'), findsOneWidget);
     expect(find.text('Professional'), findsNothing);
     await tester.tap(find.text('Continue'));

@@ -40,8 +40,8 @@ void main() {
     await tester.tap(find.text('Profile').last);
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Sign in as a Pro'), findsOneWidget);
-    expect(find.text('Sign in as a client'), findsOneWidget);
+    expect(find.text('I\'m a professional'), findsOneWidget);
+    expect(find.text('I\'m hiring'), findsOneWidget);
   });
 
   test('theme matches the website: black canvas, white actions, Inter', () {

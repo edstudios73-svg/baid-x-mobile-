@@ -39,7 +39,7 @@ class DirectoryMember {
   String get kindLabel => const {'worker': 'Professional', 'company': 'Company', 'pm': 'Project manager', 'business': 'Supplier'}[kind] ?? 'Member';
 }
 
-const directoryChips = [('all', 'All'), ('companies', 'Companies'), ('professionals', 'Professionals'), ('managers', 'Project Managers'), ('businesses', 'Businesses')];
+const directoryChips = [('all', 'Everyone'), ('companies', 'Companies'), ('professionals', 'Professionals'), ('managers', 'Project Managers'), ('businesses', 'Businesses')];
 
 String _pretty(Object? v) => (v ?? '').toString().replaceAll('_', ' ').trim().replaceAllMapped(RegExp(r'\b\w'), (m) => m[0]!.toUpperCase());
 bool _real(Object? v) => v is String && v.trim().isNotEmpty && !v.toLowerCase().endsWith('.invalid');

@@ -77,8 +77,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   _View get _view => _history.last;
 
   static const _groups = {
-    'pro': ([AccountType.worker, AccountType.projectManager, AccountType.business], 'Join as a Pro', 'Pick how you work on BAID X.', 'Sign in as a Pro'),
-    'client': ([AccountType.employer, AccountType.company], 'Join as a client', 'Hiring for your home, or for your company?', 'Sign in as a client'),
+    'pro': ([AccountType.worker, AccountType.projectManager, AccountType.business], 'Join as a professional', 'Pick how you work on BAID X.', 'Professional sign-in'),
+    'client': ([AccountType.employer, AccountType.company], 'Join to hire', 'Hiring for your home, or for your company?', 'Client sign-in'),
   };
 
   List<AccountType> get _roles => _groups[widget.group]?.$1 ?? AccountType.pickerOrder;

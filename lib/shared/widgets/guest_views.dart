@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,7 +7,7 @@ import '../../core/theme/app_text_styles.dart';
 import 'baid_ui.dart';
 
 /// The website's signed-out Profile tab (#profileGuest): the BAID X mark in a
-/// glass frame and two glass options to sign in as a Pro or as a client.
+/// glass frame and two glass options, one for professionals and one for hiring.
 class GuestProfileView extends StatelessWidget {
   const GuestProfileView({super.key});
 
@@ -23,21 +21,21 @@ class GuestProfileView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 120),
             children: [
               const SizedBox(height: 14),
-              Text('Profile', textAlign: TextAlign.center, style: AppTextStyles.section.copyWith(fontWeight: FontWeight.w800, letterSpacing: .3)),
+              Text('Get started', textAlign: TextAlign.center, style: AppTextStyles.section.copyWith(fontWeight: FontWeight.w800, letterSpacing: .3)),
               const SizedBox(height: 36),
               const Center(child: BrandFrame(size: 132)),
               const SizedBox(height: 34),
               _GuestOption(
                 icon: Icons.work_outline,
-                title: 'Sign in as a Pro',
-                sub: 'For professionals, project managers and suppliers',
+                title: 'I\'m a professional',
+                sub: 'Workers, project managers and suppliers. Get verified and get hired.',
                 onTap: () => context.push('${AppRoutes.signIn}?group=pro'),
               ),
               const SizedBox(height: 12),
               _GuestOption(
                 icon: Icons.home_outlined,
-                title: 'Sign in as a client',
-                sub: 'For homeowners hiring, and for companies',
+                title: 'I\'m hiring',
+                sub: 'Homeowners and companies. Hire safely and pay through escrow.',
                 onTap: () => context.push('${AppRoutes.signIn}?group=client'),
               ),
               const SizedBox(height: 18),
@@ -113,13 +111,13 @@ class GuestChatsView extends StatelessWidget {
                 Center(
                   child: Column(
                     children: [
-                      const SizedBox(width: 120, height: 110, child: CustomPaint(painter: _OpenBox())),
+                      const SizedBox(width: 150, height: 130, child: CustomPaint(painter: _SecureBubbles())),
                       const SizedBox(height: 30),
-                      Text('Sign in to view chats', style: AppTextStyles.section.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
+                      Text('Your messages live here', style: AppTextStyles.section.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Text('Your conversations will appear here after you sign in.', textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: AppColors.muted, fontSize: 14)),
+                        child: Text('Sign in to message verified professionals, companies and suppliers. Conversations are private and end-to-end encrypted.', textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: AppColors.muted, fontSize: 14)),
                       ),
                       const SizedBox(height: 22),
                       PillButton(label: 'Sign in', expand: false, height: 44, onPressed: () => context.push(AppRoutes.signIn)),
@@ -136,55 +134,42 @@ class GuestChatsView extends StatelessWidget {
   }
 }
 
-/// The website's empty-chats illustration: an open box with a dotted arc.
-class _OpenBox extends CustomPainter {
-  const _OpenBox();
+/// The website's signed-out Chats illustration: two chat bubbles, one locked.
+class _SecureBubbles extends CustomPainter {
+  const _SecureBubbles();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
+    // drawn on the website's 150x130 grid, then scaled
+    canvas.scale(size.width / 150, size.height / 130);
     final line = Paint()
-      ..color = const Color(0xFFE6E6E6)
+      ..color = const Color(0xFFD9D9D9)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeJoin = StrokeJoin.round;
-    final top = Offset(w * .5, h * .30), left = Offset(w * .12, h * .45), right = Offset(w * .88, h * .45), mid = Offset(w * .5, h * .60);
-    final bl = Offset(w * .12, h * .78), br = Offset(w * .88, h * .78), bm = Offset(w * .5, h * .95);
-    // box sides
-    canvas.drawPath(Path()..moveTo(left.dx, left.dy)..lineTo(mid.dx, mid.dy)..lineTo(bm.dx, bm.dy)..lineTo(bl.dx, bl.dy)..close(), Paint()..color = const Color(0xFF2E2E2E));
-    canvas.drawPath(Path()..moveTo(right.dx, right.dy)..lineTo(mid.dx, mid.dy)..lineTo(bm.dx, bm.dy)..lineTo(br.dx, br.dy)..close(), Paint()..color = const Color(0xFF242424));
-    canvas.drawPath(Path()..moveTo(left.dx, left.dy)..lineTo(top.dx, top.dy)..lineTo(right.dx, right.dy)..lineTo(mid.dx, mid.dy)..close(), Paint()..color = const Color(0xFF3A3A3A));
-    // open flaps and edges
-    canvas.drawPath(
-      Path()
-        ..moveTo(left.dx, left.dy)
-        ..lineTo(w * .30, h * .36)
-        ..lineTo(top.dx, h * .44)
-        ..lineTo(w * .70, h * .36)
-        ..lineTo(right.dx, right.dy)
-        ..moveTo(left.dx, left.dy)
-        ..lineTo(bl.dx, bl.dy)
-        ..lineTo(bm.dx, bm.dy)
-        ..lineTo(br.dx, br.dy)
-        ..lineTo(right.dx, right.dy)
-        ..moveTo(mid.dx, mid.dy)
-        ..lineTo(bm.dx, bm.dy),
-      line,
-    );
-    // dotted arc and sparks
-    final dot = Paint()..color = const Color(0xFFBDBDBD);
-    for (var i = 0; i < 5; i++) {
-      final a = -2.4 + i * .32;
-      canvas.drawCircle(Offset(w * .55 + 16 * _cos(a), h * .12 + 10 * _sin(a)), 1.6, dot);
+      ..strokeWidth = 3
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    void bubble(Rect r, double radius, Path tail, Color fill) {
+      final body = RRect.fromRectAndRadius(r, Radius.circular(radius));
+      canvas.drawRRect(body, Paint()..color = fill);
+      canvas.drawPath(tail, Paint()..color = fill);
+      canvas.drawRRect(body, line);
+      canvas.drawPath(tail, line);
     }
-    canvas.drawCircle(Offset(w * .67, h * .12), 4, Paint()..color = Colors.white);
-    canvas.drawCircle(Offset(w * .02, h * .25), 2.5, dot);
-    canvas.drawCircle(Offset(w * .98, h * .68), 2.5, dot);
+
+    bubble(const Rect.fromLTWH(14, 18, 84, 56), 18, Path()..moveTo(34, 74)..lineTo(34, 92)..lineTo(52, 74), const Color(0xFF2B2B2B));
+    final grey = Paint()
+      ..color = const Color(0xFF7A7A7A)
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(34, 40), const Offset(78, 40), grey);
+    canvas.drawLine(const Offset(34, 54), const Offset(62, 54), grey);
+    bubble(const Rect.fromLTWH(72, 58, 64, 44), 15, Path()..moveTo(118, 102)..lineTo(118, 116)..lineTo(104, 102), const Color(0xFF1F1F1F));
+    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(95, 77, 18, 14), const Radius.circular(3)), Paint()..color = const Color(0xFFD9D9D9));
+    canvas.drawArc(const Rect.fromLTWH(98, 67, 12, 12), 3.1416, 3.1416, false, line);
+    canvas.drawLine(const Offset(98, 73), const Offset(98, 77), line);
+    canvas.drawLine(const Offset(110, 73), const Offset(110, 77), line);
   }
 
-  static double _cos(double a) => math.cos(a);
-  static double _sin(double a) => math.sin(a);
-
   @override
-  bool shouldRepaint(_OpenBox oldDelegate) => false;
+  bool shouldRepaint(_SecureBubbles oldDelegate) => false;
 }
