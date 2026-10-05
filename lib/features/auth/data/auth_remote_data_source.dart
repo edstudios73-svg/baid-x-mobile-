@@ -104,13 +104,13 @@ class AuthRemoteDataSource {
   }) async {
     final user = _safeUser();
     if (user == null) throw const AuthFlowException('Your session expired. Sign in again.');
-    final email = _realEmail(user.email);
+    // no email is assigned at sign-up: members add their own from the profile
     final values = switch (type) {
       AccountType.worker => {'full_name': name, 'phone_number': phone, 'primary_job_category_id': ?category?.id},
-      AccountType.company => {'company_name': name, 'contact_phone': phone, 'contact_email': email, 'industry_sector': ?category?.id},
-      AccountType.projectManager => {'full_name': name, 'phone_number': phone, 'email': email, 'specialization': ?category?.id},
-      AccountType.business => {'business_name': name, 'contact_person_name': name, 'contact_phone': phone, 'contact_email': email, 'specialty': ?category?.name},
-      AccountType.employer => {'full_name': name, 'phone_number': phone, 'email': email, 'profile_sections': {'need_category': ?category?.name}},
+      AccountType.company => {'company_name': name, 'contact_phone': phone, 'industry_sector': ?category?.id},
+      AccountType.projectManager => {'full_name': name, 'phone_number': phone, 'specialization': ?category?.id},
+      AccountType.business => {'business_name': name, 'contact_person_name': name, 'contact_phone': phone, 'specialty': ?category?.name},
+      AccountType.employer => {'full_name': name, 'phone_number': phone, 'profile_sections': {'need_category': ?category?.name}},
     };
     try {
       await _client.from(type.table).insert({'id': user.id, ...values});
@@ -140,13 +140,6 @@ class AuthRemoteDataSource {
       throw const AuthFlowException('Couldn\'t sign you in. Try again.');
     }
     await _client.auth.setSession(refresh);
-  }
-
-  /// Phone accounts sign in with an internal placeholder email ending in .invalid.
-  /// It is never shown or copied onto a profile.
-  static String _realEmail(String? email) {
-    final e = (email ?? '').trim();
-    return e.toLowerCase().endsWith('.invalid') ? '' : e;
   }
 
   User? _safeUser() {

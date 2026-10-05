@@ -113,7 +113,7 @@ class MemberProfileView extends ConsumerWidget {
               _Rows([for (final m in menu) (m.$1, m.$2, m.$3)]),
               const SizedBox(height: 10),
               _Rows([
-                ('Add email', 'Verify the email address for this account.', () => openAddEmail(context)),
+                ('Add email', 'Add your own email address. None is set for you.', () => openAddEmail(context, type: type)),
                 ('Change phone', 'Update the mobile number linked to this account.', () => openChangePhone(context)),
                 ('Switch account', 'Use another account on this device.', () async {
                   await ref.read(authRepositoryProvider).signOut();

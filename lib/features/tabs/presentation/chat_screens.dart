@@ -16,6 +16,7 @@ import '../../account/presentation/account_sheets.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../account/data/profile_data.dart' show sb;
 import '../data/secure_chat.dart';
+import '../data/chat_realtime.dart';
 import '../data/tabs_data.dart';
 
 /// Chats (website js/chat.js): the conversation list from `my_conversations`
@@ -227,8 +228,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   void initState() {
     super.initState();
     markConversationRead(widget.id);
-    // new messages arrive by a light poll until realtime chat comes to the app
-    _poll = Timer.periodic(const Duration(seconds: 6), (_) => ref.invalidate(chatThreadProvider(widget.id)));
+    // new messages arrive over realtime in about a second (chatRealtimeProvider);
+    // this catch-up only runs while realtime is not connected
+    _poll = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!chatRealtimeUp.value) ref.invalidate(chatThreadProvider(widget.id));
+    });
   }
 
   @override
@@ -250,6 +254,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     try {
       final t = ref.read(chatThreadProvider(widget.id)).asData?.value;
       final peer = t?['peer'] is Map ? Map<String, dynamic>.from(t!['peer'] as Map) : const <String, dynamic>{};
+      // unlock the box as soon as the server has it; the thread refresh follows in the background
+      if (mounted) setState(() => _sending = false);
       await sendChat(widget.id, text, peerId: peer['id'] as String?, peerAdmin: peer['admin'] == true);
       ref.invalidate(chatThreadProvider(widget.id));
       ref.invalidate(conversationsProvider);

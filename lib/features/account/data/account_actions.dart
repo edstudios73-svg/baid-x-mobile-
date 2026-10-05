@@ -41,19 +41,29 @@ class AccountActions {
 
   String publicUrl(String bucket, String path) => _c.storage.from(bucket).getPublicUrl(path);
 
-  /// Adds the member's own sign-in email: Supabase sends a confirmation link.
-  Future<void> addEmail(String raw) async {
+  /// The profile column that holds the member's email, per account type.
+  static String emailColumn(AccountType t) => switch (t) {
+        AccountType.company || AccountType.business => 'contact_email',
+        _ => 'email',
+      };
+
+  /// Adds the member's own email. Nobody gets an email at sign-up; the member
+  /// types it here, it is saved on their profile, and Supabase sends a link so
+  /// it can also be used to sign in (website: js/features.js addEmail).
+  Future<void> addEmail(String raw, {AccountType? type}) async {
     final email = raw.trim().toLowerCase();
     if (!RegExp(r'^\S+@\S+\.\S+$').hasMatch(email) || email.length > 160) throw const AuthFlowException('Enter a valid email address.');
     if (email.endsWith('.invalid')) throw const AuthFlowException('Use your own email address.');
     try {
-      await _c.auth.updateUser(UserAttributes(email: email), emailRedirectTo: 'https://baid-x-website.vercel.app/index.html');
+      // flagged so the website mirrors only an email the member added themselves
+      await _c.auth.updateUser(UserAttributes(email: email, data: {'email_added': true}), emailRedirectTo: 'https://baid-x-website.vercel.app/index.html');
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
       if (m.contains('already') || m.contains('registered') || m.contains('exists')) throw const AuthFlowException('That email is already used by another account.');
       if (m.contains('rate') || m.contains('seconds')) throw const AuthFlowException('Please wait a minute before asking for another link.');
       throw AuthFlowException(e.message);
     }
+    if (type != null) await save(type, {emailColumn(type): email});
   }
 
   /// (current confirmed email, email waiting for confirmation)

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/baid_ui.dart';
+import '../../account_type/domain/account_type.dart';
 import '../data/account_actions.dart';
 
 /// Bottom sheets behind the website's account rows (js/features.js FX):
@@ -91,8 +92,9 @@ class EmailStatus extends StatelessWidget {
 
 /// Email field + "Send confirmation link"; used by the sheet and the Email step.
 class AddEmailForm extends StatefulWidget {
-  const AddEmailForm({this.onSent, super.key});
+  const AddEmailForm({this.onSent, this.type, super.key});
   final VoidCallback? onSent;
+  final AccountType? type; // when known, the email is also saved on the profile
 
   @override
   State<AddEmailForm> createState() => _AddEmailFormState();
@@ -112,7 +114,7 @@ class _AddEmailFormState extends State<AddEmailForm> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      await AccountActions().addEmail(_c.text);
+      await AccountActions().addEmail(_c.text, type: widget.type);
       if (!mounted) return;
       toast(context, 'Check your inbox and open the link to confirm.');
       widget.onSent?.call();
@@ -132,7 +134,7 @@ class _AddEmailFormState extends State<AddEmailForm> {
   }
 }
 
-void openAddEmail(BuildContext context) => showGlassSheet(context, title: 'Sign-in email', child: Builder(builder: (c) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const EmailStatus(), AddEmailForm(onSent: () => Navigator.of(c).pop())])));
+void openAddEmail(BuildContext context, {AccountType? type}) => showGlassSheet(context, title: 'Email', child: Builder(builder: (c) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [const EmailStatus(), AddEmailForm(type: type, onSent: () => Navigator.of(c).pop())])));
 
 void openChangePhone(BuildContext context) => showGlassSheet(context, title: 'Change phone', child: const _ChangePhone());
 

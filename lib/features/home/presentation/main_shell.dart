@@ -6,6 +6,7 @@ import '../../../shared/providers/app_providers.dart';
 
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../account_type/domain/account_type.dart';
+import '../../tabs/data/chat_realtime.dart';
 
 class RoleShell extends ConsumerWidget {
   const RoleShell({required this.child, super.key});
@@ -15,6 +16,7 @@ class RoleShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stored = ref.watch(accountProfileProvider).asData?.value?.accountType;
+    ref.watch(chatRealtimeProvider); // live chat and notifications on every signed-in screen
     return MainShell(
       accountType: AccountType.fromDatabase(stored),
       child: child,

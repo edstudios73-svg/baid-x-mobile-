@@ -325,7 +325,7 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
     if (spec.email) {
       return _Page(title: item.title, action: checklistBtn, children: [
         ...top,
-        _Section('Sign-in email', const [EmailStatus(), AddEmailForm()]),
+        _Section('Your email', [const EmailStatus(), AddEmailForm(type: type)]),
         back,
       ]);
     }

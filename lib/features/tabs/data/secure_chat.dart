@@ -138,6 +138,22 @@ class SecureChat {
   /// Loads or creates this device's key ring and publishes its public key.
   /// [askRestore] is shown when the account has a password backup and this
   /// device has no key yet; it returns the password, or null to start fresh.
+  /// Called at sign-in: a member who has never had a chat key gets one now, so
+  /// messages to them are end-to-end encrypted from the first one. Someone with
+  /// a key on another device or a password backup is left alone until they open
+  /// a chat, where they can restore it rather than replace it.
+  Future<void> ensureKeysQuietly() async {
+    final uid = _uid;
+    if (_ring != null && _ringUser == uid) return;
+    final raw = await _store.read(key: 'baidx_chat_ring_$uid');
+    if (raw == null) {
+      if ((await peerKeys(uid, force: true)).isNotEmpty) return;
+      final bk = await _sb.from('key_backups').select('user_id').eq('user_id', uid).maybeSingle();
+      if (bk != null) return;
+    }
+    await ensureKeys();
+  }
+
   Future<Map<String, dynamic>> ensureKeys({Future<String?> Function(Future<bool> Function(String pass) tryPass)? askRestore}) {
     final uid = _uid;
     if (_ring != null && _ringUser == uid) return Future.value(_ring);
