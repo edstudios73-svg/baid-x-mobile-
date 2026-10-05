@@ -63,6 +63,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   String? _group;
   // the side picked on the entry screen; a sign-in from there must match it
   String? _gate;
+  // creating an account always lists all five account types
+  var _creating = false;
   String? _welcome;
   List<RememberedAccount> _accs = const [];
   int _resendLeft = 0;
@@ -134,7 +136,13 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       case AuthStart.type:
         _mode = 'signup';
         _history = [_group == null ? _View.entry : _View.type];
-        if (_group == null) _loadAccounts();
+        if (_group == null) {
+          _loadAccounts();
+        } else {
+          // sign-up links that name a side open on all five types with that side pre-selected
+          _creating = true;
+          _group = null;
+        }
       case AuthStart.signIn:
         _mode = 'signin';
         _intent = _group != null;
@@ -181,6 +189,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       _error = null;
       _history = _history.sublist(0, _history.length - 1);
       if (_view == _View.type && _mode != 'onboard') _mode = _intent ? 'signin' : 'signup';
+      if (_view == _View.entry || _view == _View.choose) _creating = false;
       if (_view != _View.signin) _welcome = null;
     });
   }
@@ -456,8 +465,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
     final onboard = _mode == 'onboard';
     final g = _groups[_group];
     return _page(
-      title: onboard ? 'Finish setting up' : _intent ? (g?.$4 ?? 'Sign in') : (g?.$2 ?? 'Choose type'),
-      sub: onboard ? 'Choose the account that fits how you use BAID X.' : _intent ? 'Choose your account type to continue.' : (g?.$3 ?? 'Pick the account that fits how you use BAID X.'),
+      title: onboard ? 'Finish setting up' : _creating ? 'Create your account' : _intent ? (g?.$4 ?? 'Sign in') : (g?.$2 ?? 'Choose type'),
+      sub: onboard || _creating ? 'Choose the account that fits how you use BAID X.' : _intent ? 'Choose your account type to continue.' : (g?.$3 ?? 'Pick the account that fits how you use BAID X.'),
       children: [
         Wrap(
           alignment: WrapAlignment.center,
@@ -478,7 +487,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       foot: [
         if (onboard)
           PillButton(label: 'Continue', onPressed: () => _go(_View.name))
-        else if (_gate != null)
+        else if (_creating)
           PillButton(label: 'Continue', onPressed: () => setState(() {
                 _mode = 'signup';
                 _go(_View.phone);
@@ -493,11 +502,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           ),
           const SizedBox(height: 6),
           TextButton(
-            onPressed: () => setState(() {
-              _intent = false;
-              _mode = 'signup';
-              _go(_View.phone);
-            }),
+            onPressed: () => setState(() => _openCreate(_role)),
             child: Text(_intent ? 'New here? Create an account' : 'Create an account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -506,14 +511,29 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   }
 
   void _openGate(String group, {required bool signIn}) => setState(() {
-        _gate = group;
-        _group = group;
-        _role = _roles.first;
         _intent = false;
         _welcome = null;
-        _mode = signIn ? 'signin' : 'signup';
-        _go(signIn ? _View.signin : _View.type);
+        if (signIn) {
+          _gate = group;
+          _group = group;
+          _role = _roles.first;
+          _mode = 'signin';
+          _go(_View.signin);
+        } else {
+          _openCreate(_groups[group]!.$1.first);
+        }
       });
+
+  /// Lists all five account types with [preselect] chosen, then continues to the phone step.
+  void _openCreate(AccountType preselect) {
+    _gate = null;
+    _group = null;
+    _creating = true;
+    _intent = false;
+    _role = preselect;
+    _mode = 'signup';
+    _go(_View.type);
+  }
 
   // entry: professional or client, then sign in or create an account
   Widget _entryView() {
@@ -600,11 +620,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         ),
         const SizedBox(height: 6),
         TextButton(
-          onPressed: () => setState(() {
-            _intent = false;
-            _mode = 'signup';
-            _go(_group == null ? _View.entry : _View.type);
-          }),
+          onPressed: () => setState(() => _openCreate(_roles.first)),
           child: Text('Create a new account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
         ),
       ],

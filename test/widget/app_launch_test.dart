@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
+
 import 'package:baid_x_mobile/app.dart';
 import 'package:baid_x_mobile/core/services/storage_service.dart';
 import 'package:baid_x_mobile/core/theme/app_colors.dart';
@@ -32,6 +34,27 @@ void main() {
     await tester.tap(find.text('Sign in').first);
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Welcome back'), findsOneWidget);
+  });
+
+  testWidgets('create account lists all five account types', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          keyValueStoreProvider.overrideWithValue(MemoryKeyValueStore()),
+        ],
+        child: const BaidXApp(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.ensureVisible(find.text('Create account').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Create account').last); // the Client panel
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Create your account'), findsOneWidget);
+    for (final t in AccountType.pickerOrder) {
+      expect(find.text(t.label), findsWidgets);
+    }
   });
 
   testWidgets('the guest profile offers both sign-in options', (tester) async {
