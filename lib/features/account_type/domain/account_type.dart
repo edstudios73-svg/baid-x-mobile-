@@ -9,7 +9,7 @@ import '../../../shared/widgets/app_bottom_navigation.dart';
 enum AccountType {
   worker(
     'Professional',
-    'Set up your trade profile and let clients and companies find and hire you.',
+    'Set up your personal trade profile and let clients and companies find and hire you.',
     'worker',
     'Mason, carpenter, electrician, plumber, technician, welder, painter',
     webRole: 'worker',
@@ -29,7 +29,7 @@ enum AccountType {
   ),
   business(
     'Supplier',
-    'List materials and equipment, receive orders and get paid safely.',
+    'List products, equipment and materials, and quote on what projects need.',
     'business',
     'Cement, steel, timber, hardware, equipment rental',
     webRole: 'business',
@@ -39,7 +39,7 @@ enum AccountType {
   ),
   projectManager(
     'Project Manager',
-    'Run sites for companies: tasks, reports, approvals and payments.',
+    'Run delivery on company projects: tasks, teams, reports and resource requests.',
     'project_manager',
     'Independent or company-linked project lead',
     webRole: 'project-manager',
@@ -49,7 +49,7 @@ enum AccountType {
   ),
   company(
     'Company',
-    'Post jobs, run projects, hire verified people and pay through escrow.',
+    'Post jobs, build projects and hire verified professionals, project managers and suppliers.',
     'company',
     'Construction, real estate, engineering or facilities company',
     webRole: 'company',
@@ -92,113 +92,51 @@ enum AccountType {
     return null;
   }
 
+  /// The order the website shows account types in.
+  static const pickerOrder = [worker, company, projectManager, business, employer];
+
   String get setupPath => '/setup/$dbValue';
   String get homePath => '/role/$dbValue';
 }
 
+/// Bottom tabs per account type, the same tabs and order as the website
+/// (js/common.js NAV): every member has Home, a discovery tab, their main work
+/// tab, Chats and Profile.
 List<AppDestination> destinationsFor(AccountType? type) {
-  AppDestination homeFor(AccountType? account) {
-    return AppDestination(
-      label: 'Home',
-      icon: Icons.home_outlined,
-      path: account?.homePath ?? AppRoutes.home,
-    );
-  }
-
-  const discover = AppDestination(
-    label: 'Discover',
-    icon: Icons.search,
-    path: AppRoutes.discover,
-  );
-  const profile = AppDestination(
-    label: 'Profile',
-    icon: Icons.person_outline,
-    path: AppRoutes.profile,
-  );
-  const jobs = AppDestination(
-    label: 'Jobs',
-    icon: Icons.work_outline,
-    path: AppRoutes.work,
-  );
-  const marketplace = AppDestination(
-    label: 'Marketplace',
-    icon: Icons.storefront_outlined,
-    path: AppRoutes.marketplace,
-  );
-  const projects = AppDestination(
-    label: 'Projects',
-    icon: Icons.account_tree_outlined,
-    path: AppRoutes.projects,
-  );
+  AppDestination home(AccountType? t) => AppDestination(label: 'Home', icon: Icons.home_outlined, path: t?.homePath ?? AppRoutes.discover);
+  const chats = AppDestination(label: 'Chats', icon: Icons.chat_bubble_outline, path: AppRoutes.messages);
+  const profile = AppDestination(label: 'Profile', icon: Icons.person_outline, path: AppRoutes.profile);
+  const discover = AppDestination(label: 'Discover', icon: Icons.explore_outlined, path: AppRoutes.discover);
+  const projects = AppDestination(label: 'Projects', icon: Icons.folder_outlined, path: AppRoutes.projects);
 
   return switch (type) {
     AccountType.worker => [
-      homeFor(type),
-      jobs,
+      home(type),
+      const AppDestination(label: 'Jobs', icon: Icons.explore_outlined, path: AppRoutes.work),
+      const AppDestination(label: 'Work', icon: Icons.work_outline, path: AppRoutes.applications),
+      chats,
+      profile,
+    ],
+    AccountType.company => [home(type), const AppDestination(label: 'Workforce', icon: Icons.explore_outlined, path: AppRoutes.discover), projects, chats, profile],
+    AccountType.projectManager => [home(type), discover, projects, chats, profile],
+    AccountType.business => [
+      home(type),
       discover,
-      const AppDestination(
-        label: 'Applications',
-        icon: Icons.assignment_outlined,
-        path: AppRoutes.applications,
-      ),
+      const AppDestination(label: 'Catalog', icon: Icons.inventory_2_outlined, path: AppRoutes.listings),
+      const AppDestination(label: 'Inquiries', icon: Icons.mail_outline, path: AppRoutes.messages),
       profile,
     ],
     AccountType.employer => [
-      homeFor(type),
-      const AppDestination(
-        label: 'Workers',
-        icon: Icons.people_outline,
-        path: AppRoutes.workers,
-      ),
-      jobs,
-      marketplace,
-      profile,
-    ],
-    AccountType.business => [
-      homeFor(type),
-      const AppDestination(
-        label: 'Listings',
-        icon: Icons.inventory_2_outlined,
-        path: AppRoutes.listings,
-      ),
-      marketplace,
+      home(type),
       discover,
-      profile,
-    ],
-    AccountType.projectManager => [
-      homeFor(type),
-      projects,
-      const AppDestination(
-        label: 'Tasks',
-        icon: Icons.checklist_outlined,
-        path: AppRoutes.tasks,
-      ),
-      const AppDestination(
-        label: 'Reports',
-        icon: Icons.description_outlined,
-        path: AppRoutes.reports,
-      ),
-      profile,
-    ],
-    AccountType.company => [
-      homeFor(type),
-      projects,
-      const AppDestination(
-        label: 'Team',
-        icon: Icons.groups_outlined,
-        path: AppRoutes.team,
-      ),
-      jobs,
+      const AppDestination(label: 'Hires', icon: Icons.handshake_outlined, path: AppRoutes.myJobs),
+      chats,
       profile,
     ],
     null => const [
-      marketplace,
-      discover,
-      AppDestination(
-        label: 'Sign in',
-        icon: Icons.person_outline,
-        path: AppRoutes.signIn,
-      ),
+      AppDestination(label: 'Home', icon: Icons.home_outlined, path: AppRoutes.discover),
+      chats,
+      profile,
     ],
   };
 }

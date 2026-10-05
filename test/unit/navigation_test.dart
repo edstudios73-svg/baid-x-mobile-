@@ -19,12 +19,11 @@ void main() {
     );
   });
 
-  test('billing, review, and messages stay behind sign-in', () {
+  test('billing, review, and projects stay behind sign-in', () {
     for (final path in [
       AppRoutes.billing,
       AppRoutes.companyBilling,
       AppRoutes.verificationReview,
-      AppRoutes.messages,
       AppRoutes.projects,
     ]) {
       expect(
@@ -40,15 +39,21 @@ void main() {
     }
   });
 
-  test('a visitor is sent to sign in for a protected page', () {
+  test('a visitor sees the guest Profile and Chats tabs, like the website', () {
+    for (final path in [AppRoutes.profile, AppRoutes.messages]) {
+      expect(
+        guardRedirect(
+          authLoading: false,
+          gate: SessionGate.signedOut,
+          profileLoading: false,
+          accountType: null,
+          path: path,
+        ),
+        isNull,
+      );
+    }
     expect(
-      guardRedirect(
-        authLoading: false,
-        gate: SessionGate.signedOut,
-        profileLoading: false,
-        accountType: null,
-        path: AppRoutes.profile,
-      ),
+      guardRedirect(authLoading: false, gate: SessionGate.signedOut, profileLoading: false, accountType: null, path: AppRoutes.settings),
       AppRoutes.signIn,
     );
   });
@@ -79,7 +84,7 @@ void main() {
     );
   });
 
-  test('splash continues to the marketplace', () {
+  test('splash continues to the member directory', () {
     expect(
       guardRedirect(
         authLoading: false,
@@ -88,7 +93,7 @@ void main() {
         accountType: null,
         path: AppRoutes.splash,
       ),
-      AppRoutes.marketplace,
+      AppRoutes.discover,
     );
   });
 
@@ -167,12 +172,13 @@ void main() {
   test('worker and business navigation stay different', () {
     final worker = destinationsFor(AccountType.worker).map((item) => item.label);
     final business = destinationsFor(AccountType.business).map((item) => item.label);
-    expect(worker, contains('Jobs'));
-    expect(worker, contains('Applications'));
-    expect(destinationsFor(AccountType.employer).map((item) => item.label), contains('Workers'));
-    expect(business, containsAll(['Listings', 'Marketplace']));
-    expect(destinationsFor(AccountType.projectManager).map((item) => item.label), containsAll(['Tasks', 'Reports']));
-    expect(destinationsFor(AccountType.company).map((item) => item.label), contains('Team'));
+    // same tabs as the website
+    expect(worker, ['Home', 'Jobs', 'Work', 'Chats', 'Profile']);
+    expect(business, ['Home', 'Discover', 'Catalog', 'Inquiries', 'Profile']);
+    expect(destinationsFor(AccountType.employer).map((item) => item.label), ['Home', 'Discover', 'Hires', 'Chats', 'Profile']);
+    expect(destinationsFor(AccountType.projectManager).map((item) => item.label), ['Home', 'Discover', 'Projects', 'Chats', 'Profile']);
+    expect(destinationsFor(AccountType.company).map((item) => item.label), ['Home', 'Workforce', 'Projects', 'Chats', 'Profile']);
+    expect(destinationsFor(null).map((item) => item.label), ['Home', 'Chats', 'Profile']);
     for (final type in AccountType.values) {
       expect(destinationsFor(type).length, lessThanOrEqualTo(5));
     }

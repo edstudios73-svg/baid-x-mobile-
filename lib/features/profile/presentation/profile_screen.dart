@@ -20,6 +20,7 @@ import '../../dashboard/domain/role_dashboard.dart';
 import '../../billing/domain/product_rules.dart';
 import '../../billing/presentation/product_screens.dart';
 import '../../dashboard/presentation/dashboard_providers.dart';
+import '../../../shared/widgets/guest_views.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -30,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
     final stored = ref.watch(accountProfileProvider).asData?.value?.accountType;
     final type = AccountType.fromDatabase(stored);
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('Not signed in')));
+      return const GuestProfileView();
     }
     if (type == null) {
       return const Scaffold(body: Center(child: Text('Choose an account type to finish your profile.')));

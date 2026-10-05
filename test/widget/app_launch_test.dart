@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,12 +18,15 @@ void main() {
         child: const BaidXApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('Marketplace'), findsWidgets);
+    // visitors land on the member directory with the website's guest tabs
+    expect(find.text('Chats'), findsWidgets);
+    expect(find.text('Profile'), findsWidgets);
   });
 
-  testWidgets('listing a product asks a visitor to sign in', (tester) async {
+  testWidgets('the guest profile offers both sign-in options', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -31,22 +35,20 @@ void main() {
         child: const BaidXApp(),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('List a product'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Profile').last);
+    await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Sign in'), findsWidgets);
+    expect(find.text('Sign in as a Pro'), findsOneWidget);
+    expect(find.text('Sign in as a client'), findsOneWidget);
   });
 
-  test('theme uses orange for primary actions', () {
-    final theme = AppTheme.light;
-    expect(
-      theme.filledButtonTheme.style?.backgroundColor?.resolve({}),
-      AppColors.orange,
-    );
-    expect(
-      AppTheme.dark.filledButtonTheme.style?.backgroundColor?.resolve({}),
-      AppColors.orange,
-    );
+  test('theme matches the website: black canvas, white actions, Inter', () {
+    final theme = AppTheme.website;
+    expect(theme.filledButtonTheme.style?.backgroundColor?.resolve({}), Colors.white);
+    expect(theme.filledButtonTheme.style?.foregroundColor?.resolve({}), Colors.black);
+    expect(AppColors.bg, const Color(0xFF050505));
+    expect(theme.brightness, Brightness.dark);
   });
 }

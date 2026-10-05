@@ -19,12 +19,14 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../domain/message_rules.dart';
 import 'messaging_providers.dart';
+import '../../../shared/widgets/guest_views.dart';
 
 class InboxScreen extends ConsumerWidget {
   const InboxScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(authStateProvider).asData?.value == null) return const GuestChatsView();
     final conversations = ref.watch(conversationListProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Messages')),

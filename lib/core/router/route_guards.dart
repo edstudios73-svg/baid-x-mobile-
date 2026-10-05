@@ -10,13 +10,15 @@ const publicPaths = <String>{
   AppRoutes.signUp,
   AppRoutes.forgotPassword,
   AppRoutes.resetPassword,
+  AppRoutes.messages, // signed-out visitors see a "sign in to view chats" screen, like the website
+  AppRoutes.profile, // and the guest profile with the two sign-in options
 };
 
 bool isRolePath(String path) => path.startsWith('/role/') || path.startsWith('/setup/');
 
 /// Open jobs and listed worker profiles stay readable without an account.
 bool isPublicBrowse(String path) {
-  if (publicPaths.contains(path) || path == AppRoutes.work || path == AppRoutes.workers) {
+  if (publicPaths.contains(path) || path == AppRoutes.work || path == AppRoutes.workers || path == AppRoutes.discover) {
     return true;
   }
   if (path.startsWith('/jobs/') &&
@@ -56,7 +58,8 @@ String? guardRedirect({
     case SessionGate.unknown:
       return AppRoutes.splash;
     case SessionGate.signedOut:
-      if (path == AppRoutes.splash) return AppRoutes.marketplace;
+      // the website opens on the member directory for visitors
+      if (path == AppRoutes.splash) return AppRoutes.discover;
       return isPublic ? null : AppRoutes.signIn;
     case SessionGate.unverified:
       if (path == AppRoutes.splash) return AppRoutes.marketplace;

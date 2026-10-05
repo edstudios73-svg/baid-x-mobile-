@@ -3,20 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/account_type/domain/account_type.dart';
-import '../../features/account_type/presentation/account_type_screen.dart';
 import '../../features/auth/domain/auth_user.dart';
+import '../../features/auth/presentation/screens/auth_flow_screen.dart';
 import '../../features/auth/presentation/screens/email_verification_screen.dart';
-import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/reset_password_screen.dart';
-import '../../features/auth/presentation/screens/sign_in_screen.dart';
-import '../../features/auth/presentation/screens/sign_up_screen.dart';
-import '../../features/discover/presentation/discover_screen.dart';
+import '../../features/directory/presentation/directory_screen.dart';
 import '../../features/jobs/presentation/job_screens.dart';
 import '../../features/workers/presentation/worker_screens.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/dashboard/presentation/role_dashboard_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
-import '../../features/onboarding/presentation/role_onboarding_screen.dart';
 import '../../features/marketplace/presentation/listing_screens.dart';
 import '../../features/marketplace/presentation/marketplace_screen.dart';
 import '../../features/projects/presentation/project_screens.dart';
@@ -76,15 +72,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.signIn,
-        builder: (context, state) => const SignInScreen(),
+        builder: (context, state) => const AuthFlowScreen(start: AuthStart.signIn),
       ),
       GoRoute(
         path: AppRoutes.signUp,
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) => const AuthFlowScreen(),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (context, state) => const AuthFlowScreen(start: AuthStart.reset),
       ),
       GoRoute(
         path: AppRoutes.resetPassword,
@@ -96,13 +92,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.accountType,
-        builder: (context, state) => const AccountTypeScreen(),
+        builder: (context, state) => const AuthFlowScreen(start: AuthStart.onboard),
       ),
       GoRoute(
         path: '/setup/:role',
         builder: (context, state) {
           final type = AccountType.fromDatabase(state.pathParameters['role']);
-          return RoleOnboardingScreen(type: type ?? AccountType.worker);
+          return AuthFlowScreen(start: AuthStart.onboard, presetType: type);
         },
       ),
       GoRoute(
@@ -142,7 +138,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.discover,
-            builder: (context, state) => const DiscoverScreen(),
+            builder: (context, state) => const DirectoryScreen(),
           ),
           GoRoute(
             path: AppRoutes.profile,

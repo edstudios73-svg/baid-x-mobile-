@@ -3,7 +3,7 @@ import 'package:flutter/widget_previews.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
-import '../features/auth/presentation/screens/sign_in_screen.dart';
+import '../features/auth/presentation/screens/auth_flow_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 
@@ -27,4 +27,4 @@ Widget splashPreview() => const SplashScreen();
 Widget onboardingPreview() => const OnboardingScreen();
 
 @Preview(name: 'Sign in', group: 'BAID X', size: phone, wrapper: previewApp)
-Widget signInPreview() => const SignInScreen();
+Widget signInPreview() => const AuthFlowScreen(start: AuthStart.signIn);

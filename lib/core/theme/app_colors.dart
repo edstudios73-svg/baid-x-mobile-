@@ -1,47 +1,60 @@
 import 'package:flutter/material.dart';
 
-/// Colors taken from the BAID X logo: black, white, and signal yellow.
-/// Blue is the secondary brand color from the written BAID X direction.
+/// The BAID X website palette (css/theme.css): near-black canvas, frosted glass
+/// surfaces, white "ember" actions with a soft glow, and a few status colours.
+/// The app is dark only, like the website.
 ///
-/// Roles (Phase 14 design system, mirrored in the Figma "BAID X Color" variables):
-/// - orange: primary action fill (buttons), always with ink text.
-/// - yellow: brand and selection — nav indicator, selected chips, progress, own messages.
-/// - blue: trust — verification, links, information.
+/// Older names (ink, orange, yellow, blue...) are kept so existing screens keep
+/// compiling; they now point at the website colours.
 abstract final class AppColors {
-  static const ink = Color(0xFF111111);
-  static const inkSoft = Color(0xFF2A2A2A);
-  static const yellow = Color(0xFFFFD100);
-  static const yellowPressed = Color(0xFFE6BC00);
-  static const orange = Color(0xFFFF7A1A);
-  static const orangePressed = Color(0xFFD96816);
-  static const blue = Color(0xFF0E3A5D);
-  static const darkCanvas = Color(0xFF0F0F0F);
-  static const darkSurface = Color(0xFF1A1A1A);
-  static const darkSubtle = Color(0xFF222222);
-  static const darkLine = Color(0xFF2E2E2E);
-  static const darkTextMuted = Color(0xFF9A968F);
-  static const darkBlue = Color(0xFF5B9BD5);
-  static const darkSuccess = Color(0xFF22C55E);
-  static const darkDanger = Color(0xFFF97066);
-  static const white = Color(0xFFFFFFFF);
-  static const canvas = Color(0xFFF6F5F2);
-  static const surface = Color(0xFFFFFFFF);
-  static const subtle = Color(0xFFEFEDE8);
-  static const line = Color(0xFFE4E1DA);
-  static const text = Color(0xFF161616);
-  static const textMuted = Color(0xFF5E5A54);
-  static const textDisabled = Color(0xFF8F8A82);
-  static const danger = Color(0xFFB42318);
-  static const dangerBg = Color(0xFFFDECEA);
-  static const success = Color(0xFF067647);
-  static const successBg = Color(0xFFE7F4EE);
-  static const warning = Color(0xFFB54708);
-  static const warningBg = Color(0xFFFDF1E7);
-  static const info = Color(0xFF0E3A5D);
-  static const infoBg = Color(0xFFE8EEF4);
-  static const elevated = Color(0xFFFFFFFF);
+  // website tokens
+  static const bg = Color(0xFF050505); // --bg
+  static const card = Color(0xFF0E0E0E); // --card
+  static const tile = Color(0xFF151515); // --tile
+  static const lineGlass = Color(0x13FFFFFF); // --line rgba(255,255,255,.075)
+  static const glass = Color(0x0BFFFFFF); // rgba(255,255,255,.045)
+  static const glassHi = Color(0x14FFFFFF); // rgba(255,255,255,.08)
+  static const textLight = Color(0xFFF6F6F7); // --text
+  static const muted = Color(0xFF8C8C8C); // --muted
+  static const verified = Color(0xFF38BDF8); // --verified (admin badge)
+  static const green = Color(0xFF34D399); // --green (identity badge, ok pills)
+  static const violet = Color(0xFFA78BFA); // professional badge
+  static const gold = Color(0xFFE8C46A); // advanced badge
+  static const red = Color(0xFFF87171);
 
-  /// Text on the ink home header band. Same in light and dark.
-  static const onInk = Color(0xFFFFFFFF);
-  static const onInkMuted = Color(0xFFB8B3AA);
+  // legacy names, mapped to the website palette
+  static const ink = bg;
+  static const inkSoft = tile;
+  static const yellow = Colors.white;
+  static const yellowPressed = Color(0xFFE4E4E4);
+  static const orange = Colors.white;
+  static const orangePressed = Color(0xFFE4E4E4);
+  static const blue = verified;
+  static const darkCanvas = bg;
+  static const darkSurface = card;
+  static const darkSubtle = tile;
+  static const darkLine = lineGlass;
+  static const darkTextMuted = muted;
+  static const darkBlue = verified;
+  static const darkSuccess = green;
+  static const darkDanger = red;
+  static const white = Colors.white;
+  static const canvas = bg;
+  static const surface = card;
+  static const subtle = tile;
+  static const line = lineGlass;
+  static const text = textLight;
+  static const textMuted = muted;
+  static const textDisabled = Color(0xFF5C5C5C);
+  static const danger = red;
+  static const dangerBg = Color(0x24F87171);
+  static const success = green;
+  static const successBg = Color(0x2434D399);
+  static const warning = Color(0xFFD6D6D6);
+  static const warningBg = Color(0x24FFFFFF);
+  static const info = verified;
+  static const infoBg = Color(0x2438BDF8);
+  static const elevated = tile;
+  static const onInk = Colors.white;
+  static const onInkMuted = muted;
 }

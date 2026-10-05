@@ -24,41 +24,25 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.infoBg,
   });
 
-  static const light = AppPalette(
-    canvas: AppColors.canvas,
-    surface: AppColors.surface,
-    subtle: AppColors.subtle,
-    line: AppColors.line,
-    text: AppColors.text,
-    textMuted: AppColors.textMuted,
-    link: AppColors.blue,
-    success: AppColors.success,
+  /// The website has one look, so light and dark are the same palette.
+  static const dark = AppPalette(
+    canvas: AppColors.bg,
+    surface: AppColors.card,
+    subtle: AppColors.tile,
+    line: AppColors.lineGlass,
+    text: AppColors.textLight,
+    textMuted: AppColors.muted,
+    link: Colors.white,
+    success: AppColors.green,
     successBg: AppColors.successBg,
     warning: AppColors.warning,
     warningBg: AppColors.warningBg,
-    danger: AppColors.danger,
+    danger: AppColors.red,
     dangerBg: AppColors.dangerBg,
-    info: AppColors.info,
+    info: AppColors.verified,
     infoBg: AppColors.infoBg,
   );
-
-  static const dark = AppPalette(
-    canvas: AppColors.darkCanvas,
-    surface: AppColors.darkSurface,
-    subtle: AppColors.darkSubtle,
-    line: AppColors.darkLine,
-    text: AppColors.white,
-    textMuted: AppColors.darkTextMuted,
-    link: AppColors.darkBlue,
-    success: AppColors.darkSuccess,
-    successBg: Color(0xFF10281B),
-    warning: Color(0xFFF79009),
-    warningBg: Color(0xFF2B1C0E),
-    danger: AppColors.darkDanger,
-    dangerBg: Color(0xFF2C1412),
-    info: AppColors.darkBlue,
-    infoBg: Color(0xFF0F1E2B),
-  );
+  static const light = dark;
 
   final Color canvas;
   final Color surface;
@@ -84,6 +68,5 @@ class AppPalette extends ThemeExtension<AppPalette> {
 }
 
 extension AppPaletteContext on BuildContext {
-  /// Falls back to the light palette when a test pumps a bare MaterialApp.
-  AppPalette get palette => Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
+  AppPalette get palette => Theme.of(this).extension<AppPalette>() ?? AppPalette.dark;
 }
