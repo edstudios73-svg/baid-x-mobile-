@@ -73,7 +73,7 @@ void main() {
         accountType: null,
         path: '/jobs/1/apply',
       ),
-      AppRoutes.signIn,
+      AppRoutes.discover,
     );
     expect(
       guardRedirect(

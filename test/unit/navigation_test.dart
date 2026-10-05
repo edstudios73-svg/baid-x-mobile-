@@ -6,17 +6,21 @@ import 'package:baid_x_mobile/core/utils/validators.dart';
 import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
 
 void main() {
-  test('a visitor can open the marketplace', () {
-    expect(
-      guardRedirect(
-        authLoading: false,
-        gate: SessionGate.signedOut,
-        profileLoading: false,
-        accountType: null,
-        path: AppRoutes.marketplace,
-      ),
-      isNull,
-    );
+  test('the retired marketplace and worker pages send everyone to the live screens', () {
+    String? at(SessionGate gate, String path, {String? type}) => guardRedirect(
+          authLoading: false,
+          gate: gate,
+          profileLoading: false,
+          accountType: type,
+          path: path,
+        );
+    for (final path in [AppRoutes.marketplace, AppRoutes.workers, '/workers/abc', '/listings/abc', '/jobs/abc']) {
+      expect(at(SessionGate.signedOut, path), AppRoutes.discover);
+      expect(at(SessionGate.unverified, path), AppRoutes.discover);
+      expect(at(SessionGate.verified, path, type: 'worker'), '/role/worker');
+    }
+    expect(at(SessionGate.unverified, AppRoutes.splash), AppRoutes.discover);
+    expect(at(SessionGate.verified, AppRoutes.postJob, type: 'company'), isNull);
   });
 
   test('billing, review, and projects stay behind sign-in', () {
@@ -55,19 +59,6 @@ void main() {
     expect(
       guardRedirect(authLoading: false, gate: SessionGate.signedOut, profileLoading: false, accountType: null, path: AppRoutes.settings),
       AppRoutes.signIn,
-    );
-  });
-
-  test('an unverified user stays on the marketplace', () {
-    expect(
-      guardRedirect(
-        authLoading: false,
-        gate: SessionGate.unverified,
-        profileLoading: false,
-        accountType: null,
-        path: AppRoutes.marketplace,
-      ),
-      isNull,
     );
   });
 

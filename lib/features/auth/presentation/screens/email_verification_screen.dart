@@ -102,13 +102,13 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                     );
                   }
                 });
-                if (ok && context.mounted) context.go(AppRoutes.marketplace);
+                if (ok && context.mounted) context.go(AppRoutes.home);
               },
             ),
             TextButton(
               onPressed: () async {
                 await ref.read(authRepositoryProvider).signOut();
-                if (context.mounted) context.go(AppRoutes.marketplace);
+                if (context.mounted) context.go(AppRoutes.discover);
               },
               child: const Text('Sign out'),
             ),

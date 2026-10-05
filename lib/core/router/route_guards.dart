@@ -37,6 +37,13 @@ bool isPublicBrowse(String path) {
   return false;
 }
 
+/// Old marketplace and worker pages read tables the shared backend no longer has;
+/// the directory and the role dashboard replace them, so never land there.
+bool _retired(String path) =>
+    path == AppRoutes.marketplace || path == AppRoutes.workers || path.startsWith('/workers/') ||
+    path.startsWith('/listings/') || path.startsWith('/businesses/') ||
+    (path.startsWith('/jobs/') && path != AppRoutes.postJob);
+
 String roleHomeFor(String? accountType) => '/role/${accountType ?? ''}';
 
 /// Public pages stay open. A verified user without a type is sent to selection.
@@ -60,13 +67,11 @@ String? guardRedirect({
       return AppRoutes.splash;
     case SessionGate.signedOut:
       // the website opens on the member directory for visitors
-      if (path == AppRoutes.splash) return AppRoutes.discover;
+      if (path == AppRoutes.splash || _retired(path)) return AppRoutes.discover;
       return isPublic ? null : AppRoutes.signIn;
     case SessionGate.unverified:
-      if (path == AppRoutes.splash) return AppRoutes.marketplace;
-      if (path == AppRoutes.emailVerification ||
-          path == AppRoutes.marketplace ||
-          path == AppRoutes.discover) {
+      if (path == AppRoutes.splash || _retired(path)) return AppRoutes.discover;
+      if (path == AppRoutes.emailVerification || path == AppRoutes.discover) {
         return null;
       }
       return AppRoutes.emailVerification;
@@ -85,6 +90,7 @@ String? guardRedirect({
       }
       if (path == AppRoutes.splash ||
           path == AppRoutes.home ||
+          _retired(path) ||
           path == AppRoutes.accountType ||
           path == AppRoutes.emailVerification) {
         return home;

@@ -5,20 +5,7 @@ import 'package:baid_x_mobile/core/router/route_guards.dart';
 import 'package:baid_x_mobile/features/marketplace/domain/listing_rules.dart';
 
 void main() {
-  test('a visitor can open a public listing', () {
-    expect(
-      guardRedirect(
-        authLoading: false,
-        gate: SessionGate.signedOut,
-        profileLoading: false,
-        accountType: null,
-        path: '/listings/1',
-      ),
-      isNull,
-    );
-  });
-
-  test('a visitor cannot create a listing', () {
+  test('a visitor cannot create a listing (the retired page sends them to Discover)', () {
     expect(
       guardRedirect(
         authLoading: false,
@@ -27,7 +14,7 @@ void main() {
         accountType: null,
         path: AppRoutes.createListing,
       ),
-      AppRoutes.signIn,
+      AppRoutes.discover,
     );
   });
 
