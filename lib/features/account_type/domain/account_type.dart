@@ -123,7 +123,7 @@ List<AppDestination> destinationsFor(AccountType? type) {
       home(type),
       discover,
       const AppDestination(label: 'Catalog', icon: Icons.inventory_2_outlined, path: AppRoutes.listings),
-      const AppDestination(label: 'Inquiries', icon: Icons.mail_outline, path: AppRoutes.messages),
+      const AppDestination(label: 'Inquiries', icon: Icons.mail_outline, path: AppRoutes.inquiries),
       profile,
     ],
     AccountType.employer => [

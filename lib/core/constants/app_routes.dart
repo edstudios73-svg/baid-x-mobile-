@@ -35,4 +35,5 @@ abstract final class AppRoutes {
   static const reports = '/reports';
   static const team = '/team';
   static const checklist = '/checklist';
+  static const inquiries = '/inquiries';
 }

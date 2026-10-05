@@ -17,5 +17,5 @@ Future<void> main() async {
     );
   };
   await SupabaseConfig.initialize();
-  runApp(const ProviderScope(child: BaidXApp()));
+  runApp(ProviderScope(retry: (_, _) => null, child: const BaidXApp()));
 }

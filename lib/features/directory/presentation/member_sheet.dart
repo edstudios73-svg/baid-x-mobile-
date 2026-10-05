@@ -75,16 +75,16 @@ Future<void> showMemberSheet(BuildContext context, {required DirectoryMember mem
 }
 
 /// Starts (or reopens) a direct conversation the same way the website does
-/// (rpc start_conversation). In-app chat screens move to the shared chat
-/// tables in the chats phase, so for now the thread opens on the website.
+/// (rpc start_conversation) and opens it.
 Future<void> startMemberChat(BuildContext context, DirectoryMember m) async {
   final client = SupabaseConfig.client;
   if (client == null) return;
   try {
-    await client.rpc('start_conversation', params: {'p_other': m.id, 'p_subject': null});
+    final cid = await client.rpc('start_conversation', params: {'p_other': m.id, 'p_subject': null});
     if (!context.mounted) return;
+    final router = GoRouter.of(context);
     if (Navigator.of(context).canPop()) Navigator.of(context).maybePop();
-    toast(context, 'Conversation with ${m.name} started. Reply to it on the BAID X website for now; chats come to the app next.');
+    router.push('${AppRoutes.messages}/$cid');
   } catch (e) {
     if (context.mounted) toast(context, friendlyError(e));
   }

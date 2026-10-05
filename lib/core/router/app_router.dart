@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/tabs/presentation/chat_screens.dart';
+import '../../features/tabs/presentation/tab_screens.dart';
 import '../../features/account/presentation/checklist_screens.dart';
 import '../../features/home/presentation/member_home_screen.dart';
 import '../../features/account_type/domain/account_type.dart';
@@ -26,7 +28,6 @@ import '../../features/billing/presentation/product_screens.dart';
 import '../../features/trust/presentation/trust_screens.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../shared/providers/app_providers.dart';
-import '../../features/messaging/presentation/messaging_screens.dart';
 import '../constants/app_routes.dart';
 import 'route_guards.dart';
 
@@ -131,6 +132,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verificationReview,
         builder: (context, state) => const ReviewerScreen(),
       ),
+      // a chat thread and Post a job open full screen, like the website
+      GoRoute(
+        path: '/messages/:id',
+        builder: (context, state) => ChatThreadScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: AppRoutes.postJob,
+        builder: (context, state) => const PostJobTabScreen(),
+      ),
       // full screen like the website's checklist (no tab bar); its steps keep the bar
       GoRoute(
         path: AppRoutes.checklist,
@@ -167,15 +177,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.work,
-            builder: (context, state) => const JobsScreen(),
+            builder: (context, state) => const JobsTabScreen(),
           ),
           GoRoute(
             path: AppRoutes.myJobs,
-            builder: (context, state) => const MyJobsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.postJob,
-            builder: (context, state) => const PostJobScreen(),
+            builder: (context, state) => const HiresTabScreen(),
           ),
           GoRoute(
             path: '/jobs/:id/apply',
@@ -191,7 +197,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.applications,
-            builder: (context, state) => const ApplicationsScreen(),
+            builder: (context, state) => const WorkTabScreen(),
           ),
           GoRoute(
             path: AppRoutes.workers,
@@ -207,7 +213,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.listings,
-            builder: (context, state) => const MyListingsScreen(),
+            builder: (context, state) => const CatalogTabScreen(),
           ),
           GoRoute(
             path: AppRoutes.createListing,
@@ -227,7 +233,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.projects,
-            builder: (context, state) => const ProjectsScreen(),
+            builder: (context, state) => const ProjectsTabScreen(),
           ),
           GoRoute(
             path: AppRoutes.createProject,
@@ -259,11 +265,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.messages,
-            builder: (context, state) => const InboxScreen(),
+            builder: (context, state) => const ChatsTabScreen(),
           ),
           GoRoute(
-            path: '/messages/:id',
-            builder: (context, state) => ConversationScreen(id: state.pathParameters['id']!),
+            path: AppRoutes.inquiries,
+            builder: (context, state) => const InquiriesTabScreen(),
           ),
         ],
       ),
