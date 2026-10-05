@@ -19,6 +19,7 @@ class DirectoryMember {
     this.cover,
     this.badge,
     this.region,
+    this.catId,
   });
 
   final String group; // companies | professionals | managers | businesses
@@ -33,6 +34,7 @@ class DirectoryMember {
   final String? cover;
   final String? badge; // verified | identity | professional | advanced
   final String? region;
+  final String? catId; // what Discover's Category filter matches (website catId)
 
   String get kindLabel => const {'worker': 'Professional', 'company': 'Company', 'pm': 'Project manager', 'business': 'Supplier'}[kind] ?? 'Member';
 }
@@ -68,7 +70,7 @@ final _sources = <String, _Source>{
     'id,company_name,industry_sector,company_size,city_town,region,company_logo_url,cover_url,company_overview,trust_score,verification_status,badge_tier',
     (r) => DirectoryMember(
       group: 'companies', kind: 'company', id: r['id'], name: r['company_name'] ?? 'Company', image: r['company_logo_url'], cover: r['cover_url'],
-      badge: _badge(r), desc: (r['company_overview'] as String?) ?? 'Company on BAID X.', tag: _pretty(r['industry_sector']), place: _place(r), region: r['region'],
+      badge: _badge(r), desc: (r['company_overview'] as String?) ?? 'Company on BAID X.', tag: _pretty(r['industry_sector']), place: _place(r), region: r['region'], catId: r['industry_sector'],
       stats: [(_num(r['trust_score'], 1), 'Trust'), (_pretty(r['company_size']).ifEmpty('—'), 'Size')],
     ),
   ),
@@ -81,7 +83,7 @@ final _sources = <String, _Source>{
       final photos = (r['portfolio_photo_urls'] as List?)?.whereType<String>().toList() ?? const [];
       return DirectoryMember(
         group: 'professionals', kind: 'worker', id: r['id'], name: r['full_name'] ?? 'Professional', image: r['profile_photo_url'],
-        cover: (r['cover_url'] as String?) ?? (photos.isEmpty ? null : photos.first), badge: _badge(r), region: r['region'],
+        cover: (r['cover_url'] as String?) ?? (photos.isEmpty ? null : photos.first), badge: _badge(r), region: r['region'], catId: r['primary_job_category_id'],
         desc: (r['short_bio'] as String?) ?? (trade != null ? '$trade based in ${r['city_town'] ?? 'Ghana'}.' : 'Skilled professional on BAID X.'),
         tag: trade ?? (_pretty(r['rank_tier']).ifEmpty('Professional')), place: _place(r),
         stats: [
@@ -96,7 +98,7 @@ final _sources = <String, _Source>{
     'id,full_name,specialization,specialization_tags,years_managing_projects,projects_managed_count,city_town,region,profile_photo_url,cover_url,verification_status,badge_tier',
     (r) => DirectoryMember(
       group: 'managers', kind: 'pm', id: r['id'], name: r['full_name'] ?? 'Project manager', image: r['profile_photo_url'], cover: r['cover_url'],
-      badge: _badge(r), region: r['region'],
+      badge: _badge(r), region: r['region'], catId: r['specialization'],
       desc: ((r['specialization_tags'] as List?)?.whereType<String>().take(3).join(' · ')).let((s) => s == null || s.isEmpty ? 'Project manager on BAID X.' : s),
       tag: _pretty(r['specialization']).ifEmpty('Project Manager'), place: _place(r),
       stats: [('${r['projects_managed_count'] ?? 0}', 'Projects'), ('${r['years_managing_projects'] ?? 0}', 'Years')],
@@ -109,7 +111,7 @@ final _sources = <String, _Source>{
       final photos = (r['portfolio_photo_urls'] as List?)?.whereType<String>().toList() ?? const [];
       return DirectoryMember(
         group: 'businesses', kind: 'business', id: r['id'], name: r['business_name'] ?? 'Supplier', image: r['logo_url'],
-        cover: (r['cover_url'] as String?) ?? (photos.isEmpty ? null : photos.first), badge: _badge(r), region: r['region'],
+        cover: (r['cover_url'] as String?) ?? (photos.isEmpty ? null : photos.first), badge: _badge(r), region: r['region'], catId: r['specialty'],
         desc: (r['short_bio'] as String?) ?? 'Supplier of products, equipment and materials.', tag: (r['specialty'] as String?) ?? 'Supplier', place: _place(r),
         stats: [('${r['crew_size'] ?? 0}', 'Crew'), ('${r['years_in_operation'] ?? 0}', 'Years')],
       );

@@ -185,4 +185,15 @@ void main() {
       isNull,
     );
   });
+
+  test('an invitation link opened while signed out survives sign-in', () {
+    String? at(SessionGate gate, String path, {String? type}) => guardRedirect(authLoading: false, gate: gate, profileLoading: false, accountType: type, path: path);
+    pendingJoinToken = null;
+    expect(at(SessionGate.signedOut, '/join/abc123'), AppRoutes.signIn);
+    expect(pendingJoinToken, 'abc123');
+    expect(at(SessionGate.verified, '/role/company', type: 'company'), '/join/abc123');
+    expect(pendingJoinToken, isNull);
+    expect(at(SessionGate.verified, '/join/abc123', type: 'company'), isNull);
+    expect(at(SessionGate.verified, '/role/company', type: 'company'), isNull);
+  });
 }

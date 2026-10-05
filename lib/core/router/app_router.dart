@@ -15,22 +15,14 @@ import '../../features/auth/presentation/screens/auth_flow_screen.dart';
 import '../../features/auth/presentation/screens/email_verification_screen.dart';
 import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/directory/presentation/directory_screen.dart';
-import '../../features/jobs/presentation/job_screens.dart';
-import '../../features/workers/presentation/worker_screens.dart';
-import '../../features/home/presentation/home_screen.dart';
-import '../../features/marketplace/presentation/listing_screens.dart';
-import '../../features/marketplace/presentation/marketplace_screen.dart';
-import '../../features/projects/presentation/project_screens.dart';
 import '../../features/home/presentation/main_shell.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
-import '../../features/settings/presentation/settings_screen.dart';
-import '../../features/billing/presentation/product_screens.dart';
-import '../../features/trust/presentation/trust_screens.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../shared/providers/app_providers.dart';
 import '../constants/app_routes.dart';
 import 'route_guards.dart';
+import '../../features/account/presentation/join_screen.dart';
 import '../../features/hiring/hiring_screens.dart';
 import '../../features/workspace/presentation/invites_approvals.dart';
 import '../../features/workspace/presentation/workspace_screen.dart';
@@ -63,7 +55,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         gate: _gateFor(auth),
         profileLoading: profile.isLoading,
         accountType: profile.asData?.value?.accountType,
-        path: state.matchedLocation,
+        // the real path, so retired links still redirect after their screens are gone
+        path: state.uri.path,
         splashHold: !ref.read(splashReleasedProvider),
         profileFailed: profile.hasError && !profile.isLoading,
       );
@@ -109,32 +102,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.verification,
-        builder: (context, state) => const VerificationScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.billing,
         builder: (context, state) => const PlansBillingScreen(),
       ),
       GoRoute(
         path: AppRoutes.companyBilling,
         builder: (context, state) => const PlansBillingScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.xid,
-        builder: (context, state) => const XidScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.promotions,
-        builder: (context, state) => const PromotionScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.verificationReview,
-        builder: (context, state) => const ReviewerScreen(),
       ),
       // a chat thread and Post a job open full screen, like the website
       GoRoute(
@@ -153,10 +126,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => RoleShell(child: child),
         routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const HomeScreen(),
-          ),
+          // old links to /home land on the role dashboard through the splash guard
+          GoRoute(path: AppRoutes.home, redirect: (context, state) => AppRoutes.splash),
           GoRoute(
             path: AppRoutes.discover,
             builder: (context, state) => const DirectoryScreen(),
@@ -188,52 +159,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HiresTabScreen(),
           ),
           GoRoute(
-            path: '/jobs/:id/apply',
-            builder: (context, state) => ApplyScreen(jobId: state.pathParameters['id']!),
-          ),
-          GoRoute(
-            path: '/jobs/:id/applications',
-            builder: (context, state) => JobApplicationsScreen(jobId: state.pathParameters['id']!),
-          ),
-          GoRoute(
-            path: '/jobs/:id',
-            builder: (context, state) => JobDetailScreen(id: state.pathParameters['id']!),
-          ),
-          GoRoute(
             path: AppRoutes.applications,
             builder: (context, state) => const WorkTabScreen(),
           ),
           GoRoute(
-            path: AppRoutes.workers,
-            builder: (context, state) => const WorkersScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.editWorker,
-            builder: (context, state) => const EditWorkerScreen(),
-          ),
-          GoRoute(
-            path: '/workers/:id',
-            builder: (context, state) => WorkerDetailScreen(id: state.pathParameters['id']!),
-          ),
-          GoRoute(
             path: AppRoutes.listings,
             builder: (context, state) => const CatalogTabScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.createListing,
-            builder: (context, state) => const ListingFormScreen(),
-          ),
-          GoRoute(
-            path: '/listings/:id/edit',
-            builder: (context, state) => ListingFormScreen(listingId: state.pathParameters['id']),
-          ),
-          GoRoute(
-            path: '/listings/:id',
-            builder: (context, state) => ListingDetailScreen(id: state.pathParameters['id']!),
-          ),
-          GoRoute(
-            path: '/businesses/:id',
-            builder: (context, state) => BusinessProfileScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: AppRoutes.projects,
@@ -244,28 +175,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const NewProjectScreen(),
           ),
           GoRoute(
-            path: '/projects/:id',
-            builder: (context, state) => ProjectDetailScreen(id: state.pathParameters['id']!),
-          ),
-          GoRoute(
             path: AppRoutes.companyAccess,
             builder: (context, state) => const TeamLinkScreen(),
           ),
           GoRoute(
-            path: AppRoutes.tasks,
-            builder: (context, state) => const ProjectsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.reports,
-            builder: (context, state) => const ProjectsScreen(),
-          ),
-          GoRoute(
             path: AppRoutes.team,
             builder: (context, state) => const TeamLinkScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.marketplace,
-            builder: (context, state) => const MarketplaceScreen(),
           ),
           GoRoute(
             path: AppRoutes.messages,
@@ -291,6 +206,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '${AppRoutes.workspace}/:id',
             builder: (context, state) => WorkspaceScreen(projectId: state.pathParameters['id']!, tab: state.uri.queryParameters['tab']),
           ),
+          GoRoute(path: '${AppRoutes.join}/:token', builder: (context, state) => JoinScreen(token: state.pathParameters['token']!)),
           GoRoute(path: '${AppRoutes.orgs}/:id', builder: (context, state) => OrgDetailScreen(id: state.pathParameters['id']!)),
           GoRoute(
             path: AppRoutes.inquiries,

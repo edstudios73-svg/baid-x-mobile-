@@ -13,6 +13,7 @@ import '../../../shared/widgets/verified_badge.dart';
 import '../../account_type/domain/account_type.dart';
 import '../data/directory_repository.dart';
 import '../../workspace/presentation/ws_forms.dart' show openInvite;
+import 'directory_filters.dart';
 import 'member_sheet.dart';
 
 /// The website's member directory (index.html #screen-directory): Home for
@@ -27,6 +28,7 @@ class DirectoryScreen extends ConsumerStatefulWidget {
 class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
   final _q = TextEditingController();
   var _filter = 'all';
+  var _f = const DirFilter();
   var _roleDefaultSet = false;
 
   // What each role most likely wants to find first (website DEFAULT_CHIP).
@@ -70,8 +72,25 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                     children: [
                       const BrandLogo(width: 104),
                       const Spacer(),
-                      if (signedIn)
-                        GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications))
+                      if (signedIn) ...[
+                        GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
+                        const SizedBox(width: 8),
+                        Stack(clipBehavior: Clip.none, children: [
+                          GlassIconButton(
+                            icon: Icons.filter_alt_outlined,
+                            tooltip: 'Filters',
+                            onTap: () async {
+                              final f = await Navigator.of(context).push<DirFilter>(MaterialPageRoute(builder: (_) => DirectoryFiltersScreen(initial: _f)));
+                              if (f == null || !mounted) return;
+                              setState(() {
+                                _f = f;
+                                if (f.type != 'all') _filter = f.type;
+                              });
+                            },
+                          ),
+                          if (_f.active) Positioned(right: 6, top: 6, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+                        ]),
+                      ]
                       else
                         PillButton(label: 'Join as a Pro', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
                     ],
@@ -87,7 +106,10 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                       separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, i) {
                         final (k, label) = directoryChips[i];
-                        return _Chip(label: label, on: _filter == k, onTap: () => setState(() => _filter = k));
+                        return _Chip(label: label, on: _filter == k, onTap: () => setState(() {
+                          _filter = k;
+                          _f = DirFilter(region: _f.region);
+                        }));
                       },
                     ),
                   ),
@@ -108,10 +130,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                   ),
                 ],
                 data: (all) {
-                  final list = all
-                      .where((m) => _filter == 'all' || m.group == _filter)
-                      .where((m) => q.isEmpty || '${m.name} ${m.tag} ${m.place} ${m.desc}'.toLowerCase().contains(q))
-                      .toList();
+                  final list = applyDirFilter(all, _filter, _f, q);
                   if (list.isEmpty) {
                     return [const SliverFillRemaining(hasScrollBody: false, child: _State(title: 'No results', body: 'Try another search, category or location.'))];
                   }

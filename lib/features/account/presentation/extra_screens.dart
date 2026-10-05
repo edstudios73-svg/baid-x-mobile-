@@ -45,6 +45,8 @@ String? appPathFor(Object? href, {Object? projectId}) {
     'hires' || 'applicants' => AppRoutes.myJobs,
     'catalog' => AppRoutes.listings,
     'inquiries' => AppRoutes.inquiries,
+    'join' when arg.isNotEmpty => '${AppRoutes.join}/$arg',
+    'org' when arg.isNotEmpty => '${AppRoutes.orgs}/$arg',
     'orgs' || 'org' => AppRoutes.orgs,
     'billing' => AppRoutes.billing,
     'checklist' || 'step' || 'verification' => AppRoutes.checklist,

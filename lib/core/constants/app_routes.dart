@@ -50,5 +50,6 @@ abstract final class AppRoutes {
   static const invites = '/invites';
   static const approvals = '/approvals';
   static const applicants = '/applicants';
+  static const join = '/join';
   static const engagement = '/engagement';
 }

@@ -44,6 +44,12 @@ bool _retired(String path) =>
     path.startsWith('/listings/') || path.startsWith('/businesses/') ||
     (path.startsWith('/jobs/') && path != AppRoutes.postJob);
 
+/// An organization invitation opened before signing in: kept through sign-in
+/// and opened once the account is ready (website: sessionStorage baidx_join).
+String? pendingJoinToken;
+
+String? _joinToken(String path) => path.startsWith('${AppRoutes.join}/') ? path.substring(AppRoutes.join.length + 1) : null;
+
 String roleHomeFor(String? accountType) => '/role/${accountType ?? ''}';
 
 /// Public pages stay open. A verified user without a type is sent to selection.
@@ -66,10 +72,18 @@ String? guardRedirect({
     case SessionGate.unknown:
       return AppRoutes.splash;
     case SessionGate.signedOut:
+      if (_joinToken(path) case final t?) {
+        pendingJoinToken = t;
+        return AppRoutes.signIn;
+      }
       // the website opens on the member directory for visitors
       if (path == AppRoutes.splash || _retired(path)) return AppRoutes.discover;
       return isPublic ? null : AppRoutes.signIn;
     case SessionGate.unverified:
+      if (_joinToken(path) case final t?) {
+        pendingJoinToken = t;
+        return AppRoutes.emailVerification;
+      }
       if (path == AppRoutes.splash || _retired(path)) return AppRoutes.discover;
       if (path == AppRoutes.emailVerification || path == AppRoutes.discover) {
         return null;
@@ -81,6 +95,11 @@ String? guardRedirect({
       // couldn't read the account (offline): never treat that as "no type yet"
       if (profileFailed) return path == AppRoutes.splash ? AppRoutes.discover : null;
       final home = accountType == null ? AppRoutes.accountType : roleHomeFor(accountType);
+      if (accountType != null && pendingJoinToken != null && _joinToken(path) == null && !path.startsWith(AppRoutes.splash)) {
+        final t = pendingJoinToken!;
+        pendingJoinToken = null;
+        return '${AppRoutes.join}/$t';
+      }
       if (accountType == null) {
         // account setup (/setup/<type>) creates the profile, so it stays open until then
         if (path == AppRoutes.splash || path == AppRoutes.emailVerification || path.startsWith('/role/')) {
