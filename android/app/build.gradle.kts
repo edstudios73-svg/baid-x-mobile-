@@ -48,7 +48,9 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            // Store builds use the BAID X key from key.properties. Without it (e.g. the
+            // GitHub test build) fall back to the debug key so testers can still install.
+            signingConfig = if (keystorePropertiesFile.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 }

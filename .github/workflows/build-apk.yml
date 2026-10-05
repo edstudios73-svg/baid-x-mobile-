@@ -1,0 +1,61 @@
+name: Build Android APK
+
+# Builds a test APK on every push to a claude/** branch or main, and on demand.
+# Download it from the run's "Artifacts" section, or from the "Test build" release.
+on:
+  push:
+    branches: ["main", "claude/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.6"
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      # One APK for most phones (64-bit ARM) and one universal APK for any phone.
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64
+      - run: flutter build apk --release
+
+      - name: Name the files
+        run: |
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk out/BAIDX-arm64.apk
+          cp build/app/outputs/flutter-apk/app-release.apk out/BAIDX-universal.apk
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BAIDX-apk
+          path: out/*.apk
+          retention-days: 30
+
+      # A fixed "Test build" release so the latest APK always has the same download page.
+      - name: Publish test build release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-build --yes --cleanup-tag || true
+          gh release create test-build out/BAIDX-arm64.apk out/BAIDX-universal.apk \
+            --title "BAID X test build" \
+            --notes "Test APK built from ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Signed with a debug key: for testing only, not for the Play Store." \
+            --prerelease --target "${GITHUB_SHA}"
