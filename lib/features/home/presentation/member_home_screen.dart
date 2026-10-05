@@ -90,7 +90,7 @@ class MemberHomeScreen extends ConsumerWidget {
         final xp = (p['xp_total'] as num?)?.toInt() ?? 0;
         final rank = _pretty(p['rank_tier']).isEmpty ? 'New' : _pretty(p['rank_tier']);
         body.addAll([
-          GreetingHero(title: first.isEmpty ? 'Welcome' : first, wave: true, subtitle: '$trade · ${place.isEmpty ? 'Add your location' : place}', badge: badge, chips: [if (p['available_for_work'] == true) '● Available for work', '$rank · $xp XP']),
+          GreetingHero(title: first.isEmpty ? 'Welcome' : first, subtitle: '$trade · ${place.isEmpty ? 'Add your location' : place}', badge: badge, chips: [if (p['available_for_work'] == true) '● Available for work', '$rank · $xp XP']),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
           StatRow([(n(stats?.a), 'Open jobs', Icons.work_outline), (n(stats?.b), 'Applications', Icons.mail_outline), (n(stats?.c), 'Accepted', Icons.task_alt)]),
           DashCard(
@@ -160,7 +160,7 @@ class MemberHomeScreen extends ConsumerWidget {
         ]);
       case AccountType.employer:
         body.addAll([
-          GreetingHero(title: first.isEmpty ? 'Welcome' : first, wave: true, subtitle: 'Need something fixed or built?', badge: badge),
+          GreetingHero(title: first.isEmpty ? 'Welcome' : first, subtitle: 'Need something fixed or built?', badge: badge),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
           StatRow([(n(stats?.a), 'Jobs posted', Icons.work_outline), (n(stats?.b), 'Open', Icons.mail_outline), (n(stats?.c), 'Hired', Icons.handshake_outlined)]),
           const SectionLabel('Find a trade'),

@@ -129,7 +129,7 @@ List<AppDestination> destinationsFor(AccountType? type) {
     AccountType.employer => [
       home(type),
       discover,
-      const AppDestination(label: 'Hires', icon: Icons.handshake_outlined, path: AppRoutes.myJobs),
+      const AppDestination(label: 'Hires', icon: Icons.how_to_reg_outlined, path: AppRoutes.myJobs),
       chats,
       profile,
     ],

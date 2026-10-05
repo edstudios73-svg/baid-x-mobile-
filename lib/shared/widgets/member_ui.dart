@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -44,12 +43,11 @@ class MemberAppBar extends StatelessWidget {
 /// The greeting card (`.hero2`): reads the clock (late night, morning, afternoon,
 /// evening, night), shows the time and date, the name, a line under it and chips.
 class GreetingHero extends StatefulWidget {
-  const GreetingHero({required this.title, required this.subtitle, this.chips = const [], this.badge, this.wave = false, super.key});
+  const GreetingHero({required this.title, required this.subtitle, this.chips = const [], this.badge, super.key});
   final String title;
   final String subtitle;
   final List<String> chips;
   final String? badge; // verification tier when verified
-  final bool wave;
 
   @override
   State<GreetingHero> createState() => _GreetingHeroState();
@@ -131,7 +129,6 @@ class _GreetingHeroState extends State<GreetingHero> {
                 const SizedBox(height: 12),
                 Row(children: [
                   Flexible(child: Text(widget.title, style: AppTextStyles.display.copyWith(fontSize: 30, height: 1.12, letterSpacing: -1, color: const Color(0xFF050505)))),
-                  if (widget.wave) ...[const SizedBox(width: 8), const _Wave()],
                 ]),
                 const SizedBox(height: 4),
                 Text(widget.subtitle, style: AppTextStyles.body.copyWith(fontSize: 13.5, color: const Color(0xFF3A3A3A), fontWeight: FontWeight.w500)),
@@ -159,41 +156,6 @@ class _HeroGrid extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// The waving hand next to the name: a gentle wave that settles.
-class _Wave extends StatefulWidget {
-  const _Wave();
-  @override
-  State<_Wave> createState() => _WaveState();
-}
-
-class _WaveState extends State<_Wave> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1600))..forward();
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, child) {
-        final t = _c.value;
-        // a few quick waves that settle (same feel as the website's .wave)
-        final angle = math.sin(t * 6 * math.pi) * .35 * (1 - t);
-        return Transform.rotate(angle: angle, alignment: const Alignment(.4, .8), child: child);
-      },
-      child: Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), gradient: const LinearGradient(colors: [Color(0xFFDFF1FF), Color(0xFFA8DCFB)])),
-        child: const Icon(Icons.waving_hand_outlined, size: 20, color: Color(0xFF0E7490)),
-      ),
-    );
-  }
 }
 
 class _HeroChip extends StatelessWidget {
@@ -242,7 +204,7 @@ class StatRow extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text(stats[i].$1, style: AppTextStyles.display.copyWith(fontSize: 24, letterSpacing: -.5, fontFeatures: const [FontFeature.tabularFigures()])),
                 const SizedBox(height: 2),
-                Text(stats[i].$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 11.5, color: AppColors.muted)),
+                Text(stats[i].$2, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 11.5, color: AppColors.muted)),
               ]),
             ),
           ),
@@ -320,8 +282,8 @@ class QuickTiles extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(t.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700)),
-                    Text(t.$3, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 12, color: AppColors.muted)),
+                    Text(t.$2, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTextStyles.label.copyWith(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                    Text(t.$3, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 12, color: AppColors.muted)),
                   ]),
                 ),
               ]),

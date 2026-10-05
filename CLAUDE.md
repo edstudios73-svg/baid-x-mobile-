@@ -1791,3 +1791,24 @@ The project must remain reproducible.
 Local machine state should never be the only place where critical project knowledge exists.
 
 END OF BAID X CLAUDE CODE INSTRUCTIONS
+
+## 63. WEBSITE AND APP ARE ONE PRODUCT
+
+BAID X has two clients on one shared backend:
+
+- Website: `edstudios73-svg/baid-x-website-` (static site + `/api` on Vercel)
+- App: `edstudios73-svg/baid-x-mobile-` (this Flutter project)
+- Both use the same Supabase project (`igfmmprlrybxsdzehwid`) and the website's `/api` routes.
+
+Standing rule from the product owner: **every change requested for the website is also made in the app, and every app change is also made on the website, in the same task.** One request covers both; the owner should never have to ask twice.
+
+For every change:
+
+1. Implement it on the website and in the app, matching flow, wording and UI (sizes, layout, states).
+2. Website: run `npm test`. App: run `flutter analyze` and `flutter test`.
+3. Rebuild the app's web build into the website repo at `app/`
+   (`flutter build web --release --base-href /app/`, copy `main.dart.js`, `flutter_bootstrap.js`, `version.json`, `assets/`).
+4. Commit and push both repos on the working branch, then deploy the website.
+5. Compare the website and the app at phone width (390px) before calling it done.
+
+UI source of truth is the website: flat dark cards on the grid background for home, dashboards, profile and checklist; the glass style only on sign-in/sign-up and the guest Profile. No emoji in the UI (no waving hand).
