@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -33,7 +35,11 @@ class WebApi {
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 30));
-    } catch (_) {
+    } on TimeoutException {
+      throw const NetworkException('BAID X is taking too long to answer. Check your connection and try again.');
+    } catch (e) {
+      // the cause (offline, DNS, TLS, a browser blocking the call) only shows in the dev console
+      debugPrint('website api $path failed: ${e.runtimeType}: $e');
       throw const NetworkException('Couldn\'t reach BAID X. Check your connection and try again.');
     }
     Map<String, dynamic> json = const {};
