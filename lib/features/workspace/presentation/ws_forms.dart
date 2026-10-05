@@ -14,6 +14,7 @@ import '../../account/presentation/account_sheets.dart';
 import '../../account/presentation/profile_pages.dart' show KV, Note, field, dropdown;
 import '../../account_type/domain/role_categories.dart';
 import '../../tabs/data/tabs_data.dart';
+import '../../hiring/hiring_screens.dart' show EscrowButton;
 import '../data/workspace_data.dart';
 import 'ws_common.dart';
 
@@ -650,7 +651,7 @@ class MilestonesTab extends ConsumerWidget {
     return WsAsync<List<Json>>(ref.watch(projectMilestonesProvider(pid)), onRetry: () => ref.invalidate(projectMilestonesProvider(pid)), (list) {
       double sum(bool Function(Json) f) => list.where(f).fold(0.0, (t, m) => t + (double.tryParse('${m['amount_ghs']}') ?? 0));
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (owner && !closed) WsButtons(top: true, [SmallButton('+ Add milestone', onPressed: () => _newSheet(context, ref))]),
+        if (owner && !closed) Padding(padding: const EdgeInsets.only(bottom: 12), child: EscrowButton('Add milestone', icon: Icons.add_rounded, onPressed: () => _newSheet(context, ref))),
         if (list.isNotEmpty)
           WsCard(children: [
             KV('Planned', money(sum((m) => m['status'] == 'planned'))),
@@ -677,22 +678,22 @@ class MilestonesTab extends ConsumerWidget {
     final st = _msStatus[s];
     final acts = <Widget>[
       if (owner && s == 'planned') ...[
-        SmallButton('Fund ${money(m['amount_ghs'])}', onPressed: () => _fundSheet(context, ref, m)),
-        SmallButton('Remove', light: false, onPressed: () => _cancel(context, ref, m)),
+        EscrowButton('Fund ${money(m['amount_ghs'])}', onPressed: () => _fundSheet(context, ref, m)),
+        EscrowButton('Remove', ghost: true, onPressed: () => _cancel(context, ref, m)),
       ] else if (owner && (s == 'funded' || s == 'submitted')) ...[
-        SmallButton('Approve and release', onPressed: () async {
+        EscrowButton('Approve and release', onPressed: () async {
           if (await confirmBox(context, 'Release payment', 'This pays your team member. You can\'t undo it, so only approve if the milestone is done.', yes: 'Yes, release payment') && context.mounted) {
             await _run(context, ref, () => rpcCall('milestone_approve', {'p_id': m['id']}), 'Payment released.');
           }
         }),
-        SmallButton('Report a problem', light: false, onPressed: () => _dispute(context, ref, m)),
-        if (s == 'funded') SmallButton('Cancel', light: false, onPressed: () => _cancel(context, ref, m)),
+        EscrowButton('Report a problem', ghost: true, onPressed: () => _dispute(context, ref, m)),
+        if (s == 'funded') EscrowButton('Cancel', ghost: true, onPressed: () => _cancel(context, ref, m)),
       ] else if (mine && s == 'funded') ...[
-        SmallButton('Submit milestone', onPressed: () => _submit(context, ref, m)),
-        SmallButton('Report a problem', light: false, onPressed: () => _dispute(context, ref, m)),
-        SmallButton('Decline', light: false, onPressed: () => _cancel(context, ref, m)),
+        EscrowButton('Submit milestone', onPressed: () => _submit(context, ref, m)),
+        EscrowButton('Report a problem', ghost: true, onPressed: () => _dispute(context, ref, m)),
+        EscrowButton('Decline', ghost: true, onPressed: () => _cancel(context, ref, m)),
       ] else if (mine && s == 'submitted')
-        SmallButton('Report a problem', light: false, onPressed: () => _dispute(context, ref, m)),
+        EscrowButton('Report a problem', ghost: true, onPressed: () => _dispute(context, ref, m)),
     ];
     final note = s == 'submitted' && m['auto_release_at'] != null
         ? 'Releases automatically ${fdate(m['auto_release_at'])} if not reviewed.'
@@ -707,7 +708,7 @@ class MilestonesTab extends ConsumerWidget {
       if ('${m['submit_note'] ?? ''}'.isNotEmpty) WsQuote('Note from team member', m['submit_note']),
       if ('${m['resolution_note'] ?? ''}'.isNotEmpty) WsQuote('BAID X decision', m['resolution_note']),
       if (note.isNotEmpty) WsCaption(note),
-      WsButtons(acts),
+      if (acts.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [for (final a in acts) Padding(padding: const EdgeInsets.only(bottom: 8), child: a)])),
     ]);
   }
 
@@ -841,10 +842,10 @@ class _FundButton extends StatefulWidget {
 class _FundButtonState extends State<_FundButton> {
   var _busy = false;
   @override
-  Widget build(BuildContext context) => PillButton(
-        label: 'Fund and hold in escrow',
+  Widget build(BuildContext context) => EscrowButton(
+        'Fund and hold in escrow',
         icon: Icons.shield_outlined,
-        loading: _busy,
+        busy: _busy,
         onPressed: _busy
             ? null
             : () async {

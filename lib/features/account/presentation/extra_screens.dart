@@ -39,6 +39,8 @@ String? appPathFor(Object? href, {Object? projectId}) {
     'invites' => AppRoutes.invites,
     'approvals' => AppRoutes.approvals,
     'jobs' => AppRoutes.work,
+    'engagement' when arg.isNotEmpty => '${AppRoutes.engagement}/$arg',
+    'applicants' when arg.isNotEmpty => '${AppRoutes.applicants}/$arg',
     'work' || 'engagement' => AppRoutes.applications,
     'hires' || 'applicants' => AppRoutes.myJobs,
     'catalog' => AppRoutes.listings,

@@ -2,9 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -16,6 +14,8 @@ import '../../account/domain/account_setup.dart';
 import '../../account/presentation/account_sheets.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../account_type/domain/role_categories.dart';
+import '../../account/presentation/profile_pages.dart' show SecLabel;
+import '../../hiring/hiring_screens.dart';
 import '../data/tabs_data.dart';
 
 /// The dashboard tabs from the website (js/dash.js, js/market.js,
@@ -24,7 +24,6 @@ import '../data/tabs_data.dart';
 
 String? _trade(Object? id) => jobCategories.where((c) => c.id == id).map((c) => c.name).firstOrNull;
 String _place(Json r) => [r['city_town'], r['region']].where((v) => v != null && '$v'.isNotEmpty).join(', ').ifEmpty('Ghana');
-Future<void> _web(String hash) => launchUrl(Uri.parse('${AppConfig.webBase}/index.html#/$hash'), mode: LaunchMode.externalApplication);
 
 extension on String {
   String ifEmpty(String v) => isEmpty ? v : this;
@@ -186,6 +185,7 @@ class _WorkTabScreenState extends ConsumerState<WorkTabScreen> {
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(workTabProvider);
+    final engs = ref.watch(myEngagementsProvider).asData?.value ?? const <Json>[];
     return DashPage<WorkTab>(
       head: const DashHead('Work'),
       top: [
@@ -194,13 +194,20 @@ class _WorkTabScreenState extends ConsumerState<WorkTabScreen> {
           active: _seg,
           onTap: (k) {
             if (k == 'projects') return context.go(AppRoutes.projects);
-            if (k == 'wallet') return toast(context, 'The wallet comes to the app next. Open it on the website for now.');
+            if (k == 'wallet') {
+              context.push(AppRoutes.wallet);
+              return;
+            }
             setState(() => _seg = k);
           },
         ),
       ],
       data: data,
-      onRefresh: () => ref.refresh(workTabProvider.future),
+      onRefresh: () async {
+        ref.invalidate(myEngagementsProvider);
+        ref.invalidate(workTabProvider);
+        await ref.read(workTabProvider.future);
+      },
       builder: (w) {
         bool keep(Json a) => switch (_seg) {
               'active' => a['status'] == 'accepted',
@@ -208,15 +215,22 @@ class _WorkTabScreenState extends ConsumerState<WorkTabScreen> {
               _ => !['accepted', 'completed'].contains(a['status']),
             };
         final list = w.apps.where(keep).toList();
+        // hired jobs paid through escrow (website ESCROW.workSection)
+        final eng = _seg == 'applications'
+            ? const <Json>[]
+            : engs.where((e) => e['role'] == 'worker' && (_seg == 'completed' ? ['released', 'refunded'].contains(e['status']) : ['active', 'submitted', 'disputed'].contains(e['status']))).toList();
+        final engRows = engagementRows(context, eng);
+        if (_seg == 'active' && engRows.isNotEmpty) return engRows;
         if (list.isEmpty) {
           final (t, x) = switch (_seg) {
             'active' => ('No active work', 'Jobs you have been accepted for will show here.'),
             'completed' => ('Nothing completed yet', 'Finished jobs, reviews and earned XP will show here.'),
             _ => ('No applications yet', 'Browse the Job Marketplace and apply to jobs that match your trade.'),
           };
-          return [DashEmpty(icon: Icons.work_outline, title: t, text: x, action: _seg == 'applications' ? SmallButton('Browse jobs', onPressed: () => context.go(AppRoutes.work)) : null)];
+          return [...engRows, DashEmpty(icon: Icons.work_outline, title: t, text: x, action: _seg == 'applications' ? SmallButton('Browse jobs', onPressed: () => context.go(AppRoutes.work)) : null)];
         }
         return [
+          ...engRows,
           for (final a in list)
             DashRow(
               icon: Icons.work_outline,
@@ -493,11 +507,17 @@ class HiresTabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isCo = ref.watch(accountProfileProvider).asData?.value?.type == AccountType.company;
     final post = SmallButton('Post a job', onPressed: () => context.push(AppRoutes.postJob));
+    final hired = (ref.watch(myEngagementsProvider).asData?.value ?? const <Json>[]).where((e) => e['role'] == 'payer').toList();
     return DashPage<List<Json>>(
       head: DashHead(isCo ? 'Job posts' : 'Hires', action: post),
       data: ref.watch(hiresTabProvider),
-      onRefresh: () => ref.refresh(hiresTabProvider.future),
-      builder: (jobs) => jobs.isEmpty
+      onRefresh: () async {
+        ref.invalidate(myEngagementsProvider);
+        ref.invalidate(hiresTabProvider);
+        await ref.read(hiresTabProvider.future);
+      },
+      builder: (jobs) => [
+        ...jobs.isEmpty
           ? [DashEmpty(icon: Icons.how_to_reg_outlined, title: 'No jobs yet', text: 'Post a job and professionals can apply. You can also find a trade in Discover and message them.', action: post)]
           : [
               for (final j in jobs)
@@ -509,7 +529,7 @@ class HiresTabScreen extends ConsumerWidget {
                   below: Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(spacing: 6, runSpacing: 6, children: [
-                    SmallButton('Applicants', onPressed: () => _web('applicants/${j['id']}')),
+                    SmallButton('Applicants', onPressed: () => context.push('${AppRoutes.applicants}/${j['id']}')),
                     SmallButton(j['status'] == 'open' ? 'Close' : 'Reopen', light: false, onPressed: () async {
                       try {
                         await setJobStatus('${j['id']}', j['status'] == 'open' ? 'closed' : 'open');
@@ -522,6 +542,8 @@ class HiresTabScreen extends ConsumerWidget {
                   ),
                 ),
             ],
+        ...hired.isEmpty ? const <Widget>[] : [const SecLabel('Hired professionals'), ...engagementRows(context, hired)],
+      ],
     );
   }
 }

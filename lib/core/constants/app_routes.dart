@@ -49,4 +49,6 @@ abstract final class AppRoutes {
   static const workspace = '/ws';
   static const invites = '/invites';
   static const approvals = '/approvals';
+  static const applicants = '/applicants';
+  static const engagement = '/engagement';
 }

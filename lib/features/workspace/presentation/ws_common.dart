@@ -136,15 +136,15 @@ class WsCaption extends StatelessWidget {
 
 /// `.btn-row`: wrapping buttons.
 class WsButtons extends StatelessWidget {
-  const WsButtons(this.buttons, {this.top = false, super.key});
+  const WsButtons(this.buttons, {this.top = false, this.end = false, super.key});
   final List<Widget> buttons;
-  final bool top;
+  final bool top, end; // end: right-aligned like `.es-ap-act`
   @override
   Widget build(BuildContext context) => buttons.isEmpty
       ? const SizedBox.shrink()
       : Padding(
           padding: EdgeInsets.only(top: top ? 0 : 10, bottom: top ? 12 : 0),
-          child: Wrap(spacing: 8, runSpacing: 8, children: buttons),
+          child: SizedBox(width: double.infinity, child: Wrap(alignment: end ? WrapAlignment.end : WrapAlignment.start, spacing: 8, runSpacing: 8, children: buttons)),
         );
 }
 
