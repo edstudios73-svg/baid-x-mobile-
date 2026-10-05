@@ -2,9 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -335,9 +333,10 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
     if (spec.web) {
       return _Page(title: item.title, action: checklistBtn, children: [
         ...top,
-        SurfaceCard(child: Text('This step is done on the BAID X website for now. Sign in there with the same phone number and password; it updates this app straight away.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.45))),
-        const SizedBox(height: 14),
-        PillButton(label: 'Open on the website', icon: Icons.open_in_new_rounded, onPressed: () => launchUrl(Uri.parse('${AppConfig.webBase}/index.html#/checklist'), mode: LaunchMode.externalApplication)),
+        PillButton(
+          label: item.title == 'Certification' ? 'Open certifications' : 'Open past projects',
+          onPressed: () => context.push(item.title == 'Certification' ? AppRoutes.certs : AppRoutes.portfolio),
+        ),
         back,
       ]);
     }

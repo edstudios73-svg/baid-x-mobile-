@@ -36,4 +36,14 @@ abstract final class AppRoutes {
   static const team = '/team';
   static const checklist = '/checklist';
   static const inquiries = '/inquiries';
+  static const wallet = '/wallet';
+  static const growth = '/growth';
+  static const certs = '/certs';
+  static const portfolio = '/portfolio';
+  static const teamLink = '/team-link';
+  static const payments = '/payments';
+  static const equipment = '/equipment';
+  static const materials = '/materials';
+  static const orders = '/orders';
+  static const orgs = '/orgs';
 }

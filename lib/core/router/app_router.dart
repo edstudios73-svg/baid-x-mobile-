@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/account/presentation/extra_screens.dart';
+import '../../features/account/presentation/profile_pages.dart';
+import '../../features/account/presentation/profile_pages_b.dart';
 import '../../features/tabs/presentation/chat_screens.dart';
 import '../../features/tabs/presentation/tab_screens.dart';
 import '../../features/account/presentation/checklist_screens.dart';
@@ -15,7 +18,6 @@ import '../../features/directory/presentation/directory_screen.dart';
 import '../../features/jobs/presentation/job_screens.dart';
 import '../../features/workers/presentation/worker_screens.dart';
 import '../../features/home/presentation/home_screen.dart';
-import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/marketplace/presentation/listing_screens.dart';
 import '../../features/marketplace/presentation/marketplace_screen.dart';
 import '../../features/projects/presentation/project_screens.dart';
@@ -23,7 +25,6 @@ import '../../features/home/presentation/main_shell.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
-import '../../features/billing/presentation/billing_screen.dart';
 import '../../features/billing/presentation/product_screens.dart';
 import '../../features/trust/presentation/trust_screens.dart';
 import '../../features/splash/presentation/splash_screen.dart';
@@ -114,11 +115,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.billing,
-        builder: (context, state) => const BillingScreen(),
+        builder: (context, state) => const PlansBillingScreen(),
       ),
       GoRoute(
         path: AppRoutes.companyBilling,
-        builder: (context, state) => const CompanyBillingScreen(),
+        builder: (context, state) => const PlansBillingScreen(),
       ),
       GoRoute(
         path: AppRoutes.xid,
@@ -173,7 +174,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.notifications,
-            builder: (context, state) => const NotificationsScreen(),
+            builder: (context, state) => const NotificationsScreen2(),
           ),
           GoRoute(
             path: AppRoutes.work,
@@ -237,7 +238,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.createProject,
-            builder: (context, state) => const CreateProjectScreen(),
+            builder: (context, state) => const NewProjectScreen(),
           ),
           GoRoute(
             path: '/projects/:id',
@@ -245,7 +246,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.companyAccess,
-            builder: (context, state) => const CompanyAccessScreen(),
+            builder: (context, state) => const TeamLinkScreen(),
           ),
           GoRoute(
             path: AppRoutes.tasks,
@@ -257,7 +258,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.team,
-            builder: (context, state) => const TeamScreen(),
+            builder: (context, state) => const TeamLinkScreen(),
           ),
           GoRoute(
             path: AppRoutes.marketplace,
@@ -267,6 +268,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.messages,
             builder: (context, state) => const ChatsTabScreen(),
           ),
+          // Profile menu pages (website js/wallet.js, billing.js, orgs.js, orders.js ...)
+          GoRoute(path: AppRoutes.wallet, builder: (context, state) => const WalletScreen()),
+          GoRoute(path: AppRoutes.growth, builder: (context, state) => const GrowthScreen()),
+          GoRoute(path: AppRoutes.certs, builder: (context, state) => const CertsScreen()),
+          GoRoute(path: AppRoutes.portfolio, builder: (context, state) => const PortfolioScreen()),
+          GoRoute(path: AppRoutes.teamLink, builder: (context, state) => const TeamLinkScreen()),
+          GoRoute(path: AppRoutes.payments, builder: (context, state) => const PaymentsScreen()),
+          GoRoute(path: AppRoutes.equipment, builder: (context, state) => const SupplierScreen(kind: 'equipment')),
+          GoRoute(path: AppRoutes.materials, builder: (context, state) => const SupplierScreen(kind: 'products')),
+          GoRoute(path: AppRoutes.orders, builder: (context, state) => const OrdersScreen()),
+          GoRoute(path: '${AppRoutes.orders}/:id', builder: (context, state) => OrderDetailScreen(id: state.pathParameters['id']!)),
+          GoRoute(path: AppRoutes.orgs, builder: (context, state) => const OrgsScreen()),
+          GoRoute(path: '${AppRoutes.orgs}/:id', builder: (context, state) => OrgDetailScreen(id: state.pathParameters['id']!)),
           GoRoute(
             path: AppRoutes.inquiries,
             builder: (context, state) => const InquiriesTabScreen(),

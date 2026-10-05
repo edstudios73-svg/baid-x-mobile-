@@ -35,59 +35,58 @@ class MemberProfileView extends ConsumerWidget {
     final phone = me.phone;
     final shownPhone = phone.isEmpty ? '' : (RegExp(r'^\d').hasMatch(phone) ? '+$phone' : phone);
 
-    void soon() => toast(context, 'This screen is built in the next stage.');
     void step(String title) {
       final i = checklists[type]!.indexWhere((c) => c.title == title);
       context.push(i < 0 ? AppRoutes.checklist : '${AppRoutes.checklist}/step/$i');
     }
 
     final menu = <(String, String, VoidCallback)>[
-      ('Plans & billing', 'Your plan, payments and receipts.', () => context.push(type == AccountType.company ? AppRoutes.companyBilling : AppRoutes.billing)),
-      ('Organizations', 'Teams, people, roles and access.', soon),
+      ('Plans & billing', 'Your plan, payments and receipts.', () => context.push(AppRoutes.billing)),
+      ('Organizations', 'Teams, people, roles and access.', () => context.push(AppRoutes.orgs)),
       ...switch (type) {
         AccountType.worker => [
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
-            ('Wallet', 'Earnings, balance and withdrawals.', soon),
-            ('Career growth', 'Experience, level and certifications.', soon),
-            ('Portfolio', 'Add completed works with images and descriptions.', () => step('Portfolio')),
-            ('Certifications', 'Upload trade certificates and licences.', soon),
+            ('Wallet', 'Earnings, balance and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Career growth', 'Experience, level and certifications.', () => context.push(AppRoutes.growth)),
+            ('Portfolio', 'Add completed works with images and descriptions.', () => context.push(AppRoutes.portfolio)),
+            ('Certifications', 'Upload trade certificates and licences.', () => context.push(AppRoutes.certs)),
             ('Verification documents', 'Verify your identity.', () => step('Ghana Card')),
           ],
         AccountType.company => [
             ('Edit company profile', 'Update company details.', () => context.push(AppRoutes.checklist)),
-            ('Wallet', 'Add money, earnings and withdrawals.', soon),
-            ('Payments', 'Worker payments and records.', soon),
-            ('Equipment', 'Find and request equipment.', () => context.go(AppRoutes.marketplace)),
-            ('Materials', 'Find and compare materials.', () => context.go(AppRoutes.marketplace)),
-            ('My orders', 'Track what you have ordered.', soon),
+            ('Wallet', 'Add money, earnings and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Payments', 'Worker payments and records.', () => context.push(AppRoutes.payments)),
+            ('Equipment', 'Find and request equipment.', () => context.push(AppRoutes.equipment)),
+            ('Materials', 'Find and compare materials.', () => context.push(AppRoutes.materials)),
+            ('My orders', 'Track what you have ordered.', () => context.push(AppRoutes.orders)),
             ('Job posts', 'Post jobs and manage applicants.', () => context.go(AppRoutes.myJobs)),
-            ('Team & join code', 'Link a project manager to your company.', () => context.push(AppRoutes.team)),
+            ('Team & join code', 'Link a project manager to your company.', () => context.push(AppRoutes.teamLink)),
             ('Verification documents', 'Verify your company.', () => step('Registration documents')),
           ],
         AccountType.projectManager => [
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
-            ('Wallet', 'Earnings, balance and withdrawals.', soon),
-            ('Past projects', 'Show projects you have delivered.', () => step('Past projects')),
-            ('Certifications', 'Add your project management certificates.', () => step('Certification')),
-            ('Link a company', 'Join a company with its code.', () => context.push(AppRoutes.companyAccess)),
+            ('Wallet', 'Earnings, balance and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Past projects', 'Show projects you have delivered.', () => context.push(AppRoutes.portfolio)),
+            ('Certifications', 'Add your project management certificates.', () => context.push(AppRoutes.certs)),
+            ('Link a company', 'Join a company with its code.', () => context.push(AppRoutes.teamLink)),
             ('Verification documents', 'Verify your identity.', () => step('Ghana Card')),
           ],
         AccountType.business => [
             ('Edit business profile', 'Update business details.', () => context.push(AppRoutes.checklist)),
-            ('Wallet', 'Earnings, balance and withdrawals.', soon),
-            ('Orders', 'Orders from buyers, paid through escrow.', soon),
+            ('Wallet', 'Earnings, balance and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Orders', 'Orders from buyers, paid through escrow.', () => context.push(AppRoutes.orders)),
             ('Catalog', 'Manage products and equipment.', () => context.go(AppRoutes.listings)),
-            ('Portfolio', 'Show your products and past supply.', () => step('Portfolio')),
+            ('Portfolio', 'Show your products and past supply.', () => context.push(AppRoutes.portfolio)),
             ('Verification documents', 'Verify your business.', () => step('Registration documents')),
           ],
         AccountType.employer => [
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
-            ('Wallet', 'Add money and pay for work.', soon),
+            ('Wallet', 'Add money and pay for work.', () => context.push(AppRoutes.wallet)),
             ('Post a job', 'Hire a professional for your home.', () => context.push(AppRoutes.postJob)),
             ('My hires', 'Keep a record of people you have hired.', () => context.go(AppRoutes.myJobs)),
-            ('Equipment', 'Rent or buy equipment from suppliers.', () => context.go(AppRoutes.marketplace)),
-            ('Materials', 'Buy materials from suppliers.', () => context.go(AppRoutes.marketplace)),
-            ('My orders', 'Track what you have ordered.', soon),
+            ('Equipment', 'Rent or buy equipment from suppliers.', () => context.push(AppRoutes.equipment)),
+            ('Materials', 'Buy materials from suppliers.', () => context.push(AppRoutes.materials)),
+            ('My orders', 'Track what you have ordered.', () => context.push(AppRoutes.orders)),
             ('Verification documents', 'Verify your identity.', () => context.push(AppRoutes.checklist)),
           ],
       },

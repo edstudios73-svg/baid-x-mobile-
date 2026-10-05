@@ -89,3 +89,15 @@ Future<void> startMemberChat(BuildContext context, DirectoryMember m) async {
     if (context.mounted) toast(context, friendlyError(e));
   }
 }
+
+/// Opens (or starts) a direct chat with a member by id, e.g. "Message supplier".
+Future<void> startConversationWith(BuildContext context, String userId) async {
+  final client = SupabaseConfig.client;
+  if (client == null || userId.isEmpty) return;
+  try {
+    final cid = await client.rpc('start_conversation', params: {'p_other': userId, 'p_subject': null});
+    if (context.mounted) context.push('${AppRoutes.messages}/$cid');
+  } catch (e) {
+    if (context.mounted) toast(context, friendlyError(e));
+  }
+}

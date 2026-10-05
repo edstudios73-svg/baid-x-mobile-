@@ -104,10 +104,10 @@ class MemberHomeScreen extends ConsumerWidget {
           ),
           const SectionLabel('Quick access'),
           QuickTiles([
-            (Icons.account_balance_wallet_outlined, 'Wallet', 'GH₵${(num.tryParse('${stats?.extra['wallet'] ?? 0}') ?? 0).toStringAsFixed(2)}', null),
-            (Icons.trending_up, 'Career growth', '$xp XP', null),
+            (Icons.account_balance_wallet_outlined, 'Wallet', 'GH₵${(num.tryParse('${stats?.extra['wallet'] ?? 0}') ?? 0).toStringAsFixed(2)}', () => context.push(AppRoutes.wallet)),
+            (Icons.trending_up, 'Career growth', '$xp XP', () => context.push(AppRoutes.growth)),
             (Icons.work_outline, 'Applications', '${n(stats?.b)} total', () => context.go(AppRoutes.applications)),
-            (Icons.star_border_rounded, 'Trust score', (num.tryParse('${p['trust_score'] ?? 0}') ?? 0).toStringAsFixed(1), null),
+            (Icons.star_border_rounded, 'Trust score', (num.tryParse('${p['trust_score'] ?? 0}') ?? 0).toStringAsFixed(1), () => context.push(AppRoutes.growth)),
           ]),
         ]);
       case AccountType.company:
@@ -119,10 +119,10 @@ class MemberHomeScreen extends ConsumerWidget {
           _projectCard(context, pr, emptyTitle: 'Start your first project', emptyText: 'Define the workers, project manager, equipment and materials you need, then invite people in.', cta: ('Create a project', () => context.push(AppRoutes.createProject))),
           const SectionLabel('Run the business'),
           QuickTiles([
-            (Icons.payments_outlined, 'Payments', 'Records and invoices', null),
-            (Icons.construction_outlined, 'Equipment', 'Find and request', () => context.go(AppRoutes.marketplace)),
-            (Icons.inventory_2_outlined, 'Materials', 'Compare supply', () => context.go(AppRoutes.marketplace)),
-            (Icons.key_outlined, 'Join code', 'Link a project manager', () => context.push(AppRoutes.team)),
+            (Icons.payments_outlined, 'Payments', 'Records and invoices', () => context.push(AppRoutes.payments)),
+            (Icons.construction_outlined, 'Equipment', 'Find and request', () => context.push(AppRoutes.equipment)),
+            (Icons.inventory_2_outlined, 'Materials', 'Compare supply', () => context.push(AppRoutes.materials)),
+            (Icons.key_outlined, 'Join code', 'Link a project manager', () => context.push(AppRoutes.teamLink)),
           ]),
         ]);
       case AccountType.projectManager:
@@ -152,10 +152,10 @@ class MemberHomeScreen extends ConsumerWidget {
           ),
           const SectionLabel('Quick access'),
           QuickTiles([
-            (Icons.add, 'Add product', 'Catalog', () => context.push(AppRoutes.createListing)),
+            (Icons.add, 'Add product', 'Catalog', () => context.go(AppRoutes.listings)),
             (Icons.mail_outline, 'Inquiries', '${n(stats?.c)} total', () => context.go(AppRoutes.messages)),
             (Icons.construction_outlined, 'Equipment', '${n(stats?.b)} listed', () => context.go(AppRoutes.listings)),
-            (Icons.account_balance_wallet_outlined, 'Wallet', 'Balance and payouts', null),
+            (Icons.account_balance_wallet_outlined, 'Wallet', 'Balance and payouts', () => context.push(AppRoutes.wallet)),
           ]),
         ]);
       case AccountType.employer:

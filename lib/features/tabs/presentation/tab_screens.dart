@@ -247,7 +247,7 @@ class _ProjectsTabScreenState extends ConsumerState<ProjectsTabScreen> {
     final type = ref.watch(accountProfileProvider).asData?.value?.type;
     final isCo = type == AccountType.company;
     final data = ref.watch(projectsTabProvider);
-    final newBtn = isCo ? SmallButton('+ New project', onPressed: () => _web('new-project')) : null;
+    final newBtn = isCo ? SmallButton('+ New project', onPressed: () => context.push(AppRoutes.createProject)) : null;
     return DashPage<List<Json>>(
       head: DashHead('Projects', action: newBtn),
       top: [DashSegs(items: const [('all', 'All'), ('active', 'Active'), ('completed', 'Completed')], active: _seg, onTap: (k) => setState(() => _seg = k))],
