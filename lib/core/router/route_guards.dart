@@ -10,7 +10,7 @@ const publicPaths = <String>{
   AppRoutes.signUp,
   AppRoutes.forgotPassword,
   AppRoutes.resetPassword,
-  AppRoutes.messages, // signed-out visitors see a "sign in to view chats" screen, like the website
+  AppRoutes.messages, // signed-out visitors see the guest Chats screen asking them to sign in, like the website
   AppRoutes.profile, // and the guest profile with the two sign-in options
 };
 
