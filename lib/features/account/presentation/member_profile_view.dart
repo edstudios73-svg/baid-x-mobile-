@@ -83,7 +83,7 @@ class MemberProfileView extends ConsumerWidget {
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
             ('Wallet', 'Add money and pay for work.', () => context.push(AppRoutes.wallet)),
             ('Post a job', 'Hire a professional for your home.', () => context.push(AppRoutes.postJob)),
-            ('My hires', 'Keep a record of people you have hired.', () => context.go(AppRoutes.myJobs)),
+            ('Job posts', 'Post jobs and see who applied.', () => context.go(AppRoutes.myJobs)),
             ('Equipment', 'Rent or buy equipment from suppliers.', () => context.push(AppRoutes.equipment)),
             ('Materials', 'Buy materials from suppliers.', () => context.push(AppRoutes.materials)),
             ('My orders', 'Track what you have ordered.', () => context.push(AppRoutes.orders)),

@@ -27,9 +27,10 @@ final myEngagementsProvider = FutureProvider<List<Json>>((ref) async {
 });
 
 class ApplicantsData {
-  const ApplicantsData(this.job, this.apps);
+  const ApplicantsData(this.job, this.apps, [this.details = const {}]);
   final Json? job;
   final List<Json> apps;
+  final Map<String, Json> details; // profile and reviews by worker id (applicant_details)
 }
 
 final jobApplicantsProvider = FutureProvider.family<ApplicantsData, String>((ref, jobId) async {
@@ -37,8 +38,11 @@ final jobApplicantsProvider = FutureProvider.family<ApplicantsData, String>((ref
   final r = await Future.wait(<Future<dynamic>>[
     sb.from('jobs').select('id,title,status,daily_rate_ghs,workers_needed,city_town').eq('id', jobId).maybeSingle(),
     rpcCall('job_applicants', {'p_job': jobId}),
+    // reviews are private to each job, so the owner reads applicants' reviews through this function
+    rpcCall('applicant_details', {'p_job': jobId}).catchError((Object _) => <Object>[]),
   ]);
-  return ApplicantsData(r[0] == null ? null : asMap(r[0]), asList(r[1]));
+  final details = {for (final d in asList(r[2])) '${d['worker_id']}': d};
+  return ApplicantsData(r[0] == null ? null : asMap(r[0]), asList(r[1]), details);
 });
 
 const escrowGold = Color(0xFFE8D9A8);
@@ -128,7 +132,7 @@ class ApplicantsScreen extends ConsumerWidget {
           Text('${prettyText(j['status'])} · ${j['city_town'] ?? 'Ghana'} · needs $needed worker${needed > 1 ? 's' : ''}', style: const TextStyle(fontSize: 13, color: AppColors.muted)),
           const SizedBox(height: 12),
           if (d.apps.isEmpty) const DashEmpty(icon: Icons.how_to_reg_outlined, title: 'No applicants yet', text: 'When professionals apply, they are listed here so you can message and hire them.'),
-          for (final a in d.apps) _ApplicantCard(app: a, job: j),
+          for (final a in d.apps) _ApplicantCard(app: a, job: j, details: d.details['${a['worker_id']}']),
           const Note('Pay safely. When you hire, the money is held in escrow. It is released to the worker only when you approve the work.'),
         ];
       },
@@ -137,8 +141,9 @@ class ApplicantsScreen extends ConsumerWidget {
 }
 
 class _ApplicantCard extends ConsumerWidget {
-  const _ApplicantCard({required this.app, required this.job});
+  const _ApplicantCard({required this.app, required this.job, this.details});
   final Json app, job;
+  final Json? details;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -177,6 +182,7 @@ class _ApplicantCard extends ConsumerWidget {
             ),
           ],
         ),
+        if (details != null) _ApplicantProfile(details!),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -195,6 +201,113 @@ class _ApplicantCard extends ConsumerWidget {
             WsPill(a['status']),
         ]),
       ],
+    );
+  }
+}
+
+/// Five small stars, gold up to [rating].
+class _Stars extends StatelessWidget {
+  const _Stars(this.rating);
+  final num rating;
+  @override
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        for (var i = 1; i <= 5; i++) Icon(Icons.star_rounded, size: 14, color: i <= rating.round() ? const Color(0xFFE8C46A) : const Color(0xFF3A3A3A)),
+      ]);
+}
+
+/// An applicant's profile and reviews, opened from the card (website `.ap-more`).
+class _ApplicantProfile extends StatefulWidget {
+  const _ApplicantProfile(this.d);
+  final Json d;
+  @override
+  State<_ApplicantProfile> createState() => _ApplicantProfileState();
+}
+
+class _ApplicantProfileState extends State<_ApplicantProfile> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.d;
+    final count = (num.tryParse('${d['review_count'] ?? 0}') ?? 0).toInt();
+    final rating = num.tryParse('${d['rating'] ?? 0}') ?? 0;
+    final place = [d['city_town'], d['region']].where((v) => v != null && '$v'.isNotEmpty).join(', ');
+    final reviews = asList(d['reviews']);
+    final pics = asList(d['portfolio']).map((u) => '$u').where((u) => u.startsWith('http')).take(4).toList();
+    Widget chip(String t, {Color? c}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(color: const Color(0x12FFFFFF), borderRadius: BorderRadius.circular(99), border: Border.all(color: c?.withValues(alpha: .4) ?? const Color(0x1FFFFFFF))),
+          child: Text(t, style: TextStyle(fontSize: 12, color: c ?? Colors.white)),
+        );
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 6),
+      decoration: const BoxDecoration(border: Border(top: BorderSide(color: Color(0x1AFFFFFF)))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        InkWell(
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(children: [
+              if (count > 0) ...[
+                _Stars(rating),
+                const SizedBox(width: 6),
+                Text(rating.toStringAsFixed(1), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(width: 6),
+                Text('$count review${count > 1 ? 's' : ''}', style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
+              ] else
+                const Text('No reviews yet', style: TextStyle(fontSize: 12.5, color: AppColors.muted)),
+              const Spacer(),
+              Text('Profile and reviews ${_open ? '−' : '+'}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+        if (_open) ...[
+          if ('${d['bio'] ?? ''}'.isNotEmpty && d['bio'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('${d['bio']}', style: const TextStyle(fontSize: 13.5, color: Color(0xFFCFCFCF), height: 1.45))),
+          const SizedBox(height: 10),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            if (place.isNotEmpty) chip(place),
+            if (d['daily_rate'] != null) chip('${money(d['daily_rate'])}/day'),
+            if (d['rank'] != null) chip('${prettyText(d['rank'])} · ${d['xp'] ?? 0} XP'),
+            if (d['available'] == true) chip('Available for work', c: const Color(0xFF34D399)),
+          ]),
+          if (pics.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              for (var i = 0; i < 4; i++) ...[
+                Expanded(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: i < pics.length
+                        ? ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(pics[i], fit: BoxFit.cover, errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF1A1A1A))))
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+                if (i < 3) const SizedBox(width: 6),
+              ],
+            ]),
+          ],
+          const SizedBox(height: 12),
+          if (reviews.isEmpty)
+            const Text('No reviews yet. Reviews appear here after this professional finishes jobs on BAID X.', style: TextStyle(fontSize: 12.5, color: AppColors.muted))
+          else
+            for (final r in reviews)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0x0AFFFFFF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0x1AFFFFFF))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    _Stars(num.tryParse('${r['rating'] ?? 0}') ?? 0),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('${r['by'] ?? 'A client'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))),
+                    Text(ago(r['at']), style: const TextStyle(fontSize: 11.5, color: AppColors.muted)),
+                  ]),
+                  if ('${r['comment'] ?? ''}'.isNotEmpty && r['comment'] != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('${r['comment']}', style: const TextStyle(fontSize: 13, color: Color(0xFFD0D0D0), height: 1.4))),
+                ]),
+              ),
+        ],
+      ]),
     );
   }
 }

@@ -505,11 +505,10 @@ class HiresTabScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isCo = ref.watch(accountProfileProvider).asData?.value?.type == AccountType.company;
     final post = SmallButton('Post a job', onPressed: () => context.push(AppRoutes.postJob));
     final hired = (ref.watch(myEngagementsProvider).asData?.value ?? const <Json>[]).where((e) => e['role'] == 'payer').toList();
     return DashPage<List<Json>>(
-      head: DashHead(isCo ? 'Job posts' : 'Hires', action: post),
+      head: DashHead('Job posts', action: post),
       data: ref.watch(hiresTabProvider),
       onRefresh: () async {
         ref.invalidate(myEngagementsProvider);
@@ -529,7 +528,7 @@ class HiresTabScreen extends ConsumerWidget {
                   below: Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Wrap(spacing: 6, runSpacing: 6, children: [
-                    SmallButton('Applicants', onPressed: () => context.push('${AppRoutes.applicants}/${j['id']}')),
+                    SmallButton('View applicants', onPressed: () => context.push('${AppRoutes.applicants}/${j['id']}')),
                     SmallButton(j['status'] == 'open' ? 'Close' : 'Reopen', light: false, onPressed: () async {
                       try {
                         await setJobStatus('${j['id']}', j['status'] == 'open' ? 'closed' : 'open');
