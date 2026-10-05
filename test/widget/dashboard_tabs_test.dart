@@ -16,7 +16,8 @@ Widget _wrap(Widget child, List overrides) => ProviderScope(
         accountProfileProvider.overrideWith((ref) async => const AccountProfile(id: 'u', displayName: 'Ama', accountType: 'company')),
         ...overrides.cast(),
       ],
-      child: MaterialApp(home: child),
+      // reduced motion: the drifting glass art stands still, so pumpAndSettle can settle
+      child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: child),
     );
 
 void main() {

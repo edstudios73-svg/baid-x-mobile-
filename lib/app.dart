@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'shared/providers/app_providers.dart';
 import 'shared/widgets/baid_ui.dart';
 
 class BaidXApp extends ConsumerWidget {
@@ -25,7 +26,8 @@ class BaidXApp extends ConsumerWidget {
         final mq = MediaQuery.of(context);
         return MediaQuery(
           data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 1, maxScaleFactor: 1.1)),
-          child: AppBackdrop(child: child),
+          // signed-in screens get the drifting glass art; one backdrop group lets every glass card share a blur pass
+          child: BackdropGroup(child: AppBackdrop(art: ref.watch(authStateProvider).asData?.value != null, child: child)),
         );
       },
     );

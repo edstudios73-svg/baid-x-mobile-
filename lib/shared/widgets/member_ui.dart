@@ -11,7 +11,7 @@ import 'brand_logo.dart';
 import 'verified_badge.dart';
 
 /// Member screens from the website (js/dash.js, css/theme.css): the app bar,
-/// the white greeting card, stat tiles, quick-access tiles, cards and the
+/// the glass greeting card, stat tiles, quick-access tiles, cards and the
 /// "profile isn't public yet" banner.
 
 /// Logo, bell and the member's avatar (`.appbar`).
@@ -92,23 +92,15 @@ class _GreetingHeroState extends State<GreetingHero> {
       if (widget.badge != null) _HeroChip(VerifiedBadge.labels[widget.badge] ?? 'Verified', dark: true, badge: widget.badge),
       for (final c in widget.chips) _HeroChip(c),
     ];
-    return Container(
-      margin: const EdgeInsets.only(top: 12, bottom: 14),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(begin: Alignment(-.6, -1), end: Alignment(.6, 1), colors: [Colors.white, Color(0xFFECECEC), Color(0xFFD9D9D9)], stops: [0, .55, 1]),
-        boxShadow: const [BoxShadow(color: Color(0x59FFFFFF), blurRadius: 60, spreadRadius: -30, offset: Offset(0, 30))],
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 14),
+      child: GlassBox(
+      strong: true,
+      radius: 28,
+      padding: EdgeInsets.zero,
       child: Stack(
         children: [
-          Positioned.fill(
-            child: ShaderMask(
-              blendMode: BlendMode.dstIn,
-              shaderCallback: (r) => const LinearGradient(begin: Alignment(-.8, -1), end: Alignment(1, 1), colors: [Colors.transparent, Colors.black], stops: [.3, 1]).createShader(r),
-              child: CustomPaint(painter: _HeroGrid()),
-            ),
-          ),
+          const Positioned.fill(child: _Sheen()),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
             child: Column(
@@ -117,45 +109,82 @@ class _GreetingHeroState extends State<GreetingHero> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(icon, size: 17, color: const Color(0xFF0A0A0A)),
+                    Icon(icon, size: 17, color: Colors.white, shadows: const [Shadow(color: Color(0xB3FFFFFF), blurRadius: 8)]),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(greet.toUpperCase(), style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: Color(0xFF0A0A0A)))),
+                    Expanded(child: Text(greet.toUpperCase(), style: const TextStyle(fontFamily: 'monospace', fontSize: 11.5, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: Colors.white))),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(time, style: AppTextStyles.label.copyWith(fontSize: 17, fontWeight: FontWeight.w800, color: const Color(0xFF0A0A0A), fontFeatures: const [FontFeature.tabularFigures()])),
-                      Text(date, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF555555))),
+                      Text(time, style: AppTextStyles.label.copyWith(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white, fontFeatures: const [FontFeature.tabularFigures()])),
+                      Text(date, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFC9C9C9))),
                     ]),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Flexible(child: Text(widget.title, style: AppTextStyles.display.copyWith(fontSize: 30, height: 1.12, letterSpacing: -1, color: const Color(0xFF050505)))),
+                  Flexible(child: Text(widget.title, style: AppTextStyles.display.copyWith(fontSize: 31, height: 1.12, letterSpacing: -1, color: Colors.white, shadows: const [Shadow(color: Color(0x59000000), blurRadius: 24)]))),
                 ]),
                 const SizedBox(height: 4),
-                Text(widget.subtitle, style: AppTextStyles.body.copyWith(fontSize: 13.5, color: const Color(0xFF3A3A3A), fontWeight: FontWeight.w500)),
+                Text(widget.subtitle, style: AppTextStyles.body.copyWith(fontSize: 13.5, color: const Color(0xFFD6D6D6), fontWeight: FontWeight.w500)),
                 if (chips.isNotEmpty) ...[const SizedBox(height: 14), Wrap(spacing: 8, runSpacing: 8, children: chips)],
               ],
             ),
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-class _HeroGrid extends CustomPainter {
+/// A band of light that crosses the hero every few seconds (`.hero2::before`).
+class _Sheen extends StatefulWidget {
+  const _Sheen();
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = const Color(0x0D000000);
-    for (double x = 0; x < size.width; x += 26) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
-    }
-    for (double y = 0; y < size.height; y += 26) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+  State<_Sheen> createState() => _SheenState();
+}
+
+class _SheenState extends State<_Sheen> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 7));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat();
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          // rests for most of the loop, then sweeps across
+          final t = ((_c.value - .7) / .3).clamp(0.0, 1.0);
+          if (t == 0) return const SizedBox.shrink();
+          final x = -1.6 + 3.2 * Curves.easeInOut.transform(t);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment(x - .5, -1),
+                end: Alignment(x + .5, 1),
+                colors: const [Color(0x00FFFFFF), Color(0x29FFFFFF), Color(0x00FFFFFF)],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _HeroChip extends StatelessWidget {
@@ -169,13 +198,13 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: dark ? const Color(0xFF050505) : const Color(0x12000000),
+        color: dark ? const Color(0x2938BDF8) : const Color(0x1FFFFFFF),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: dark ? const Color(0xFF050505) : const Color(0x1A000000)),
+        border: Border.all(color: dark ? const Color(0x7338BDF8) : const Color(0x42FFFFFF)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (badge != null) ...[VerifiedBadge(badge, size: 14), const SizedBox(width: 6)],
-        Text(text, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? Colors.white : const Color(0xFF111111))),
+        Text(text, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w700, color: dark ? const Color(0xFFBAE6FD) : const Color(0xFFF0F0F0))),
       ]),
     );
   }
@@ -188,19 +217,18 @@ class StatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    // equal heights even when one label wraps to two lines
+    return IntrinsicHeight(
+      child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < stats.length; i++) ...[
           Expanded(
-            child: Container(
+            child: GlassBox(
+              radius: 20,
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(18),
-                gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF131313), Color(0xFF0F0F0F)]),
-                border: Border.all(color: AppColors.lineGlass),
-              ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)), child: Icon(stats[i].$3, size: 16, color: Colors.black)),
+                Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), boxShadow: const [BoxShadow(color: Color(0x8CFFFFFF), blurRadius: 20, spreadRadius: -8, offset: Offset(0, 8))]), child: Icon(stats[i].$3, size: 16, color: Colors.black)),
                 const SizedBox(height: 10),
                 Text(stats[i].$1, style: AppTextStyles.display.copyWith(fontSize: 24, letterSpacing: -.5, fontFeatures: const [FontFeature.tabularFigures()])),
                 const SizedBox(height: 2),
@@ -211,6 +239,7 @@ class StatRow extends StatelessWidget {
           if (i < stats.length - 1) const SizedBox(width: 10),
         ],
       ],
+      ),
     );
   }
 }
@@ -304,7 +333,11 @@ class SetupBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: DashedCard(
+      child: GlassBox(
+        radius: 20,
+        padding: const EdgeInsets.all(14),
+        tint: const Color(0xFFE8C46A),
+        borderColor: const Color(0x73E8C46A),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(width: 34, height: 34, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.star_border_rounded, color: Colors.black, size: 19)),
           const SizedBox(width: 12),

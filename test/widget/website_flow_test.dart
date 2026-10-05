@@ -9,7 +9,7 @@ import 'package:baid_x_mobile/shared/providers/app_providers.dart';
 
 Widget _auth(AuthFlowScreen screen, {KeyValueStore? store}) => ProviderScope(
       overrides: [keyValueStoreProvider.overrideWithValue(store ?? MemoryKeyValueStore())],
-      child: MaterialApp(home: screen),
+      child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: screen),
     );
 
 void main() {

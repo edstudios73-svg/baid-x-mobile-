@@ -16,7 +16,7 @@ Widget _wrap(Widget child, List overrides, {String type = 'individual-employer'}
         accountProfileProvider.overrideWith((ref) async => AccountProfile(id: 'u', displayName: 'Ama', accountType: type)),
         ...overrides.cast(),
       ],
-      child: MaterialApp(home: child),
+      child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: child),
     );
 
 void main() {

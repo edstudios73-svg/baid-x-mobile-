@@ -105,13 +105,11 @@ class DashRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Padding(
+      child: GlassBox(
+        radius: 18,
+        padding: EdgeInsets.zero,
+        onTap: onTap,
+        child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             child: Row(children: [
               leading ??
@@ -135,7 +133,6 @@ class DashRow extends StatelessWidget {
               if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             ]),
           ),
-        ),
       ),
     );
   }
@@ -199,13 +196,13 @@ class DashBar extends StatelessWidget {
 /// The data providers keep their last result, so coming back to a tab shows it
 /// at once and refreshes quietly; only the very first visit shows skeletons.
 class DashPage<T> extends ConsumerWidget {
-  const DashPage({required this.head, required this.data, required this.builder, required this.onRefresh, this.top = const [], this.art = false, super.key});
+  const DashPage({required this.head, required this.data, required this.builder, required this.onRefresh, this.top = const [], this.art = true, super.key});
   final Widget head;
   final AsyncValue<T> data;
   final List<Widget> Function(T value) builder;
   final Future<void> Function() onRefresh;
   final List<Widget> top;
-  final bool art; // the ring art behind the page (website glass pages: Chats)
+  final bool art; // the drifting art behind the glass (every signed-in page)
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -20,7 +20,6 @@ class AppBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -32,31 +31,76 @@ class AppBackdrop extends StatelessWidget {
           ),
         ),
         const _Grid(),
-        if (art) ...[
-          Positioned(
-            left: size.width / 2 - 150,
-            top: 40,
-            child: Container(width: 300, height: 300, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0x2EFFFFFF), width: 26))),
-          ),
-          Positioned(
-            right: -120,
-            top: size.height * .46,
-            child: Opacity(
-              opacity: .36,
-              child: Container(width: 250, height: 250, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, Color(0xFF6D6D6D)]))),
-            ),
-          ),
-          Positioned(
-            left: -90,
-            top: size.height * .64,
-            child: Transform.rotate(
-              angle: 18 * math.pi / 180,
-              child: Opacity(opacity: .3, child: Container(width: 190, height: 190, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(58)))),
-            ),
-          ),
-        ],
+        if (art) const _DriftArt(),
         ?child,
       ],
+    );
+  }
+}
+
+/// The ring and two soft shapes, drifting slowly so the glass always has
+/// something to refract (still when the system asks for less motion).
+class _DriftArt extends StatefulWidget {
+  const _DriftArt();
+
+  @override
+  State<_DriftArt> createState() => _DriftArtState();
+}
+
+class _DriftArtState extends State<_DriftArt> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 28));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _c.stop();
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            final t = Curves.easeInOut.transform(_c.value);
+            return Stack(children: [
+              Positioned(
+                left: size.width / 2 - 150,
+                top: 40,
+                child: Transform.rotate(angle: t * math.pi, child: Container(width: 300, height: 300, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0x2EFFFFFF), width: 26)))),
+              ),
+              Positioned(
+                right: -120 + 60 * t,
+                top: size.height * .46 - 90 * t,
+                child: Opacity(
+                  opacity: .36,
+                  child: Container(width: 250, height: 250, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, Color(0xFF6D6D6D)]))),
+                ),
+              ),
+              Positioned(
+                left: -90 + 70 * t,
+                top: size.height * .64 - 60 * t,
+                child: Transform.rotate(
+                  angle: (18 + 40 * t) * math.pi / 180,
+                  child: Opacity(opacity: .3, child: Container(width: 190, height: 190, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(58)))),
+                ),
+              ),
+            ]);
+          },
+        ),
+      ),
     );
   }
 }
@@ -148,7 +192,60 @@ class Glass extends StatelessWidget {
   }
 }
 
-/// The website's card surface (`.dcard`, `.tile`, `.row`): a faint top-lit gradient over #0e0e0e.
+/// Liquid glass, the material of the Chats page and every signed-in screen
+/// (css/glass-dash.css): a grouped backdrop blur, a dark-to-light tint, a
+/// hairline border and a bright top edge. [strong] is the hero variant.
+class GlassBox extends StatelessWidget {
+  const GlassBox({required this.child, this.padding = const EdgeInsets.all(16), this.radius = 22, this.onTap, this.borderColor, this.strong = false, this.tint, super.key});
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+  final VoidCallback? onTap;
+  final Color? borderColor;
+  final bool strong;
+  final Color? tint; // a coloured wash, e.g. gold for the setup banner
+
+  @override
+  Widget build(BuildContext context) {
+    final r = BorderRadius.circular(radius);
+    final colors = tint != null
+        ? [tint!.withValues(alpha: .22), const Color(0x660E0E0E)]
+        : strong
+            ? const [Color(0x33FFFFFF), Color(0x0DFFFFFF), Color(0x660E0E0E)]
+            : const [Color(0x9E0E0E0E), Color(0x570E0E0E), Color(0x21FFFFFF)];
+    return DecoratedBox(
+      decoration: BoxDecoration(borderRadius: r, boxShadow: [BoxShadow(color: const Color(0x6B000000), blurRadius: strong ? 60 : 40, spreadRadius: strong ? -16 : 0, offset: Offset(0, strong ? 26 : 14))]),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter.grouped(
+          filter: ImageFilter.blur(sigmaX: strong ? 30 : 24, sigmaY: strong ? 30 : 24),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: r,
+              child: Ink(
+                decoration: BoxDecoration(
+                  borderRadius: r,
+                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: colors),
+                  border: Border.all(color: borderColor ?? (strong ? const Color(0x57FFFFFF) : const Color(0x3DFFFFFF)), width: 1.5),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(borderRadius: r, border: Border(top: BorderSide(color: strong ? const Color(0x99FFFFFF) : const Color(0x6BFFFFFF), width: 1.5))),
+                  padding: padding,
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The website's card surface (`.dcard`, `.tile`, `.row`), now liquid glass.
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({required this.child, this.padding = const EdgeInsets.all(16), this.radius = 20, this.onTap, this.borderColor, super.key});
 
@@ -159,25 +256,7 @@ class SurfaceCard extends StatelessWidget {
   final Color? borderColor;
 
   @override
-  Widget build(BuildContext context) {
-    final r = BorderRadius.circular(radius);
-    return Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: r,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: r,
-            color: AppColors.card,
-            gradient: const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF151515), Color(0xFF101010)]),
-            border: Border.all(color: borderColor ?? AppColors.lineGlass),
-          ),
-          child: Padding(padding: padding, child: child),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GlassBox(padding: padding, radius: radius + 2, onTap: onTap, borderColor: borderColor, child: child);
 }
 
 /// White "ember" pill with the soft white glow (`.btn-light`), or the dark glass

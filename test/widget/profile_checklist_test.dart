@@ -16,7 +16,7 @@ void main() {
           authStateProvider.overrideWith((ref) => Stream.value(const AuthUser(id: 'u', email: 'a@b.co', emailConfirmed: true))),
           accountProfileProvider.overrideWith((ref) async => const AccountProfile(id: 'u', displayName: 'Ama', accountType: 'worker')),
         ],
-        child: const MaterialApp(home: ProfileScreen()),
+        child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: const ProfileScreen()),
       ),
     );
     await tester.pumpAndSettle();
@@ -36,7 +36,7 @@ void main() {
           authStateProvider.overrideWith((ref) => Stream.value(const AuthUser(id: 'u', email: 'a@b.co', emailConfirmed: true))),
           accountProfileProvider.overrideWith((ref) async => const AccountProfile(id: 'u', displayName: 'Ama', accountType: 'worker', row: {'phone_number': '233201234567', 'full_name': 'Ama'})),
         ],
-        child: const MaterialApp(home: ChecklistScreen()),
+        child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: const ChecklistScreen()),
       ),
     );
     await tester.pumpAndSettle();

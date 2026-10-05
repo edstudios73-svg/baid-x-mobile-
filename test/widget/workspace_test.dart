@@ -18,7 +18,7 @@ Widget _wrap(Widget child, List overrides, {String type = 'company'}) => Provide
         projectsTabProvider.overrideWith((ref) async => <Json>[]),
         ...overrides.cast(),
       ],
-      child: MaterialApp(home: child),
+      child: MaterialApp(builder: (c, w) => MediaQuery(data: MediaQuery.of(c).copyWith(disableAnimations: true), child: w!), home: child),
     );
 
 Json _ov(String role) => {
