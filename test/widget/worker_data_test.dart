@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:baid_x_mobile/features/account/presentation/checklist_screens.dart';
 import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
 import 'package:baid_x_mobile/features/auth/domain/auth_repository.dart';
 import 'package:baid_x_mobile/features/auth/domain/auth_user.dart';
@@ -53,10 +54,29 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Ama'), findsOneWidget);
-    expect(find.text('Verification'), findsOneWidget);
+    // website account screen: the checklist card counts the worker's steps
+    expect(find.text('Verification checklist'), findsOneWidget);
+    expect(find.text('0/11'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Sign out'), 300);
     expect(find.text('Sign out'), findsOneWidget);
-    expect(find.text('Loading your profile'), findsNothing);
     expect(find.text('Unable to load your profile.'), findsNothing);
+  });
+
+  testWidgets('checklist lists the website steps with done and pending', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authStateProvider.overrideWith((ref) => Stream.value(const AuthUser(id: 'u', email: 'a@b.co', emailConfirmed: true))),
+          accountProfileProvider.overrideWith((ref) async => const AccountProfile(id: 'u', displayName: 'Ama', accountType: 'worker', row: {'phone_number': '233201234567', 'full_name': 'Ama'})),
+        ],
+        child: const MaterialApp(home: ChecklistScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('BAID X verification'), findsOneWidget);
+    expect(find.text('1 of 11 completed'), findsOneWidget);
+    expect(find.text('Phone number'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
   });
 
   testWidgets('jobs leave loading for data', (tester) async {

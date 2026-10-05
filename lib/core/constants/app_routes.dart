@@ -34,4 +34,5 @@ abstract final class AppRoutes {
   static const tasks = '/tasks';
   static const reports = '/reports';
   static const team = '/team';
+  static const checklist = '/checklist';
 }

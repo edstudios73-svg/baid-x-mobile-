@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 /// Public app identity and the shared BAID X backend. Secrets never live here.
 ///
 /// The app and the website share one Supabase project, so one account works on
@@ -24,6 +26,11 @@ abstract final class AppConfig {
     'BAIDX_WEB_URL',
     defaultValue: 'https://baid-x-website.vercel.app',
   );
+
+  /// Where the website API is called from. The web build is hosted by the
+  /// website itself under /app/, so it calls the same origin (the phone API
+  /// sends no CORS headers); native builds call [webBase].
+  static String get apiBase => kIsWeb && Uri.base.path.startsWith('/app/') ? Uri.base.origin : webBase;
 
   /// Paystack test publishable key used by the old in-app checkout. Phase 6 moves
   /// checkout to the website's server like the website does.

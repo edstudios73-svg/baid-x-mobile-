@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/account/presentation/checklist_screens.dart';
+import '../../features/home/presentation/member_home_screen.dart';
 import '../../features/account_type/domain/account_type.dart';
 import '../../features/auth/domain/auth_user.dart';
 import '../../features/auth/presentation/screens/auth_flow_screen.dart';
@@ -11,7 +13,6 @@ import '../../features/directory/presentation/directory_screen.dart';
 import '../../features/jobs/presentation/job_screens.dart';
 import '../../features/workers/presentation/worker_screens.dart';
 import '../../features/home/presentation/home_screen.dart';
-import '../../features/dashboard/presentation/role_dashboard_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/marketplace/presentation/listing_screens.dart';
 import '../../features/marketplace/presentation/marketplace_screen.dart';
@@ -147,9 +148,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/role/:role',
             builder: (context, state) {
-              final type = AccountType.fromDatabase(state.pathParameters['role']);
-              return RoleDashboardScreen(type: type ?? AccountType.worker);
+              return const MemberHomeScreen();
             },
+          ),
+          GoRoute(
+            path: AppRoutes.checklist,
+            builder: (context, state) => const ChecklistScreen(),
+          ),
+          GoRoute(
+            path: '${AppRoutes.checklist}/step/:n',
+            builder: (context, state) => ChecklistStepScreen(index: int.tryParse(state.pathParameters['n'] ?? '') ?? 0),
           ),
           GoRoute(
             path: AppRoutes.notifications,

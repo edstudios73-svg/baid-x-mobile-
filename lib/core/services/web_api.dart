@@ -11,7 +11,7 @@ import '../errors/app_exception.dart';
 class WebApi {
   WebApi({http.Client? client, String? base})
       : _client = client ?? http.Client(),
-        _base = base ?? AppConfig.webBase;
+        _base = base ?? AppConfig.apiBase;
 
   final http.Client _client;
   final String _base;
