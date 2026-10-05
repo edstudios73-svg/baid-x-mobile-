@@ -116,13 +116,101 @@ Future<bool> runAction(BuildContext context, Future<void> Function() fn, {String
 }
 
 Future<void> openPaystack(BuildContext context, Future<dynamic> Function() start) async {
+  // the sheet that called this is usually closing; keep the app's root screen and providers instead
+  final root = Navigator.of(context, rootNavigator: true).context;
+  final container = ProviderScope.containerOf(context, listen: false);
   try {
     final ck = asMap(await start());
-    final url = await paystackUrl('${ck['reference']}');
+    final reference = '${ck['reference']}';
+    final url = await paystackUrl(reference);
+    // confirm the payment ourselves when the payer comes back, so it activates even if Paystack's webhook is late
+    if (root.mounted) _PaystackReturn.watch(root, container, reference);
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (context.mounted) toast(context, 'Finish paying on Paystack, then pull down here to refresh.');
   } catch (e) {
-    if (context.mounted) toast(context, friendlyError(e));
+    if (root.mounted) toast(root, friendlyError(e));
+  }
+}
+
+/// Website confirmReturn: once the app is back in front, verify with the
+/// server (which asks Paystack) a few times, then refresh plans and wallet.
+class _PaystackReturn with WidgetsBindingObserver {
+  _PaystackReturn(this.context, this.container, this.reference);
+  final BuildContext context;
+  final ProviderContainer container;
+  final String reference;
+  static _PaystackReturn? _current;
+  var _left = false;
+
+  static void watch(BuildContext context, ProviderContainer container, String reference) {
+    if (_current != null) WidgetsBinding.instance.removeObserver(_current!);
+    _current = _PaystackReturn(context, container, reference);
+    WidgetsBinding.instance.addObserver(_current!);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) _left = true;
+    if (state == AppLifecycleState.resumed && _left) {
+      WidgetsBinding.instance.removeObserver(this);
+      if (_current == this) _current = null;
+      _confirm();
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (!context.mounted) return;
+    final step = ValueNotifier<int>(2);
+    final nav = Navigator.of(context, rootNavigator: true);
+    var open = true;
+    showGlassSheet(
+      context,
+      title: 'Confirming your payment',
+      child: ValueListenableBuilder<int>(
+        valueListenable: step,
+        builder: (_, s, _) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('We\'re checking with Paystack. This takes a few seconds.', style: TextStyle(fontSize: 13.5, color: AppColors.muted)),
+          const SizedBox(height: 12),
+          for (final (n, t, sub) in const [(1, 'Payment received', 'Back from Paystack'), (2, 'Verifying with Paystack', 'Checking amount and reference'), (3, 'Activating', 'Adding it to your account')])
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(children: [
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: n < s
+                      ? const Icon(Icons.check_circle_rounded, color: AppColors.green, size: 22)
+                      : n == s
+                          ? const Padding(padding: EdgeInsets.all(3), child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.muted, size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t, style: const TextStyle(fontWeight: FontWeight.w600)), Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.muted))])),
+              ]),
+            ),
+        ]),
+      ),
+    ).whenComplete(() => open = false);
+    for (var i = 0; i < 8; i++) {
+      final st = await verifyPaystack(reference);
+      if (st == 'successful') {
+        container.invalidate(billingProvider);
+        container.invalidate(walletProvider);
+        container.invalidate(accountProfileProvider);
+        if (open) nav.pop();
+        if (context.mounted) toast(context, 'Payment confirmed. It\'s on your account now.');
+        return;
+      }
+      if (st == 'failed') {
+        if (open) nav.pop();
+        if (context.mounted) toast(context, 'That payment didn\'t go through. Nothing was charged.');
+        return;
+      }
+      if (i == 1) step.value = 3;
+      await Future<void>.delayed(const Duration(milliseconds: 2500));
+      if (!open) return; // the payer closed it; the webhook still activates it
+    }
+    if (open) nav.pop();
+    if (context.mounted) toast(context, 'Still waiting for Paystack to confirm. Your purchase activates as soon as it does.');
   }
 }
 

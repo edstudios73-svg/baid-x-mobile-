@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../shared/providers/app_providers.dart';
+import 'secure_chat.dart';
 import '../../account_type/domain/account_type.dart';
 
 /// Data for the dashboard tabs, read exactly like the website does
@@ -111,11 +112,13 @@ final chatThreadProvider = FutureProvider.family<Json, String>((ref, id) async {
   return r is Map ? Map<String, dynamic>.from(r) : <String, dynamic>{};
 });
 
-/// Same call the website uses. Without a secure-chat key on this device the
-/// message goes as plain text (version 0), which the website shows normally.
-Future<void> sendChat(String conversationId, String text) async {
+/// Same call the website uses. Text to a member with a secure-chat key is
+/// end-to-end encrypted (version 1); BAID X support, or someone who has not set
+/// up secure chat yet, gets plain text (version 0), exactly like the website.
+Future<void> sendChat(String conversationId, String text, {String? peerId, bool peerAdmin = false}) async {
   final client = _uuid4(); // lets the server ignore a duplicate send after a dropped connection
-  await _client().rpc('send_chat', params: {'p_conv': conversationId, 'p_body': text, 'p_type': 'text', 'p_client': client, 'p_version': 0, 'p_attach': <Object>[]});
+  final sealed = peerId == null || peerAdmin ? null : await SecureChat.instance.encryptFor(peerId, {'t': 'text', 'x': text});
+  await _client().rpc('send_chat', params: {'p_conv': conversationId, 'p_body': sealed ?? text, 'p_type': 'text', 'p_client': client, 'p_version': sealed == null ? 0 : 1, 'p_attach': <Object>[]});
 }
 
 Future<void> markConversationRead(String id) async {

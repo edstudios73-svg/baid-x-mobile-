@@ -75,6 +75,18 @@ Future<String> paystackUrl(String reference) async {
   return url;
 }
 
+/// After Paystack: the server asks Paystack itself and applies the charge
+/// (website confirmReturn). Returns successful, pending, failed or unknown.
+Future<String> verifyPaystack(String reference) async {
+  final token = sb.auth.currentSession?.accessToken;
+  try {
+    final j = await WebApi().post('/api/paystack-initialize', {'reference': reference, 'action': 'verify'}, token: token);
+    return '${j['status'] ?? 'unknown'}';
+  } catch (_) {
+    return 'unknown';
+  }
+}
+
 Future<String> requestWithdrawal({required num amount, required String network, required String account, required String name, required String password}) async {
   final token = sb.auth.currentSession?.accessToken;
   final j = await WebApi().post('/api/wallet-withdraw', {'amount': amount, 'network': network, 'account': account, 'name': name, 'password': password}, token: token);

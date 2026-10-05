@@ -43,6 +43,8 @@ dependencies:
   url_launcher: ^6.3.2
   http: ^1.2.2
   file_picker: ^13.1.0
+  # end-to-end chat (ECDH P-256, AES-GCM, PBKDF2) in pure Dart, matching the website's WebCrypto
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

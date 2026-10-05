@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,8 @@ import '../../../shared/widgets/guest_views.dart';
 import '../../../shared/widgets/member_ui.dart';
 import '../../account/presentation/account_sheets.dart';
 import '../../account_type/domain/account_type.dart';
+import '../../account/data/profile_data.dart' show sb;
+import '../data/secure_chat.dart';
 import '../data/tabs_data.dart';
 
 /// Chats (website js/chat.js): the conversation list from `my_conversations`
@@ -44,8 +47,90 @@ class ChatsTabScreen extends ConsumerWidget {
               ),
             ]
           : [
+              const _BackupBar(),
               for (final x in list) _ChatRow(x: x, onTap: () => context.push('${AppRoutes.messages}/${x['id']}')),
             ],
+    );
+  }
+}
+
+/// Website `.alertbar[data-chat=backup]`: until this device's key is backed
+/// up with a password, offer to do it so old messages survive a new phone.
+class _BackupBar extends StatefulWidget {
+  const _BackupBar();
+  @override
+  State<_BackupBar> createState() => _BackupBarState();
+}
+
+class _BackupBarState extends State<_BackupBar> {
+  bool? _done;
+
+  @override
+  void initState() {
+    super.initState();
+    SecureChat.instance.hasBackupFlag().then((v) => mounted ? setState(() => _done = v) : null).catchError((_) => null);
+  }
+
+  Future<void> _open() async {
+    final pass = TextEditingController();
+    String? err;
+    var busy = false;
+    await showGlassSheet(
+      context,
+      title: 'Back up secure chat',
+      child: StatefulBuilder(
+        builder: (ctx, set) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('Choose a backup password. It encrypts your chat key before it is saved, so BAID X can never read it. If you forget this password it cannot be recovered.', style: TextStyle(fontSize: 13.5, height: 1.45, color: AppColors.muted)),
+          const SizedBox(height: 12),
+          TextField(controller: pass, obscureText: true, decoration: const InputDecoration(hintText: 'Backup password', helperText: 'At least 8 characters.')),
+          if (err != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(err!, style: const TextStyle(color: Color(0xFFF87171), fontSize: 13))),
+          const SizedBox(height: 12),
+          PillButton(
+            label: 'Save backup',
+            loading: busy,
+            onPressed: busy
+                ? null
+                : () async {
+                    if (pass.text.length < 8) return set(() => err = 'Use at least 8 characters.');
+                    set(() {
+                      busy = true;
+                      err = null;
+                    });
+                    try {
+                      await SecureChat.instance.backup(pass.text);
+                      if (ctx.mounted) Navigator.of(ctx).pop();
+                      if (mounted) {
+                        setState(() => _done = true);
+                        toast(context, 'Backup saved');
+                      }
+                    } catch (_) {
+                      set(() {
+                        busy = false;
+                        err = 'Couldn\'t save the backup. Try again.';
+                      });
+                    }
+                  },
+          ),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_done != false) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Glass(
+        radius: 16,
+        padding: const EdgeInsets.all(12),
+        onTap: _open,
+        child: const Row(children: [
+          Icon(Icons.lock_outline_rounded, size: 16),
+          SizedBox(width: 10),
+          Expanded(child: Text('Back up your secure-chat key to keep old messages on a new phone', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+        ]),
+      ),
     );
   }
 }
@@ -132,6 +217,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   final _pending = <String>[];
   bool _sending = false;
   Timer? _poll;
+  // decrypted payloads by message id (website decryptMsg), and whether the peer has a key
+  final _decoded = <String, ChatPayload>{};
+  final _decoding = <String>{};
+  bool? _peerKey;
+  bool _keysAsked = false;
 
   @override
   void initState() {
@@ -158,7 +248,9 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
       _input.clear();
     });
     try {
-      await sendChat(widget.id, text);
+      final t = ref.read(chatThreadProvider(widget.id)).asData?.value;
+      final peer = t?['peer'] is Map ? Map<String, dynamic>.from(t!['peer'] as Map) : const <String, dynamic>{};
+      await sendChat(widget.id, text, peerId: peer['id'] as String?, peerAdmin: peer['admin'] == true);
       ref.invalidate(chatThreadProvider(widget.id));
       ref.invalidate(conversationsProvider);
       await ref.read(chatThreadProvider(widget.id).future);
@@ -176,6 +268,76 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     }
   }
 
+  /// Loads this device's chat key (offering to restore a password backup),
+  /// then checks whether the other person can receive encrypted messages.
+  Future<void> _setupKeys(String peerId, bool admin) async {
+    _keysAsked = true;
+    try {
+      await SecureChat.instance.ensureKeys(askRestore: (tryPass) => _askRestore(tryPass));
+      final has = admin ? false : await SecureChat.instance.peerHasKey(peerId);
+      if (mounted) setState(() => _peerKey = has);
+    } catch (_) {
+      if (mounted) setState(() => _peerKey = false);
+    }
+  }
+
+  Future<String?> _askRestore(Future<bool> Function(String) tryPass) async {
+    if (!mounted) return null;
+    final pass = TextEditingController();
+    String? err;
+    var busy = false;
+    await showGlassSheet(
+      context,
+      title: 'Restore secure chat',
+      child: StatefulBuilder(
+        builder: (ctx, set) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Text('This account has a secure-chat key backup. Enter your backup password to read your earlier messages on this device, or start fresh (older messages stay unreadable here).', style: TextStyle(fontSize: 13.5, height: 1.45, color: AppColors.muted)),
+          const SizedBox(height: 12),
+          TextField(controller: pass, obscureText: true, decoration: const InputDecoration(hintText: 'Backup password')),
+          if (err != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(err!, style: const TextStyle(color: Color(0xFFF87171), fontSize: 13))),
+          const SizedBox(height: 12),
+          PillButton(
+            label: 'Restore',
+            loading: busy,
+            onPressed: busy
+                ? null
+                : () async {
+                    set(() {
+                      busy = true;
+                      err = null;
+                    });
+                    final ok = await tryPass(pass.text);
+                    if (ok) {
+                      if (ctx.mounted) Navigator.of(ctx).pop();
+                    } else {
+                      set(() {
+                        busy = false;
+                        err = 'That password didn\'t unlock the backup.';
+                      });
+                    }
+                  },
+          ),
+          const SizedBox(height: 8),
+          PillButton(label: 'Start fresh', light: false, onPressed: busy ? null : () => Navigator.of(ctx).pop()),
+        ]),
+      ),
+    );
+    return null;
+  }
+
+  void _decryptNew(List<Json> msgs, String peerId) {
+    for (final m in msgs) {
+      final id = '${m['id']}';
+      final needs = (num.tryParse('${m['v'] ?? 0}') ?? 0) > 0 || (m['type'] != 'text' && m['type'] != 'system');
+      if (!needs || _decoded.containsKey(id) || _decoding.contains(id)) continue;
+      _decoding.add(id);
+      SecureChat.instance.decrypt(m, peerId).then((p) {
+        _decoding.remove(id);
+        if (mounted) setState(() => _decoded[id] = p);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(chatThreadProvider(widget.id));
@@ -183,6 +345,11 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     final peer = t?['peer'] is Map ? Map<String, dynamic>.from(t!['peer'] as Map) : <String, dynamic>{};
     final admin = peer['admin'] == true;
     final msgs = [for (final m in (t?['messages'] is List ? t!['messages'] as List : const [])) if (m is Map) Map<String, dynamic>.from(m)];
+    final peerId = peer['id'] as String?;
+    if (peerId != null) {
+      if (!_keysAsked) WidgetsBinding.instance.addPostFrameCallback((_) => _setupKeys(peerId, admin));
+      if (SecureChat.instance.hasKeys) _decryptNew(msgs, peerId);
+    }
     return Scaffold(
       body: SafeArea(
         child: Column(children: [
@@ -200,7 +367,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                     Flexible(child: Text('${peer['name'] ?? 'Chat'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700))),
                     if (admin) const OfficialTag(),
                   ]),
-                  Text(admin ? 'BAID X support · messages only' : '${prettyText(peer['role'])} · Not encrypted yet', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  Text(admin ? 'BAID X support · messages only' : '${prettyText(peer['role'])} · ${_peerKey == true ? 'Encrypted' : 'Not encrypted yet'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                 ]),
               ),
             ]),
@@ -253,17 +420,65 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
     final mine = m['mine'] == true;
     if (m['type'] == 'system') return _Bubble(text: '${m['body'] ?? ''}', mine: false, time: '', system: true);
     final encrypted = (num.tryParse('${m['v'] ?? 0}') ?? 0) > 0;
-    if (encrypted) return _Bubble(text: 'Can\'t be decrypted on this device', mine: mine, time: time, locked: true);
     final type = '${m['type'] ?? 'text'}';
-    final text = type == 'text' ? '${m['body'] ?? ''}' : type == 'image' ? 'Photo' : type == 'audio' ? 'Voice note' : 'File';
-    return _Bubble(text: text, mine: mine, time: time);
+    final p = _decoded['${m['id']}'];
+    if (encrypted && p == null) return _Bubble(text: 'Decrypting…', mine: mine, time: time, locked: true);
+    if (p != null && p.locked) return _Bubble(text: 'Can\'t be decrypted on this device', mine: mine, time: time, locked: true);
+    final kind = p?.type ?? type;
+    final att = p?.attachment;
+    if (kind == 'image' && att != null) return _Bubble(text: p!.text, mine: mine, time: time, image: att);
+    if (kind == 'text') return _Bubble(text: p?.text ?? '${m['body'] ?? ''}', mine: mine, time: time);
+    final name = '${att?['name'] ?? ''}';
+    return _Bubble(text: kind == 'audio' ? 'Voice note' : kind == 'image' ? 'Photo' : (name.isEmpty ? 'File' : 'File · $name'), mine: mine, time: time);
+  }
+}
+
+/// An encrypted photo: downloaded from chat-attachments and decrypted on the device.
+class _SecureImage extends StatefulWidget {
+  const _SecureImage(this.att);
+  final Map<String, dynamic> att;
+  static final _cache = <String, Uint8List>{};
+  @override
+  State<_SecureImage> createState() => _SecureImageState();
+}
+
+class _SecureImageState extends State<_SecureImage> {
+  Uint8List? _bytes;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final path = '${widget.att['path']}';
+    _bytes = _SecureImage._cache[path];
+    if (_bytes == null) _load(path);
+  }
+
+  Future<void> _load(String path) async {
+    try {
+      final raw = await sb.storage.from('chat-attachments').download(path);
+      final key = widget.att['key'], iv = widget.att['iv'];
+      final bytes = key == null ? raw : SecureChat.decryptBytes(raw, '$key', '$iv');
+      _SecureImage._cache[path] = bytes;
+      if (mounted) setState(() => _bytes = bytes);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) return const Padding(padding: EdgeInsets.all(8), child: Text('Photo couldn\'t load', style: TextStyle(fontSize: 13, color: AppColors.muted)));
+    if (_bytes == null) return const SizedBox(width: 200, height: 150, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+    return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(_bytes!, width: 220, fit: BoxFit.cover));
   }
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.text, required this.mine, required this.time, this.locked = false, this.system = false});
+  const _Bubble({required this.text, required this.mine, required this.time, this.locked = false, this.system = false, this.image});
   final String text, time;
   final bool mine, locked, system;
+  final Map<String, dynamic>? image;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +498,8 @@ class _Bubble extends StatelessWidget {
             border: mine ? null : Border.all(color: AppColors.lineGlass),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-            Row(mainAxisSize: MainAxisSize.min, children: [
+            if (image != null) Padding(padding: const EdgeInsets.only(bottom: 4), child: _SecureImage(image!)),
+            if (image == null || text.isNotEmpty) Row(mainAxisSize: MainAxisSize.min, children: [
               if (locked) ...[Icon(Icons.lock_outline, size: 14, color: mine ? Colors.black54 : AppColors.muted), const SizedBox(width: 4)],
               Flexible(child: Text(text, style: TextStyle(fontSize: 14, height: 1.35, color: mine ? Colors.black : AppColors.textLight, fontStyle: locked ? FontStyle.italic : null))),
             ]),
