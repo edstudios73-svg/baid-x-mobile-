@@ -76,8 +76,9 @@ String? guardRedirect({
         pendingJoinToken = t;
         return AppRoutes.signIn;
       }
-      // the website opens on the member directory for visitors
-      if (path == AppRoutes.splash || _retired(path)) return AppRoutes.discover;
+      // after the splash, visitors land on the professional / client sign-in entry
+      if (path == AppRoutes.splash) return AppRoutes.signIn;
+      if (_retired(path)) return AppRoutes.discover;
       return isPublic ? null : AppRoutes.signIn;
     case SessionGate.unverified:
       if (_joinToken(path) case final t?) {

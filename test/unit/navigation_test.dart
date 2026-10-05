@@ -75,7 +75,7 @@ void main() {
     );
   });
 
-  test('splash continues to the member directory', () {
+  test('splash continues to the professional / client sign-in entry', () {
     expect(
       guardRedirect(
         authLoading: false,
@@ -84,7 +84,7 @@ void main() {
         accountType: null,
         path: AppRoutes.splash,
       ),
-      AppRoutes.discover,
+      AppRoutes.signIn,
     );
   });
 

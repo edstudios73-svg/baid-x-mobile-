@@ -21,7 +21,7 @@ import '../../domain/auth_repository.dart';
 /// Where the flow opens.
 enum AuthStart { type, signIn, reset, onboard }
 
-enum _View { choose, type, signin, phone, code, name, cat, pass }
+enum _View { entry, choose, type, signin, phone, code, name, cat, pass }
 
 /// Sign-in and sign-up, built to match the website's auth.html view for view:
 /// choose type → phone → code → name → category → password, plus the
@@ -59,6 +59,10 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   var _otpState = _OtpState.idle;
   // signing in from a guest page: the type is chosen first and checked after sign-in
   var _intent = false;
+  // "pro" or "client" from the link, or picked on the entry screen
+  String? _group;
+  // the side picked on the entry screen; a sign-in from there must match it
+  String? _gate;
   String? _welcome;
   List<RememberedAccount> _accs = const [];
   int _resendLeft = 0;
@@ -81,14 +85,14 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
     'client': ([AccountType.employer, AccountType.company], 'Join to hire', 'Hiring for your home, or for your company?', 'Client sign-in'),
   };
 
-  List<AccountType> get _roles => _groups[widget.group]?.$1 ?? AccountType.pickerOrder;
+  List<AccountType> get _roles => _groups[_group]?.$1 ?? AccountType.pickerOrder;
 
   RememberedAccounts get _remembered => RememberedAccounts(ref.read(keyValueStoreProvider));
 
   /// Accounts used on this device open the website's "Continue with" list first.
   Future<void> _loadAccounts() async {
     final accs = await _remembered.list();
-    if (!mounted || accs.isEmpty || _history.length != 1 || _view != _View.type) return;
+    if (!mounted || accs.isEmpty || _history.length != 1 || (_view != _View.type && _view != _View.entry)) return;
     setState(() {
       _accs = accs;
       _history = [_View.choose];
@@ -123,15 +127,18 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   @override
   void initState() {
     super.initState();
+    _group = widget.group;
     _role = widget.presetType ?? _roles.first;
     switch (widget.start) {
+      // with no group in the link, both open on the professional / client entry
       case AuthStart.type:
         _mode = 'signup';
-        _history = [_View.type];
+        _history = [_group == null ? _View.entry : _View.type];
+        if (_group == null) _loadAccounts();
       case AuthStart.signIn:
         _mode = 'signin';
-        _intent = true;
-        _history = [_View.type];
+        _intent = _group != null;
+        _history = [_group == null ? _View.entry : _View.type];
         _loadAccounts();
       case AuthStart.reset:
         _mode = 'reset';
@@ -264,6 +271,11 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           await _auth.signOut();
           throw AuthFlowException('That account is a ${type.label} account. Go back and choose ${type.label}.');
         }
+        // signed in from the professional or client panel: the account has to belong to that side
+        if (_gate != null && type != null && !_groups[_gate]!.$1.contains(type)) {
+          await _auth.signOut();
+          throw AuthFlowException('That is a ${type.label} account. Go back and use ${_gate == 'pro' ? 'Client' : 'Professional'} sign in.');
+        }
         if (type != null) await _rememberMe();
         if (!mounted) return;
         if (type == null) {
@@ -310,8 +322,9 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   Widget build(BuildContext context) {
     final flow = _flows[_mode] ?? const <_View>[];
     final idx = flow.indexOf(_view);
-    final showHead = _view != _View.type && _view != _View.choose;
-    final showBrand = _view == _View.type || _view == _View.signin || _view == _View.choose;
+    final first = _history.length <= 1;
+    final showHead = !first || (_view != _View.type && _view != _View.choose && _view != _View.entry);
+    final showBrand = _view == _View.entry || _view == _View.type || _view == _View.signin || _view == _View.choose;
     return PopScope(
       canPop: _history.length <= 1,
       onPopInvokedWithResult: (didPop, _) {
@@ -331,7 +344,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
                     children: [
                       SizedBox(
                         height: 60,
-                        child: !showHead && _view == _View.type && _mode != 'onboard'
+                        child: !showHead && first && _view == _View.type && _mode != 'onboard'
                             ? Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
@@ -387,6 +400,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   }
 
   Widget _body() => switch (_view) {
+        _View.entry => _entryView(),
         _View.choose => _chooseView(),
         _View.type => _typeView(),
         _View.signin => _signinView(),
@@ -440,7 +454,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   // type
   Widget _typeView() {
     final onboard = _mode == 'onboard';
-    final g = _groups[widget.group];
+    final g = _groups[_group];
     return _page(
       title: onboard ? 'Finish setting up' : _intent ? (g?.$4 ?? 'Sign in') : (g?.$2 ?? 'Choose type'),
       sub: onboard ? 'Choose the account that fits how you use BAID X.' : _intent ? 'Choose your account type to continue.' : (g?.$3 ?? 'Pick the account that fits how you use BAID X.'),
@@ -464,6 +478,11 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       foot: [
         if (onboard)
           PillButton(label: 'Continue', onPressed: () => _go(_View.name))
+        else if (_gate != null)
+          PillButton(label: 'Continue', onPressed: () => setState(() {
+                _mode = 'signup';
+                _go(_View.phone);
+              }))
         else ...[
           PillButton(
             label: _intent ? 'Continue' : 'Sign in',
@@ -482,6 +501,51 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
             child: Text(_intent ? 'New here? Create an account' : 'Create an account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
           ),
         ],
+      ],
+    );
+  }
+
+  void _openGate(String group, {required bool signIn}) => setState(() {
+        _gate = group;
+        _group = group;
+        _role = _roles.first;
+        _intent = false;
+        _welcome = null;
+        _mode = signIn ? 'signin' : 'signup';
+        _go(signIn ? _View.signin : _View.type);
+      });
+
+  // entry: professional or client, then sign in or create an account
+  Widget _entryView() {
+    return _page(
+      title: 'Welcome to BAID X',
+      sub: 'Ghana\'s work network. How will you use it?',
+      children: [
+        _Gate(
+          icon: Icons.handyman_outlined,
+          title: 'Professional',
+          sub: 'Workers, project managers and suppliers',
+          chips: const ['Get verified and found', 'Jobs, projects and payouts'],
+          delay: 0,
+          onSignIn: () => _openGate('pro', signIn: true),
+          onCreate: () => _openGate('pro', signIn: false),
+        ),
+        const SizedBox(height: 14),
+        _Gate(
+          icon: Icons.home_outlined,
+          title: 'Client',
+          sub: 'Homeowners and companies hiring',
+          chips: const ['Hire verified people', 'Pay through escrow'],
+          delay: 90,
+          onSignIn: () => _openGate('client', signIn: true),
+          onCreate: () => _openGate('client', signIn: false),
+        ),
+      ],
+      foot: [
+        TextButton(
+          onPressed: () => context.go(AppRoutes.discover),
+          child: Text('Explore BAID X first', style: AppTextStyles.caption.copyWith(fontSize: 13.5, color: const Color(0xFFE6E6E6), decoration: TextDecoration.underline, decorationColor: const Color(0x99E6E6E6))),
+        ),
       ],
     );
   }
@@ -529,9 +593,9 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           label: 'Use another account',
           light: false,
           onPressed: () => setState(() {
-            _intent = true;
+            _intent = _group != null;
             _mode = 'signin';
-            _go(_View.type);
+            _go(_group == null ? _View.entry : _View.type);
           }),
         ),
         const SizedBox(height: 6),
@@ -539,7 +603,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           onPressed: () => setState(() {
             _intent = false;
             _mode = 'signup';
-            _go(_View.type);
+            _go(_group == null ? _View.entry : _View.type);
           }),
           child: Text('Create a new account', style: AppTextStyles.label.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600)),
         ),
@@ -551,7 +615,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   Widget _signinView() {
     return _page(
       title: 'Welcome back',
-      sub: _welcome ?? (_intent ? 'Signing in as ${_role.label}.' : 'Sign in to your BAID X account.'),
+      sub: _welcome ?? (_intent ? 'Signing in as ${_role.label}.' : _gate != null ? '${_gate == 'pro' ? 'Professional' : 'Client'} sign-in. Use the phone or email on your account.' : 'Sign in to your BAID X account.'),
       children: [
         _Seg(phone: _usePhone, onChanged: (v) => setState(() {
               _usePhone = v;
@@ -767,6 +831,68 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
 }
 
 // ---------- pieces ----------
+
+/// One side of the entry screen: a liquid-glass panel with its own sign-in and create buttons.
+class _Gate extends StatelessWidget {
+  const _Gate({required this.icon, required this.title, required this.sub, required this.chips, required this.delay, required this.onSignIn, required this.onCreate});
+  final IconData icon;
+  final String title;
+  final String sub;
+  final List<String> chips;
+  final int delay;
+  final VoidCallback onSignIn;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 700 + delay),
+      curve: Interval(delay / (700 + delay), 1, curve: Curves.easeOutCubic),
+      builder: (context, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 18 * (1 - v)), child: child)),
+      child: Glass(
+        radius: 26,
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x55FFFFFF), blurRadius: 24, offset: Offset(0, 10), spreadRadius: -8)]),
+                child: Icon(icon, color: Colors.black, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: AppTextStyles.headline.copyWith(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+                  const SizedBox(height: 2),
+                  Text(sub, style: AppTextStyles.caption.copyWith(fontSize: 13, color: const Color(0xFFCFCFCF))),
+                ]),
+              ),
+            ]),
+            const SizedBox(height: 14),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final c in chips)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: const Color(0x14FFFFFF), borderRadius: BorderRadius.circular(99), border: Border.all(color: const Color(0x29FFFFFF))),
+                  child: Text(c, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE6E6E6))),
+                ),
+            ]),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(child: PillButton(label: 'Sign in', height: 48, onPressed: onSignIn)),
+              const SizedBox(width: 10),
+              Expanded(child: PillButton(label: 'Create account', light: false, height: 48, onPressed: onCreate)),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _RoundButton extends StatelessWidget {
   const _RoundButton({required this.icon, required this.onTap});

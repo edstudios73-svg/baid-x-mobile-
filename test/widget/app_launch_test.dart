@@ -21,9 +21,17 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 1));
 
-    // visitors land on the member directory with the website's guest tabs
-    expect(find.text('Chats'), findsWidgets);
-    expect(find.text('Profile'), findsWidgets);
+    // visitors land on the entry: professional or client, each with sign in and create
+    expect(find.text('Welcome to BAID X'), findsOneWidget);
+    expect(find.text('Professional'), findsOneWidget);
+    expect(find.text('Client'), findsOneWidget);
+    expect(find.text('Sign in'), findsNWidgets(2));
+    expect(find.text('Create account'), findsNWidgets(2));
+
+    // professional sign-in goes straight to the password step
+    await tester.tap(find.text('Sign in').first);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Welcome back'), findsOneWidget);
   });
 
   testWidgets('the guest profile offers both sign-in options', (tester) async {
@@ -36,6 +44,10 @@ void main() {
       ),
     );
     await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.ensureVisible(find.text('Explore BAID X first'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Explore BAID X first'));
     await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.text('Profile').last);
     await tester.pump(const Duration(milliseconds: 500));
