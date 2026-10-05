@@ -46,4 +46,7 @@ abstract final class AppRoutes {
   static const materials = '/materials';
   static const orders = '/orders';
   static const orgs = '/orgs';
+  static const workspace = '/ws';
+  static const invites = '/invites';
+  static const approvals = '/approvals';
 }

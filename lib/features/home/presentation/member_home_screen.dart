@@ -11,6 +11,9 @@ import '../../account/data/account_actions.dart';
 import '../../account/domain/account_setup.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../account_type/domain/role_categories.dart';
+import '../../workspace/data/workspace_data.dart';
+import '../../workspace/presentation/home_inbox.dart';
+import '../../account/presentation/extra_screens.dart' show notificationsProvider;
 
 /// Numbers for the member Home (website js/dash.js HOME[role]); null means
 /// "couldn't load" and shows as a dash, never a made-up figure.
@@ -169,6 +172,7 @@ class MemberHomeScreen extends ConsumerWidget {
           ]),
         ]);
     }
+    body.add(HomeInbox(type: type));
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -178,6 +182,9 @@ class MemberHomeScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(accountProfileProvider);
             ref.invalidate(homeStatsProvider(type));
+            ref.invalidate(invitationsProvider);
+            ref.invalidate(approvalsProvider);
+            ref.invalidate(notificationsProvider);
           },
           child: ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 110), children: body),
         ),

@@ -263,7 +263,7 @@ class _ProjectsTabScreenState extends ConsumerState<ProjectsTabScreen> {
                     icon: Icons.folder_outlined,
                     title: 'No projects yet',
                     text: type == AccountType.projectManager ? 'When a company invites you and you accept, their project workspace opens here.' : 'When you accept a project invitation, its workspace opens here.',
-                    action: SmallButton('View invitations', onPressed: () => _web('invites')),
+                    action: SmallButton('View invitations', onPressed: () => context.push(AppRoutes.invites)),
                   ),
           ];
         }
@@ -281,33 +281,12 @@ class _ProjectsTabScreenState extends ConsumerState<ProjectsTabScreen> {
                 DashBar(num.tryParse('${p['progress_pct'] ?? 0}')),
               ]),
               trailing: StatusPill('${p['status'] ?? ''}'),
-              onTap: () => _projectSheet(context, p),
+              onTap: () => context.push('${AppRoutes.workspace}/${p['id']}'),
             ),
         ];
       },
     );
   }
-}
-
-void _projectSheet(BuildContext context, Json p) {
-  final pct = num.tryParse('${p['progress_pct'] ?? 0}') ?? 0;
-  showGlassSheet(
-    context,
-    title: '${p['name'] ?? 'Project'}',
-    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Wrap(spacing: 8, runSpacing: 6, children: [StatusPill('${p['status'] ?? ''}'), if (p['public_code'] != null) StatusPill(null, label: '${p['public_code']}')]),
-      const SizedBox(height: 12),
-      Text([_place(p), if (p['company_name'] != null) '${p['company_name']}'].join(' · '), style: const TextStyle(fontSize: 13, color: AppColors.muted)),
-      if ('${p['description'] ?? ''}'.isNotEmpty) ...[const SizedBox(height: 10), Text('${p['description']}', style: const TextStyle(fontSize: 13.5, height: 1.45))],
-      const SizedBox(height: 14),
-      Row(children: [const Expanded(child: Text('Progress', style: TextStyle(fontSize: 12.5, color: Color(0xFFDDDDDD)))), Text('$pct%', style: const TextStyle(fontSize: 12.5))]),
-      DashBar(pct),
-      const SizedBox(height: 18),
-      PillButton(label: 'Open the workspace', icon: Icons.open_in_new_rounded, onPressed: () => _web('projects')),
-      const SizedBox(height: 6),
-      const Text('Tasks, team, reports and finance open on the website while the app workspace is being built.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.muted)),
-    ]),
-  );
 }
 
 // ======================================================================

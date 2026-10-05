@@ -19,11 +19,11 @@ import 'profile_pages.dart';
 
 final notificationsProvider = FutureProvider<List<Json>>((ref) async {
   ref.watch(authStateProvider.select((a) => a.asData?.value?.id));
-  return sb.from('notifications').select('id,type,category,title,body,href,read_at,created_at').eq('user_id', myId).order('created_at', ascending: false).limit(60);
+  return sb.from('notifications').select('id,type,category,title,body,href,meta,read_at,created_at').eq('user_id', myId).order('created_at', ascending: false).limit(60);
 });
 
 /// Website hash links (`#/chat/<id>`, `#/wallet`) mapped to app screens.
-String? appPathFor(Object? href) {
+String? appPathFor(Object? href, {Object? projectId}) {
   final h = '${href ?? ''}';
   if (!h.startsWith('#/')) return null;
   final parts = h.substring(2).split('/');
@@ -34,7 +34,10 @@ String? appPathFor(Object? href) {
     'order' when arg.isNotEmpty => '${AppRoutes.orders}/$arg',
     'orders' => AppRoutes.orders,
     'wallet' => AppRoutes.wallet,
-    'projects' || 'ws' || 'invites' || 'approvals' => AppRoutes.projects,
+    'ws' when '${projectId ?? ''}'.isNotEmpty => '${AppRoutes.workspace}/$projectId${arg.isEmpty ? '' : '?tab=$arg'}',
+    'projects' || 'ws' => AppRoutes.projects,
+    'invites' => AppRoutes.invites,
+    'approvals' => AppRoutes.approvals,
     'jobs' => AppRoutes.work,
     'work' || 'engagement' => AppRoutes.applications,
     'hires' || 'applicants' => AppRoutes.myJobs,
@@ -79,7 +82,7 @@ class NotificationsScreen2 extends ConsumerWidget {
                       if (n['read_at'] == null) {
                         sb.from('notifications').update({'read_at': DateTime.now().toUtc().toIso8601String()}).eq('id', '${n['id']}').then((_) => ref.invalidate(notificationsProvider));
                       }
-                      final to = appPathFor(n['href']);
+                      final to = appPathFor(n['href'], projectId: asMap(n['meta'])['project_id']);
                       if (to != null) context.push(to);
                     },
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -159,7 +162,9 @@ class _NewProjectScreenState extends ConsumerState<NewProjectScreen> {
       ref.invalidate(projectsTabProvider);
       if (!mounted) return;
       toast(context, 'Project created · ${r['public_code'] ?? ''}');
+      // the website opens the new project's Team tab so the owner can invite people
       context.go(AppRoutes.projects);
+      if (r['id'] != null) context.push('${AppRoutes.workspace}/${r['id']}?tab=team');
     } catch (e) {
       if (mounted) toast(context, friendlyError(e));
     }

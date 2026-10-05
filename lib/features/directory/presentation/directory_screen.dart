@@ -12,6 +12,7 @@ import '../../../shared/widgets/brand_logo.dart';
 import '../../../shared/widgets/verified_badge.dart';
 import '../../account_type/domain/account_type.dart';
 import '../data/directory_repository.dart';
+import '../../workspace/presentation/ws_forms.dart' show openInvite;
 import 'member_sheet.dart';
 
 /// The website's member directory (index.html #screen-directory): Home for
@@ -191,7 +192,7 @@ class _Chip extends StatelessWidget {
 
 /// A member card (`.card.c2`): cover band with the type tag, overlapping avatar,
 /// name with the verification seal, trade, place, short description, two stats.
-class MemberCard extends StatelessWidget {
+class MemberCard extends ConsumerWidget {
   const MemberCard({required this.member, required this.signedIn, this.myId, super.key});
   final DirectoryMember member;
   final bool signedIn;
@@ -205,8 +206,12 @@ class MemberCard extends StatelessWidget {
   };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final m = member;
+    // a company invites workers and PMs to a project from their card, a PM invites workers (website cardHTML)
+    final mine = ref.watch(accountProfileProvider).asData?.value?.type;
+    final canInvite = signedIn && ((mine == AccountType.company && (m.kind == 'worker' || m.kind == 'pm')) || (mine == AccountType.projectManager && m.kind == 'worker'));
+    void primary() => canInvite ? openInvite(context, ref, kind: m.kind, personId: m.id) : _open(context);
     final card = Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -310,7 +315,7 @@ class MemberCard extends StatelessWidget {
                   ]),
                   const SizedBox(height: 12),
                   Row(children: [
-                    Expanded(child: _CardBtn(label: 'View profile', light: true, onTap: () => _open(context))),
+                    Expanded(child: _CardBtn(label: canInvite ? 'Invite to project' : 'View profile', light: true, onTap: primary)),
                     if (signedIn && m.id != myId) ...[
                       const SizedBox(width: 8),
                       Expanded(child: _CardBtn(label: 'Message', onTap: () => startMemberChat(context, m))),
@@ -323,7 +328,7 @@ class MemberCard extends StatelessWidget {
         ],
       ),
     );
-    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => _open(context), child: card);
+    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: primary, child: card);
   }
 
   // the whole card opens the profile sheet, like the website

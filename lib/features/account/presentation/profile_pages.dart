@@ -36,9 +36,11 @@ class KV extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(children: [
-          Expanded(child: Text(k, style: const TextStyle(fontSize: 13, color: AppColors.muted))),
-          Flexible(child: Text(v, textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: strong ? FontWeight.w800 : FontWeight.w600))),
+        // label on the left, value pushed to the right edge (website `.kv`)
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(k, style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+          const SizedBox(width: 14),
+          Expanded(child: Text(v, textAlign: TextAlign.right, style: TextStyle(fontSize: 13, fontWeight: strong ? FontWeight.w800 : FontWeight.w600))),
         ]),
       );
 }

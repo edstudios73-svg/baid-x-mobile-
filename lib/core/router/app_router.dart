@@ -31,6 +31,8 @@ import '../../features/splash/presentation/splash_screen.dart';
 import '../../shared/providers/app_providers.dart';
 import '../constants/app_routes.dart';
 import 'route_guards.dart';
+import '../../features/workspace/presentation/invites_approvals.dart';
+import '../../features/workspace/presentation/workspace_screen.dart';
 
 SessionGate _gateFor(AsyncValue<AuthUser?> auth) {
   if (auth.isLoading) return SessionGate.unknown;
@@ -280,6 +282,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.orders, builder: (context, state) => const OrdersScreen()),
           GoRoute(path: '${AppRoutes.orders}/:id', builder: (context, state) => OrderDetailScreen(id: state.pathParameters['id']!)),
           GoRoute(path: AppRoutes.orgs, builder: (context, state) => const OrgsScreen()),
+          GoRoute(path: AppRoutes.invites, builder: (context, state) => const InvitesScreen()),
+          GoRoute(path: AppRoutes.approvals, builder: (context, state) => const ApprovalsScreen()),
+          GoRoute(
+            path: '${AppRoutes.workspace}/:id',
+            builder: (context, state) => WorkspaceScreen(projectId: state.pathParameters['id']!, tab: state.uri.queryParameters['tab']),
+          ),
           GoRoute(path: '${AppRoutes.orgs}/:id', builder: (context, state) => OrgDetailScreen(id: state.pathParameters['id']!)),
           GoRoute(
             path: AppRoutes.inquiries,
