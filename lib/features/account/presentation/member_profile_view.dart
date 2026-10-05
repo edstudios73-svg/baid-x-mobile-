@@ -8,6 +8,7 @@ import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/baid_ui.dart';
+import '../../../shared/widgets/member_ui.dart';
 import '../../../shared/widgets/verified_badge.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../auth/domain/auth_repository.dart';
@@ -102,14 +103,16 @@ class MemberProfileView extends ConsumerWidget {
           backgroundColor: Colors.white,
           onRefresh: () async => ref.invalidate(accountProfileProvider),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
             children: [
+              MemberAppBar(name: me.displayName, photo: photo),
+              const SizedBox(height: 12),
               _Header(name: me.displayName.isEmpty ? 'Your account' : me.displayName, photo: photo, cover: cover, phone: shownPhone, tier: tier, role: '${type.label} account', status: verified ? (VerifiedBadge.labels[tier] ?? 'Verified') : statusLabel(p['verification_status']), statusColor: verified ? VerifiedBadge.colorOf(tier) : null),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               if (verified) _VerifiedCard(tier: tier!, role: type.label) else _ChecklistCard(done: cl.done, total: cl.total),
-              const SectionLabel('Your account'),
+              const SizedBox(height: 10),
               _Rows([for (final m in menu) (m.$1, m.$2, m.$3)]),
-              const SectionLabel('Sign-in and security'),
+              const SizedBox(height: 10),
               _Rows([
                 ('Add email', 'Verify the email address for this account.', () => openAddEmail(context)),
                 ('Change phone', 'Update the mobile number linked to this account.', () => openChangePhone(context)),
@@ -119,23 +122,18 @@ class MemberProfileView extends ConsumerWidget {
                 }),
                 ('Change password', 'Set a new password for sign-in.', () => openChangePassword(context)),
               ]),
-              const SectionLabel('Information'),
+              const SizedBox(height: 10),
               _Rows([
                 ('User guide', 'How to use BAID X, step by step, for every role.', () => web('docs.html')),
                 ('Terms of service', 'Read our service terms.', () => web('terms.html')),
                 ('Privacy policy', 'Read how we handle your information.', () => web('privacy.html')),
                 ('About BAID X', 'Product and company information.', () => web('about.html')),
               ]),
-              const SizedBox(height: 18),
-              PillButton(
-                label: 'Sign out',
-                light: false,
-                icon: Icons.logout_rounded,
-                onPressed: () async {
-                  await ref.read(authRepositoryProvider).signOut();
-                  if (context.mounted) context.go(AppRoutes.discover);
-                },
-              ),
+              const SizedBox(height: 10),
+              _LogOut(onTap: () async {
+                await ref.read(authRepositoryProvider).signOut();
+                if (context.mounted) context.go(AppRoutes.discover);
+              }),
             ],
           ),
         ),
@@ -220,11 +218,7 @@ class _CoverArt extends StatelessWidget {
         decoration: const BoxDecoration(
           gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1C1C1C), Color(0xFF0A0A0A)]),
         ),
-        // the website's ring art, cropped by the cover
-        child: Stack(clipBehavior: Clip.hardEdge, children: [
-          Positioned(right: -40, top: -70, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0x2EFFFFFF), width: 18)))),
-          Positioned(left: -30, bottom: -60, child: Container(width: 120, height: 120, decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0x14FFFFFF)))),
-        ]),
+        child: const SizedBox.expand(),
       );
 }
 
@@ -270,26 +264,51 @@ class _ChecklistCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SurfaceCard(
+    return DashedCard(
+      radius: 18,
+      padding: const EdgeInsets.fromLTRB(12, 11, 8, 11),
       onTap: () => context.push(AppRoutes.checklist),
       child: Row(children: [
         Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(color: AppColors.glassHi, borderRadius: BorderRadius.circular(14)),
-          child: const Icon(Icons.checklist_rounded, size: 24),
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF2A2A2A)),
+          child: const Icon(Icons.check_circle_outline_rounded, size: 20, color: Color(0xFFD6D6D6)),
         ),
         const SizedBox(width: 12),
         const Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Verification checklist', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            Text('Verification checklist', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
             SizedBox(height: 2),
-            Text('Finish these steps so BAID X can verify your account.', style: TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.35)),
+            Text('Complete required checks before your profile can be approved.', style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.35)),
           ]),
         ),
         const SizedBox(width: 8),
-        Text('$done/$total', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, fontFeatures: [FontFeature.tabularFigures()])),
-        const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(color: const Color(0x29E8A93A), borderRadius: BorderRadius.circular(99)),
+          child: Text('$done/$total', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFE8C46A), fontFeatures: [FontFeature.tabularFigures()])),
+        ),
+        const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
+      ]),
+    );
+  }
+}
+
+class _LogOut extends StatelessWidget {
+  const _LogOut({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      radius: 16,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      onTap: onTap,
+      child: const Row(children: [
+        Icon(Icons.logout_rounded, size: 20, color: AppColors.red),
+        SizedBox(width: 12),
+        Text('Log out', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5, color: AppColors.red)),
       ]),
     );
   }
@@ -316,9 +335,9 @@ class _Rows extends StatelessWidget {
               child: Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(rows[i].$1, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                    Text(rows[i].$1, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
                     const SizedBox(height: 2),
-                    Text(rows[i].$2, style: TextStyle(fontSize: 12.5, color: AppColors.muted)),
+                    Text(rows[i].$2, style: TextStyle(fontSize: 12, color: AppColors.muted)),
                   ]),
                 ),
                 const Icon(Icons.chevron_right_rounded, color: AppColors.muted),

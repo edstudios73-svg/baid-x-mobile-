@@ -197,6 +197,8 @@ class PillButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !loading;
     final fg = light ? Colors.black : AppColors.textLight;
+    // website: 50px buttons use 15px text, small (.sm) ones 13px
+    final fontSize = height >= 50 ? 15.5 : height >= 42 ? 14.0 : 13.0;
     final body = Row(
       mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -205,7 +207,7 @@ class PillButton extends StatelessWidget {
           SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.4, color: fg))
         else ...[
           if (icon != null) ...[Icon(icon, size: 19, color: fg), const SizedBox(width: 8)],
-          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: AppTextStyles.button.copyWith(color: fg))),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: AppTextStyles.button.copyWith(color: fg, fontSize: fontSize))),
         ],
       ],
     );
@@ -226,7 +228,7 @@ class PillButton extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(99),
             onTap: enabled ? onPressed : null,
-            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 22), child: body),
+            child: Padding(padding: EdgeInsets.symmetric(horizontal: height >= 50 ? 22 : 15), child: body),
           ),
         ),
       ),
@@ -426,4 +428,47 @@ class InitialsAvatar extends StatelessWidget {
           : Text(initials.isEmpty ? '?' : initials, style: TextStyle(fontFamily: AppTextStyles.family, fontWeight: FontWeight.w800, fontSize: size * .36, color: Colors.white)),
     );
   }
+}
+
+/// A card with the website's dashed outline (`.banner`, `.acc-card.check`).
+class DashedCard extends StatelessWidget {
+  const DashedCard({required this.child, this.padding = const EdgeInsets.all(13), this.radius = 18, this.onTap, super.key});
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedRRect(radius),
+      child: Material(
+        color: const Color(0x0DFFFFFF),
+        borderRadius: BorderRadius.circular(radius),
+        child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(radius), child: Padding(padding: padding, child: child)),
+      ),
+    );
+  }
+}
+
+class _DashedRRect extends CustomPainter {
+  const _DashedRRect(this.radius);
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x59FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final path = Path()..addRRect(RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)));
+    for (final m in path.computeMetrics()) {
+      for (var d = 0.0; d < m.length; d += 7) {
+        canvas.drawPath(m.extractPath(d, d + 4), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRRect old) => old.radius != radius;
 }

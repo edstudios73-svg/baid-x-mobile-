@@ -22,22 +22,29 @@ class _Page extends StatelessWidget {
   const _Page({required this.title, required this.children, this.action});
   final String title;
   final List<Widget> children;
-  final Widget? action;
+  final Widget? action; // set on step pages: title on the left, button on the right
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
           children: [
-            Row(children: [
-              GlassIconButton(icon: Icons.arrow_back_rounded, tooltip: 'Back', onTap: () => context.canPop() ? context.pop() : context.go(AppRoutes.profile)),
-              const SizedBox(width: 12),
-              Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.4))),
-              ?action,
-            ]),
-            const SizedBox(height: 16),
+            if (action != null)
+              Row(children: [
+                Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -.3))),
+                action!,
+              ])
+            else
+              SizedBox(
+                height: 44,
+                child: Stack(alignment: Alignment.center, children: [
+                  Align(alignment: Alignment.centerLeft, child: GlassIconButton(icon: Icons.chevron_left_rounded, tooltip: 'Back', size: 40, onTap: () => context.canPop() ? context.pop() : context.go(AppRoutes.profile))),
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            const SizedBox(height: 14),
             ...children,
           ],
         ),
@@ -72,8 +79,13 @@ class ChecklistScreen extends ConsumerWidget {
               Pill(status, tone: me.isVerified ? PillTone.ok : PillTone.warn),
             ]),
             const SizedBox(height: 8),
-            Text('Complete every step, then a BAID X reviewer checks your details. Your profile becomes public once you are verified.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
-            const SizedBox(height: 14),
+            Text('Complete these checks before your profile can be approved.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        SurfaceCard(
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
               Expanded(child: Text('${cl.done} of ${cl.total} completed', style: const TextStyle(fontSize: 12.5, color: Color(0xFFDDDDDD)))),
               Text('$pct%', style: const TextStyle(fontSize: 12.5, color: Color(0xFFDDDDDD), fontFeatures: [FontFeature.tabularFigures()])),
@@ -82,7 +94,7 @@ class ChecklistScreen extends ConsumerWidget {
             _Bar(cl.pct),
           ]),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         for (var i = 0; i < cl.items.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -100,18 +112,34 @@ class ChecklistScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(cl.items[i].$1.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                    Text(cl.items[i].$1.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
                     const SizedBox(height: 2),
-                    Text(cl.items[i].$1.desc, style: TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.3)),
+                    Text(cl.items[i].$1.desc, style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.3)),
                   ]),
                 ),
                 const SizedBox(width: 8),
-                Text(cl.items[i].$2 ? 'Done' : 'Pending', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: cl.items[i].$2 ? AppColors.green : _amber)),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                _StatePill(done: cl.items[i].$2),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
               ]),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// `.st.ok` / `.st.warn`: a green "Done" or amber "Pending" pill.
+class _StatePill extends StatelessWidget {
+  const _StatePill({required this.done});
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = done ? AppColors.green : _amber;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(color: c.withValues(alpha: .16), borderRadius: BorderRadius.circular(99)),
+      child: Text(done ? 'Done' : 'Pending', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: c)),
     );
   }
 }
@@ -324,8 +352,8 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
           _Section(photoLabel, [
             Row(children: [
               _photo != null
-                  ? FutureBuilder(future: _photo!.readAsBytes(), builder: (_, s) => ClipRRect(borderRadius: BorderRadius.circular(20), child: s.hasData ? Image.memory(s.data!, width: 72, height: 72, fit: BoxFit.cover) : const SizedBox(width: 72, height: 72)))
-                  : InitialsAvatar(name: me.displayName, photoUrl: p[photoCol] as String?, size: 72, radius: 20),
+                  ? FutureBuilder(future: _photo!.readAsBytes(), builder: (_, s) => ClipOval(child: s.hasData ? Image.memory(s.data!, width: 64, height: 64, fit: BoxFit.cover) : const SizedBox(width: 64, height: 64)))
+                  : InitialsAvatar(name: me.displayName, photoUrl: p[photoCol] as String?, size: 64, radius: 32),
               const SizedBox(width: 14),
               PillButton(label: 'Choose photo', light: false, expand: false, height: 38, onPressed: () async {
                 final f = await _pick();
@@ -376,6 +404,15 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
   }
 
   Widget _field(StepField f) {
+    if (f.kind == FieldKind.bool) return _input(f);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(f.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDDDDDD))),
+      const SizedBox(height: 7),
+      _input(f),
+    ]);
+  }
+
+  Widget _input(StepField f) {
     switch (f.kind) {
       case FieldKind.bool:
         return SwitchListTile.adaptive(
@@ -394,7 +431,7 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
           isExpanded: true,
           dropdownColor: AppColors.card,
           borderRadius: BorderRadius.circular(16),
-          decoration: InputDecoration(labelText: f.label),
+          decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 13)),
           hint: Text(f.kind == FieldKind.jobcat ? 'Choose a trade' : 'Choose', style: TextStyle(color: AppColors.muted)),
           items: [for (final o in opts) DropdownMenuItem(value: o.$1, child: Text(o.$2, overflow: TextOverflow.ellipsis))],
           onChanged: (v) => setState(() => _picked[f.col] = v),
@@ -406,7 +443,7 @@ class _ChecklistStepScreenState extends ConsumerState<ChecklistStepScreen> {
           minLines: f.kind == FieldKind.area ? 3 : 1,
           maxLength: f.max,
           keyboardType: f.kind == FieldKind.number ? const TextInputType.numberWithOptions(decimal: true) : null,
-          decoration: InputDecoration(labelText: f.label, hintText: f.hint),
+          decoration: InputDecoration(hintText: f.hint, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13)),
         );
     }
   }
@@ -454,7 +491,7 @@ class _Section extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 12),
         child: SurfaceCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            Text(title.toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: .9, color: Color(0xFFBDBDBD))),
             const SizedBox(height: 12),
             ...children,
           ]),

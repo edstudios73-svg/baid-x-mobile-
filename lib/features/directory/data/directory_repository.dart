@@ -121,15 +121,16 @@ extension _Let<T> on T {
   R let<R>(R Function(T) f) => f(this);
 }
 
-/// Every active member, verified members first (same query as the website).
+/// Every active member, the earliest to join first: people who came to BAID X
+/// first are shown first (same order as the website).
 final directoryProvider = FutureProvider<List<DirectoryMember>>((ref) async {
   final client = SupabaseConfig.client;
   if (client == null) throw const ConfigurationException('BAID X is not connected yet.');
   final parts = await Future.wait(_sources.values.map((s) async {
-    final rows = await client.from(s.table).select(s.cols).or('account_status.is.null,account_status.eq.active').order('created_at', ascending: false).limit(100);
-    return rows.map((r) => s.map(r)).toList();
+    final rows = await client.from(s.table).select('${s.cols},created_at').or('account_status.is.null,account_status.eq.active').order('created_at', ascending: true).limit(100);
+    return [for (final r in rows) (DateTime.tryParse('${r['created_at'] ?? ''}'), s.map(r))];
   }));
-  final all = parts.expand((e) => e).toList();
-  all.sort((a, b) => (b.badge != null ? 1 : 0) - (a.badge != null ? 1 : 0));
-  return all;
+  final all = parts.expand((e) => e).toList()
+    ..sort((a, b) => (a.$1 ?? DateTime(2100)).compareTo(b.$1 ?? DateTime(2100)));
+  return [for (final e in all) e.$2];
 });

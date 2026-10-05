@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -78,9 +80,9 @@ class _GuestOption extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTextStyles.label.copyWith(fontSize: 15.5, fontWeight: FontWeight.w700)),
+                Text(title, style: AppTextStyles.label.copyWith(fontSize: 15, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 3),
-                Text(sub, style: AppTextStyles.caption.copyWith(color: const Color(0xFFCFCFCF), fontSize: 13)),
+                Text(sub, style: AppTextStyles.caption.copyWith(color: const Color(0xFFCFCFCF), fontSize: 12.5)),
               ],
             ),
           ),
@@ -97,31 +99,34 @@ class GuestChatsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // plain grid page like the website (the ring art is only on sign-in and Profile)
     return Scaffold(
       body: AppBackdrop(
-        art: true,
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Chats', style: AppTextStyles.headline),
+                Text('Chats', style: AppTextStyles.headline.copyWith(fontSize: 26)),
                 const Spacer(),
                 Center(
                   child: Column(
                     children: [
-                      const Icon(Icons.inventory_2_outlined, size: 72, color: Colors.white),
-                      const SizedBox(height: 22),
-                      Text('Sign in to view chats', style: AppTextStyles.section.copyWith(fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 120, height: 110, child: CustomPaint(painter: _OpenBox())),
+                      const SizedBox(height: 30),
+                      Text('Sign in to view chats', style: AppTextStyles.section.copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
-                      Text('Your conversations will appear here after you sign in.', textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: AppColors.muted, fontSize: 14)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text('Your conversations will appear here after you sign in.', textAlign: TextAlign.center, style: AppTextStyles.body.copyWith(color: AppColors.muted, fontSize: 14)),
+                      ),
                       const SizedBox(height: 22),
-                      PillButton(label: 'Sign in', expand: false, onPressed: () => context.push(AppRoutes.signIn)),
+                      PillButton(label: 'Sign in', expand: false, height: 44, onPressed: () => context.push(AppRoutes.signIn)),
                     ],
                   ),
                 ),
-                const Spacer(flex: 2),
+                const Spacer(flex: 3),
               ],
             ),
           ),
@@ -129,4 +134,57 @@ class GuestChatsView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The website's empty-chats illustration: an open box with a dotted arc.
+class _OpenBox extends CustomPainter {
+  const _OpenBox();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final line = Paint()
+      ..color = const Color(0xFFE6E6E6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeJoin = StrokeJoin.round;
+    final top = Offset(w * .5, h * .30), left = Offset(w * .12, h * .45), right = Offset(w * .88, h * .45), mid = Offset(w * .5, h * .60);
+    final bl = Offset(w * .12, h * .78), br = Offset(w * .88, h * .78), bm = Offset(w * .5, h * .95);
+    // box sides
+    canvas.drawPath(Path()..moveTo(left.dx, left.dy)..lineTo(mid.dx, mid.dy)..lineTo(bm.dx, bm.dy)..lineTo(bl.dx, bl.dy)..close(), Paint()..color = const Color(0xFF2E2E2E));
+    canvas.drawPath(Path()..moveTo(right.dx, right.dy)..lineTo(mid.dx, mid.dy)..lineTo(bm.dx, bm.dy)..lineTo(br.dx, br.dy)..close(), Paint()..color = const Color(0xFF242424));
+    canvas.drawPath(Path()..moveTo(left.dx, left.dy)..lineTo(top.dx, top.dy)..lineTo(right.dx, right.dy)..lineTo(mid.dx, mid.dy)..close(), Paint()..color = const Color(0xFF3A3A3A));
+    // open flaps and edges
+    canvas.drawPath(
+      Path()
+        ..moveTo(left.dx, left.dy)
+        ..lineTo(w * .30, h * .36)
+        ..lineTo(top.dx, h * .44)
+        ..lineTo(w * .70, h * .36)
+        ..lineTo(right.dx, right.dy)
+        ..moveTo(left.dx, left.dy)
+        ..lineTo(bl.dx, bl.dy)
+        ..lineTo(bm.dx, bm.dy)
+        ..lineTo(br.dx, br.dy)
+        ..lineTo(right.dx, right.dy)
+        ..moveTo(mid.dx, mid.dy)
+        ..lineTo(bm.dx, bm.dy),
+      line,
+    );
+    // dotted arc and sparks
+    final dot = Paint()..color = const Color(0xFFBDBDBD);
+    for (var i = 0; i < 5; i++) {
+      final a = -2.4 + i * .32;
+      canvas.drawCircle(Offset(w * .55 + 16 * _cos(a), h * .12 + 10 * _sin(a)), 1.6, dot);
+    }
+    canvas.drawCircle(Offset(w * .67, h * .12), 4, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(w * .02, h * .25), 2.5, dot);
+    canvas.drawCircle(Offset(w * .98, h * .68), 2.5, dot);
+  }
+
+  static double _cos(double a) => math.cos(a);
+  static double _sin(double a) => math.sin(a);
+
+  @override
+  bool shouldRepaint(_OpenBox oldDelegate) => false;
 }

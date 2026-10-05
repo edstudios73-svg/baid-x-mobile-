@@ -331,7 +331,15 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
                     children: [
                       SizedBox(
                         height: 60,
-                        child: showHead
+                        child: !showHead && _view == _View.type && _mode != 'onboard'
+                            ? Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () => context.go(AppRoutes.discover),
+                                  child: Text('Browse professionals', style: AppTextStyles.caption.copyWith(fontSize: 13, color: const Color(0xFFE6E6E6), fontWeight: FontWeight.w500)),
+                                ),
+                              )
+                            : showHead
                             ? Row(
                                 children: [
                                   _RoundButton(icon: Icons.chevron_left_rounded, onTap: _back),

@@ -130,7 +130,7 @@ class _GreetingHeroState extends State<GreetingHero> {
                 ),
                 const SizedBox(height: 12),
                 Row(children: [
-                  Flexible(child: Text(widget.title, style: AppTextStyles.display.copyWith(fontSize: 32, height: 1.12, letterSpacing: -1.2, color: const Color(0xFF050505)))),
+                  Flexible(child: Text(widget.title, style: AppTextStyles.display.copyWith(fontSize: 30, height: 1.12, letterSpacing: -1, color: const Color(0xFF050505)))),
                   if (widget.wave) ...[const SizedBox(width: 8), const _Wave()],
                 ]),
                 const SizedBox(height: 4),
@@ -240,7 +240,7 @@ class StatRow extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)), child: Icon(stats[i].$3, size: 16, color: Colors.black)),
                 const SizedBox(height: 10),
-                Text(stats[i].$1, style: AppTextStyles.display.copyWith(fontSize: 26, letterSpacing: -.5, fontFeatures: const [FontFeature.tabularFigures()])),
+                Text(stats[i].$1, style: AppTextStyles.display.copyWith(fontSize: 24, letterSpacing: -.5, fontFeatures: const [FontFeature.tabularFigures()])),
                 const SizedBox(height: 2),
                 Text(stats[i].$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.caption.copyWith(fontSize: 11.5, color: AppColors.muted)),
               ]),
@@ -340,27 +340,23 @@ class SetupBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0x24FFFFFF), Color(0x14FFFFFF)]),
-        border: Border.all(color: const Color(0x4DFFFFFF)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DashedCard(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 34, height: 34, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.star_border_rounded, color: Colors.black, size: 19)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Your profile isn\'t public yet. Complete the required items to be approved.', style: AppTextStyles.caption.copyWith(fontSize: 12.5, height: 1.35, color: const Color(0xFFE8E8E8))),
+              const SizedBox(height: 3),
+              Text('$done/$total complete', style: AppTextStyles.label.copyWith(fontSize: 12.5, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              PillButton(label: 'Continue setup', expand: false, height: 36, onPressed: () => context.push(AppRoutes.checklist)),
+            ]),
+          ),
+        ]),
       ),
-      child: Row(children: [
-        Container(width: 36, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.star_border_rounded, color: Colors.black, size: 20)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Your profile isn\'t public yet. Complete the required items to be approved.', style: AppTextStyles.caption.copyWith(fontSize: 12.5, color: const Color(0xFFF6E9CF))),
-            const SizedBox(height: 3),
-            Text('$done/$total complete', style: AppTextStyles.label.copyWith(fontSize: 13, fontWeight: FontWeight.w800)),
-          ]),
-        ),
-        const SizedBox(width: 8),
-        PillButton(label: 'Continue setup', expand: false, height: 38, onPressed: () => context.push(AppRoutes.checklist)),
-      ]),
     );
   }
 }

@@ -183,4 +183,15 @@ void main() {
       expect(destinationsFor(type).length, lessThanOrEqualTo(5));
     }
   });
+
+  test('a profile that fails to load never opens role selection', () {
+    expect(
+      guardRedirect(authLoading: false, gate: SessionGate.verified, profileLoading: false, accountType: null, path: AppRoutes.splash, profileFailed: true),
+      AppRoutes.discover,
+    );
+    expect(
+      guardRedirect(authLoading: false, gate: SessionGate.verified, profileLoading: false, accountType: null, path: AppRoutes.discover, profileFailed: true),
+      isNull,
+    );
+  });
 }

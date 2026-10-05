@@ -72,7 +72,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                       if (signedIn)
                         GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications))
                       else
-                        PillButton(label: 'Join as a Pro', expand: false, height: 42, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
+                        PillButton(label: 'Join as a Pro', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -142,7 +142,7 @@ class _Search extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 50,
+      height: 46,
       decoration: BoxDecoration(color: const Color(0x0AFFFFFF), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.lineGlass)),
       child: Row(
         children: [

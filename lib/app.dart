@@ -19,7 +19,15 @@ class BaidXApp extends ConsumerWidget {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       // every screen sits on the website's backdrop (black, grid, top glow)
-      builder: (context, child) => AppBackdrop(child: child),
+      builder: (context, child) {
+        // A large system font size scaled every screen past the website's layout
+        // (overlapping cards); allow a little growth for readability, no more.
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 1, maxScaleFactor: 1.1)),
+          child: AppBackdrop(child: child),
+        );
+      },
     );
   }
 }

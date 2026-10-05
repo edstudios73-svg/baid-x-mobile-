@@ -60,6 +60,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         accountType: profile.asData?.value?.accountType,
         path: state.matchedLocation,
         splashHold: !ref.read(splashReleasedProvider),
+        profileFailed: profile.hasError && !profile.isLoading,
       );
     },
     routes: [
@@ -130,14 +131,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.verificationReview,
         builder: (context, state) => const ReviewerScreen(),
       ),
-      // full-screen like the website's checklist (no tab bar)
+      // full screen like the website's checklist (no tab bar); its steps keep the bar
       GoRoute(
         path: AppRoutes.checklist,
         builder: (context, state) => const ChecklistScreen(),
-      ),
-      GoRoute(
-        path: '${AppRoutes.checklist}/step/:n',
-        builder: (context, state) => ChecklistStepScreen(index: int.tryParse(state.pathParameters['n'] ?? '') ?? 0),
       ),
       ShellRoute(
         builder: (context, state, child) => RoleShell(child: child),
@@ -159,6 +156,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               return const MemberHomeScreen();
             },
+          ),
+          GoRoute(
+            path: '${AppRoutes.checklist}/step/:n',
+            builder: (context, state) => ChecklistStepScreen(index: int.tryParse(state.pathParameters['n'] ?? '') ?? 0),
           ),
           GoRoute(
             path: AppRoutes.notifications,

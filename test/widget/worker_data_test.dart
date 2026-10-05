@@ -57,8 +57,8 @@ void main() {
     // website account screen: the checklist card counts the worker's steps
     expect(find.text('Verification checklist'), findsOneWidget);
     expect(find.text('0/11'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Sign out'), 300);
-    expect(find.text('Sign out'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Log out'), 300);
+    expect(find.text('Log out'), findsOneWidget);
     expect(find.text('Unable to load your profile.'), findsNothing);
   });
 

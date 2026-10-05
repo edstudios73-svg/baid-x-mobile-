@@ -47,6 +47,7 @@ String? guardRedirect({
   required String? accountType,
   required String path,
   bool splashHold = false,
+  bool profileFailed = false,
 }) {
   if (splashHold && path == AppRoutes.splash) return null;
   if (authLoading || gate == SessionGate.unknown) {
@@ -72,6 +73,8 @@ String? guardRedirect({
     case SessionGate.verified:
       if (profileLoading && path == AppRoutes.splash) return null;
       if (profileLoading) return null;
+      // couldn't read the account (offline): never treat that as "no type yet"
+      if (profileFailed) return path == AppRoutes.splash ? AppRoutes.discover : null;
       final home = accountType == null ? AppRoutes.accountType : roleHomeFor(accountType);
       if (accountType == null) {
         // account setup (/setup/<type>) creates the profile, so it stays open until then

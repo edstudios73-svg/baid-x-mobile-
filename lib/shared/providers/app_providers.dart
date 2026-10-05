@@ -23,7 +23,14 @@ final authStateProvider = StreamProvider<AuthUser?>((ref) {
 final accountProfileProvider = FutureProvider<AccountProfile?>((ref) async {
   final user = ref.watch(authStateProvider).asData?.value;
   if (user == null || !user.emailConfirmed) return null;
-  return ref.read(authRepositoryProvider).loadProfile();
+  final repo = ref.read(authRepositoryProvider);
+  try {
+    return await repo.loadProfile();
+  } catch (_) {
+    // one retry covers a token that was refreshing or a dropped first request
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+    return repo.loadProfile();
+  }
 });
 
 /// The number a member just verified during sign-up, so account setup can put it

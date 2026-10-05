@@ -67,6 +67,13 @@ class AuthRemoteDataSource {
   Future<AccountProfile?> loadProfile() async {
     final user = _safeUser();
     if (user == null) return null;
+    // On a fresh open the saved access token is often expired and refreshes in
+    // the background; reading with it fails, which used to look like "no account
+    // type yet" and flashed role selection before the dashboard.
+    final session = _client.auth.currentSession;
+    if (session != null && session.isExpired) {
+      await _client.auth.refreshSession();
+    }
     final role = await _client
         .from('account_roles')
         .select('role, account_status')
