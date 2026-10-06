@@ -64,4 +64,19 @@ void main() {
     await t.tap(find.text('Suppliers'));
     expect(picked, 'businesses');
   });
+
+  test('visitors see up to 4 verified members per type, each with a photo and a cover', () {
+    DirectoryMember m(String g, String id, {String? badge = 'verified', String? image = 'p', String? cover = 'c', String desc = 'A careful, licensed electrician.'}) =>
+        DirectoryMember(group: g, kind: 'worker', id: id, name: id, tag: '', place: 'Accra', desc: desc, stats: const [], badge: badge, image: image, cover: cover);
+    final list = [
+      m('professionals', 'short', desc: 'Pro.'),
+      for (var i = 0; i < 5; i++) m('professionals', 'p$i'),
+      m('professionals', 'unverified', badge: null),
+      m('professionals', 'no-photo', image: null),
+      m('companies', 'no-cover', cover: ''),
+      m('companies', 'c0'),
+    ];
+    final shown = guestShowcase(list).map((e) => e.id).toList();
+    expect(shown, ['p0', 'p1', 'p2', 'p3', 'c0'], reason: 'members with a written description come first; at most 4 per type');
+  });
 }

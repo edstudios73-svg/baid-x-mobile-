@@ -145,3 +145,26 @@ final directoryProvider = FutureProvider<List<DirectoryMember>>((ref) async {
     ..sort((a, b) => (a.$1 ?? DateTime(2100)).compareTo(b.$1 ?? DateTime(2100)));
   return [for (final e in all) e.$2.withJoined(e.$1)];
 });
+
+/// What signed-out visitors see on Home: up to [perGroup] members of each type, only
+/// verified ones with a profile photo and a cover photo, those with a written
+/// description first. Everyone else opens after signing in (Discover).
+List<DirectoryMember> guestShowcase(List<DirectoryMember> list, {int perGroup = 4}) {
+  bool has(String? s) => s != null && s.trim().isNotEmpty;
+  final ready = [
+    for (final (i, m) in list.indexed)
+      if (m.badge != null && has(m.image) && has(m.cover)) (i, m),
+  ];
+  // a real description reads better than the default line; keep join order otherwise
+  int rank((int, DirectoryMember) e) => e.$2.desc.trim().length >= 25 ? 0 : 1;
+  ready.sort((a, b) => rank(a) != rank(b) ? rank(a) - rank(b) : a.$1 - b.$1);
+  final taken = <String, int>{};
+  final out = <DirectoryMember>[];
+  for (final (_, m) in ready) {
+    final n = taken[m.group] ?? 0;
+    if (n >= perGroup) continue;
+    taken[m.group] = n + 1;
+    out.add(m);
+  }
+  return out;
+}

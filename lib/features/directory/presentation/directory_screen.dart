@@ -47,6 +47,12 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
     super.dispose();
   }
 
+  // signed in: everyone (Discover); visitors: the verified showcase only
+  List<DirectoryMember> _visible(List<DirectoryMember> all, bool signedIn, String q) {
+    final list = applyDirFilter(all, _filter, _f, q);
+    return signedIn ? list : guestShowcase(list);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).asData?.value;
@@ -137,7 +143,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                             }),
                             search: _q,
                             onSearch: (_) => setState(() {}),
-                            results: q.isEmpty ? null : data.asData?.value.let((all) => applyDirFilter(all, _filter, _f, q).length),
+                            results: q.isEmpty ? null : data.asData?.value.let((all) => _visible(all, signedIn, q).length),
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -157,7 +163,25 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                         ),
                       ],
                       data: (all) {
-                        final list = applyDirFilter(all, _filter, _f, q);
+                        final list = _visible(all, signedIn, q);
+                        if (!signedIn) {
+                          // visitors see a short showcase, then the way in to everyone else
+                          return [
+                            if (list.isNotEmpty)
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                                sliver: SliverList.separated(
+                                  itemCount: list.length,
+                                  separatorBuilder: (_, _) => const SizedBox(height: 14),
+                                  itemBuilder: (context, i) => MemberCard(member: list[i], signedIn: false),
+                                ),
+                              ),
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(16, list.isEmpty ? 0 : 22, 16, 120),
+                              sliver: SliverToBoxAdapter(child: SignInForMore(shown: list, all: all)),
+                            ),
+                          ];
+                        }
                         if (list.isEmpty) {
                           return [
                             const SliverFillRemaining(
@@ -172,7 +196,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                             sliver: SliverList.separated(
                               itemCount: list.length,
                               separatorBuilder: (_, _) => const SizedBox(height: 14),
-                              itemBuilder: (context, i) => MemberCard(member: list[i], signedIn: signedIn, myId: user?.id),
+                              itemBuilder: (context, i) => MemberCard(member: list[i], signedIn: signedIn, myId: user.id),
                             ),
                           ),
                         ];
@@ -530,4 +554,72 @@ class _State extends StatelessWidget {
 
 extension _Let<T> on T {
   R let<R>(R Function(T) f) => f(this);
+}
+
+/// The end of a visitor's Home: faces of members still to see and the way in.
+class SignInForMore extends StatelessWidget {
+  const SignInForMore({required this.shown, required this.all, super.key});
+  final List<DirectoryMember> shown;
+  final List<DirectoryMember> all;
+
+  @override
+  Widget build(BuildContext context) {
+    final ids = {for (final m in shown) m.id};
+    final rest = all.where((m) => !ids.contains(m.id)).toList();
+    final faces = rest.where((m) => (m.image ?? '').isNotEmpty).take(5).toList();
+    final extra = rest.length - faces.length;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      // a fading rule, so the list visibly ends here and something more begins
+      Container(
+        height: 1,
+        margin: const EdgeInsets.only(bottom: 26),
+        decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0x00FFFFFF), Color(0x40FFFFFF), Color(0x00FFFFFF)])),
+      ),
+      if (faces.isNotEmpty || extra > 0)
+        Center(
+          child: SizedBox(
+            height: 46,
+            width: 46.0 + 32 * (faces.length + (extra > 0 ? 1 : 0) - 1).clamp(0, 9),
+            child: Stack(children: [
+              for (var i = 0; i < faces.length; i++)
+                Positioned(
+                  left: 32.0 * i,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(color: Color(0xFF0B0B0B), shape: BoxShape.circle),
+                    child: InitialsAvatar(name: faces[i].name, photoUrl: faces[i].image, size: 42),
+                  ),
+                ),
+              if (extra > 0)
+                Positioned(
+                  left: 32.0 * faces.length,
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFF0B0B0B), width: 2)),
+                    child: Text('+$extra', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black)),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+      const SizedBox(height: 16),
+      Text(
+        rest.isEmpty ? 'Everyone on BAID X, in one place' : '${rest.length} more ${rest.length == 1 ? 'member is' : 'members are'} on BAID X',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -.6),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Sign in to see every professional, company, project manager and supplier, message them and hire through escrow.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 13.5, height: 1.5, color: Color(0xFF9A9A9A)),
+      ),
+      const SizedBox(height: 18),
+      PillButton(label: 'Sign in to view more', height: 52, onPressed: () => context.push(AppRoutes.signIn)),
+      const SizedBox(height: 10),
+      PillButton(label: 'Create a free account', light: false, height: 50, onPressed: () => context.push(AppRoutes.signUp)),
+    ]);
+  }
 }
