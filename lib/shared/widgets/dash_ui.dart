@@ -77,7 +77,7 @@ class StatusPill extends StatelessWidget {
     final kind = kindOf(status);
     final (bg, fg) = switch (kind) {
       'ok' => (const Color(0x263DDC84), AppColors.green),
-      'warn' => (const Color(0x26E8A93A), const Color(0xFFE8A93A)),
+      'warn' => (const Color(0x1FFFFFFF), const Color(0xFFF2F2F2)),
       _ => (const Color(0xFF2D2D2D), const Color(0xFFCFCFCF)),
     };
     return Container(
@@ -268,7 +268,7 @@ class CodeTag extends StatelessWidget {
       );
 }
 
-/// `.offi`: the gold "Official" tag on BAID X Admin.
+/// `.offi`: the silver "Official" tag on BAID X Admin.
 class OfficialTag extends StatelessWidget {
   const OfficialTag({super.key});
 
@@ -276,7 +276,7 @@ class OfficialTag extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.only(left: 6),
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF1D58A), Color(0xFFC99A2E)]), borderRadius: BorderRadius.circular(99)),
-        child: const Text('OFFICIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .6, color: Color(0xFF14110A))),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFFFFF), Color(0xFFBDBDBD)]), borderRadius: BorderRadius.circular(99)),
+        child: const Text('OFFICIAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .6, color: Color(0xFF000000))),
       );
 }

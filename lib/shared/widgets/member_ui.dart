@@ -336,8 +336,8 @@ class SetupBanner extends StatelessWidget {
       child: GlassBox(
         radius: 20,
         padding: const EdgeInsets.all(14),
-        tint: const Color(0xFFE8C46A),
-        borderColor: const Color(0x73E8C46A),
+        tint: const Color(0xFFFFFFFF),
+        borderColor: const Color(0x59FFFFFF),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(width: 34, height: 34, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.star_border_rounded, color: Colors.black, size: 19)),
           const SizedBox(width: 12),

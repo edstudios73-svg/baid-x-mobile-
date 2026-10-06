@@ -19,7 +19,7 @@ abstract final class AppColors {
   static const verified = Color(0xFF38BDF8); // --verified (admin badge)
   static const green = Color(0xFF34D399); // --green (identity badge, ok pills)
   static const violet = Color(0xFFA78BFA); // professional badge
-  static const gold = Color(0xFFE8C46A); // advanced badge
+  static const gold = Colors.white; // advanced badge: white, like the logo
   static const red = Color(0xFFF87171);
 
   // legacy names, mapped to the website palette

@@ -132,7 +132,7 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
             ]),
             const SizedBox(height: 6),
             Row(children: [
-              Text(price, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFFE8C46A))),
+              Text(price, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFFFFFFFF))),
               if (was != null) ...[const SizedBox(width: 8), Text(was, style: const TextStyle(fontSize: 12.5, color: AppColors.muted, decoration: TextDecoration.lineThrough))],
             ]),
             if (text.isNotEmpty) ...[const SizedBox(height: 6), Text(text, style: const TextStyle(fontSize: 12.5, color: AppColors.muted, height: 1.4))],

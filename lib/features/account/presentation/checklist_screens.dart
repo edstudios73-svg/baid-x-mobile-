@@ -13,7 +13,7 @@ import '../data/account_actions.dart';
 import '../domain/account_setup.dart';
 import 'account_sheets.dart';
 
-const _amber = Color(0xFFE8A93A);
+const _amber = Color(0xFFF2F2F2);
 
 /// Shared frame: back button, title, optional right action.
 class _Page extends StatelessWidget {
@@ -149,7 +149,7 @@ class _Bar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ClipRRect(
         borderRadius: BorderRadius.circular(9),
-        child: LinearProgressIndicator(value: value.clamp(0, 1), minHeight: 4, color: const Color(0xFFE8D9A8), backgroundColor: const Color(0xFF222222)),
+        child: LinearProgressIndicator(value: value.clamp(0, 1), minHeight: 4, color: const Color(0xFFFFFFFF), backgroundColor: const Color(0xFF222222)),
       );
 }
 

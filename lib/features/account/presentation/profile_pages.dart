@@ -773,7 +773,7 @@ class _PastProjects extends ConsumerWidget {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text('${list[i]['name'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5))),
-                      Text('${list[i]['year'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFE8C46A))),
+                      Text('${list[i]['year'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFFFFFFF))),
                     ]),
                     const SizedBox(height: 4),
                     Text([list[i]['client'], list[i]['description']].where((v) => v != null && '$v'.isNotEmpty).join(' · '), style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),

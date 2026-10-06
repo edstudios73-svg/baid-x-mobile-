@@ -394,7 +394,7 @@ class _ReviewCardState extends ConsumerState<ReviewCard> {
           IconButton(
             tooltip: '$n star${n > 1 ? 's' : ''}',
             onPressed: () => setState(() => _rating = n),
-            icon: Icon(n <= _rating ? Icons.star_rounded : Icons.star_outline_rounded, color: n <= _rating ? const Color(0xFFE8C46A) : AppColors.muted),
+            icon: Icon(n <= _rating ? Icons.star_rounded : Icons.star_outline_rounded, color: n <= _rating ? const Color(0xFFFFFFFF) : AppColors.muted),
           ),
       ]),
       TextField(controller: _comment, maxLines: 2, maxLength: 400, decoration: const InputDecoration(hintText: 'Optional comment')),

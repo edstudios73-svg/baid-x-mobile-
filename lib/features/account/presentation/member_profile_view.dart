@@ -289,8 +289,8 @@ class _ChecklistCard extends StatelessWidget {
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(color: const Color(0x29E8A93A), borderRadius: BorderRadius.circular(99)),
-          child: Text('$done/$total', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFE8C46A), fontFeatures: [FontFeature.tabularFigures()])),
+          decoration: BoxDecoration(color: const Color(0x1FFFFFFF), borderRadius: BorderRadius.circular(99)),
+          child: Text('$done/$total', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFFFFFFF), fontFeatures: [FontFeature.tabularFigures()])),
         ),
         const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 20),
       ]),

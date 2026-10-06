@@ -28,7 +28,7 @@ class WsPill extends StatelessWidget {
     final (bg, fg) = _ok.contains(s)
         ? (const Color(0x263DDC84), AppColors.green)
         : _warn.contains(s)
-            ? (const Color(0x26E8A93A), const Color(0xFFE8A93A))
+            ? (const Color(0x1FFFFFFF), const Color(0xFFF2F2F2))
             : _bad.contains(s)
                 ? (const Color(0x26F87171), const Color(0xFFF87171))
                 : (const Color(0xFF2D2D2D), const Color(0xFFCFCFCF));
@@ -82,9 +82,9 @@ class WsCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: warn ? const Color(0x14E8A93A) : AppColors.card,
+          color: warn ? const Color(0x0FFFFFFF) : AppColors.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: warn ? const Color(0x66E8A93A) : AppColors.lineGlass),
+          border: Border.all(color: warn ? const Color(0x40FFFFFF) : AppColors.lineGlass),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (kicker != null && kicker!.isNotEmpty)
@@ -319,8 +319,8 @@ class WsInboxCard extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: Material(
-          color: warn ? const Color(0x14E8A93A) : AppColors.card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: warn ? const Color(0x66E8A93A) : AppColors.lineGlass)),
+          color: warn ? const Color(0x0FFFFFFF) : AppColors.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: warn ? const Color(0x40FFFFFF) : AppColors.lineGlass)),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: onTap,

@@ -1811,4 +1811,4 @@ For every change:
 4. Commit and push both repos on the working branch, then deploy the website.
 5. Compare the website and the app at phone width (390px) before calling it done.
 
-UI source of truth is the website: signed-in screens (dashboards, profile, chats, wallet and the rest) use the liquid-glass style of the Chats page, and sign-in/sign-up is glass too. No emoji in the UI (no waving hand).
+UI source of truth is the website: signed-in screens (dashboards, profile, chats, wallet and the rest) use the liquid-glass style of the Chats page, and sign-in/sign-up is glass too. No emoji in the UI (no waving hand). Colours are the logo's: black, white and greys on glass. No gold, cream, amber or yellow anywhere (green and red only for success and error states).

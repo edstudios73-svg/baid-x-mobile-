@@ -45,9 +45,9 @@ final jobApplicantsProvider = FutureProvider.family<ApplicantsData, String>((ref
   return ApplicantsData(r[0] == null ? null : asMap(r[0]), asList(r[1]), details);
 });
 
-const escrowGold = Color(0xFFE8D9A8);
+const escrowAccent = Color(0xFFFFFFFF);
 
-/// `.es-btn`: the gold escrow button (ghost: outlined).
+/// `.es-btn`: the white escrow button (ghost: outlined).
 class EscrowButton extends StatelessWidget {
   const EscrowButton(this.label, {required this.onPressed, this.icon, this.ghost = false, this.busy = false, super.key});
   final String label;
@@ -57,12 +57,12 @@ class EscrowButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = ghost ? const Color(0xFFE9E9E9) : const Color(0xFF14110A);
+    final fg = ghost ? const Color(0xFFE9E9E9) : const Color(0xFF000000);
     return Opacity(
       opacity: onPressed == null ? .4 : busy ? .7 : 1,
       child: Material(
-        color: ghost ? Colors.transparent : escrowGold,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: ghost ? const Color(0x33FFFFFF) : escrowGold)),
+        color: ghost ? Colors.transparent : escrowAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: ghost ? const Color(0x33FFFFFF) : escrowAccent)),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: busy ? null : onPressed,
@@ -205,13 +205,13 @@ class _ApplicantCard extends ConsumerWidget {
   }
 }
 
-/// Five small stars, gold up to [rating].
+/// Five small stars, white up to [rating].
 class _Stars extends StatelessWidget {
   const _Stars(this.rating);
   final num rating;
   @override
   Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        for (var i = 1; i <= 5; i++) Icon(Icons.star_rounded, size: 14, color: i <= rating.round() ? const Color(0xFFE8C46A) : const Color(0xFF3A3A3A)),
+        for (var i = 1; i <= 5; i++) Icon(Icons.star_rounded, size: 14, color: i <= rating.round() ? const Color(0xFFFFFFFF) : const Color(0xFF3A3A3A)),
       ]);
 }
 

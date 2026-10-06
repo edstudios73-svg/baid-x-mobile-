@@ -244,7 +244,7 @@ class _CompletionPanel extends ConsumerWidget {
       final r = ref.watch(completionNoteProvider(pid)).asData?.value ?? const {};
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const SecLabel('Completion'),
-        WsCard(warn: true, title: 'Completion requested', right: Text(ago(r['created_at'] ?? DateTime.now().toIso8601String()), style: const TextStyle(fontSize: 12, color: Color(0xFFE8A93A))), children: [
+        WsCard(warn: true, title: 'Completion requested', right: Text(ago(r['created_at'] ?? DateTime.now().toIso8601String()), style: const TextStyle(fontSize: 12, color: Color(0xFFF2F2F2))), children: [
           WsCaption('${r['note'] ?? 'Your project manager says the work is finished.'}'),
           if (r['id'] != null) WsButtons(completionButtons(context, ref, '${r['id']}', pid)),
         ]),

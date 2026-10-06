@@ -204,7 +204,7 @@ class GlassBox extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? borderColor;
   final bool strong;
-  final Color? tint; // a coloured wash, e.g. gold for the setup banner
+  final Color? tint; // a coloured wash, e.g. a white wash for the setup banner
 
   @override
   Widget build(BuildContext context) {
