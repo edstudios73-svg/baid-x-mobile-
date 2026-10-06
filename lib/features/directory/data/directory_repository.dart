@@ -20,6 +20,7 @@ class DirectoryMember {
     this.badge,
     this.region,
     this.catId,
+    this.joined,
   });
 
   final String group; // companies | professionals | managers | businesses
@@ -35,6 +36,14 @@ class DirectoryMember {
   final String? badge; // verified | identity | professional | advanced
   final String? region;
   final String? catId; // what Discover's Category filter matches (website catId)
+  final DateTime? joined;
+
+  DirectoryMember withJoined(DateTime? at) => DirectoryMember(group: group, kind: kind, id: id, name: name, tag: tag, place: place, desc: desc, stats: stats, image: image, cover: cover, badge: badge, region: region, catId: catId, joined: at);
+
+  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  /// "Joined Sep 2026", as the website card shows it.
+  String? get joinedLabel => joined == null ? null : 'Joined ${_months[joined!.month - 1]} ${joined!.year}';
 
   String get kindLabel => const {'worker': 'Professional', 'company': 'Company', 'pm': 'Project manager', 'business': 'Supplier'}[kind] ?? 'Member';
 }
@@ -134,5 +143,5 @@ final directoryProvider = FutureProvider<List<DirectoryMember>>((ref) async {
   }));
   final all = parts.expand((e) => e).toList()
     ..sort((a, b) => (a.$1 ?? DateTime(2100)).compareTo(b.$1 ?? DateTime(2100)));
-  return [for (final e in all) e.$2];
+  return [for (final e in all) e.$2.withJoined(e.$1)];
 });

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 /// Signed-out Home, matching the website landing (css/landing.css, js/landing.js):
@@ -27,16 +28,18 @@ class GuestTrustStackSliver extends StatelessWidget {
         final scrolled = c.scrollOffset.clamp(0.0, travel);
         final raw = calm ? 1.0 : (scrolled / travel);
         final p = _ease(((raw - .05) / .85).clamp(0.0, 1.0));
+        // the stage is a screen of its own: at least the height of the viewport
+        final stage = math.max(GuestTrustStage.height, c.viewportMainAxisExtent);
         return SliverToBoxAdapter(
           child: SizedBox(
-            height: GuestTrustStage.height + travel,
+            height: stage + travel,
             child: Stack(
               children: [
                 Positioned(
                   left: 0,
                   right: 0,
                   top: scrolled,
-                  height: GuestTrustStage.height,
+                  height: stage,
                   child: GuestTrustStage(p: p, progress: raw),
                 ),
               ],
@@ -70,7 +73,7 @@ class GuestTrustStage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) => FittedBox(
         fit: BoxFit.scaleDown,
-        alignment: Alignment.topCenter,
+        alignment: Alignment.center,
         child: SizedBox(width: box.maxWidth, child: _content()),
       ),
     );
@@ -436,34 +439,44 @@ class StatsPill extends StatelessWidget {
 /// The website's `.lp-bg`: a faint white architect's sheet (ground floor plan above,
 /// front elevation below) with two soft pools of white light, still.
 class BlueprintBackdrop extends StatelessWidget {
-  const BlueprintBackdrop({super.key});
+  const BlueprintBackdrop({this.scroll, super.key});
+
+  /// The page's scroll position. The drawing drifts up at a fraction of the scroll
+  /// speed (parallax) and one pool of light follows, so the glass above it always
+  /// has something moving behind it. Still when the system asks for less motion.
+  final ValueListenable<double>? scroll;
+
+  static const double _drift = 160;
+
   @override
-  Widget build(BuildContext context) => IgnorePointer(
-    child: Stack(
-      fit: StackFit.expand,
-      children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(-.65, -.8),
-              radius: .9,
-              colors: [Color(0x1CFFFFFF), Color(0x00FFFFFF)],
-            ),
-          ),
+  Widget build(BuildContext context) {
+    final calm = MediaQuery.disableAnimationsOf(context);
+    final pools = const [
+      DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(-.65, -.8), radius: .9, colors: [Color(0x1CFFFFFF), Color(0x00FFFFFF)]))),
+      DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(.8, .6), radius: .8, colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)]))),
+    ];
+    Widget layer(double y) {
+      final shift = calm ? 0.0 : (y * .12).clamp(0.0, _drift);
+      final t = calm ? 0.0 : (y / 2400) % 2; // 0..2, the travelling pool goes down and back up
+      final py = -1 + 2 * (t <= 1 ? t : 2 - t);
+      return LayoutBuilder(
+        builder: (context, box) => Stack(
+          fit: StackFit.expand,
+          children: [
+            ...pools,
+            DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(center: Alignment(.1, py * 1.1), radius: .7, colors: const [Color(0x12FFFFFF), Color(0x00FFFFFF)]))),
+            Positioned(left: 0, right: 0, top: -shift, height: box.maxHeight + _drift, child: CustomPaint(painter: BlueprintPainter())),
+          ],
         ),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(.8, .6),
-              radius: .8,
-              colors: [Color(0x14FFFFFF), Color(0x00FFFFFF)],
-            ),
-          ),
-        ),
-        CustomPaint(painter: BlueprintPainter()),
-      ],
-    ),
-  );
+      );
+    }
+
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: scroll == null ? layer(0) : ValueListenableBuilder<double>(valueListenable: scroll!, builder: (context, y, _) => layer(y)),
+      ),
+    );
+  }
 }
 
 class BlueprintPainter extends CustomPainter {
