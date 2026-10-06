@@ -12,6 +12,7 @@ import '../../account/domain/account_setup.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../account_type/domain/role_categories.dart';
 import '../../hiring/build_screen.dart';
+import '../../hiring/house_screen.dart';
 import '../../workspace/data/workspace_data.dart';
 import '../../workspace/presentation/home_inbox.dart';
 import '../../account/presentation/extra_screens.dart' show notificationsProvider;
@@ -167,6 +168,7 @@ class MemberHomeScreen extends ConsumerWidget {
           GreetingHero(title: first.isEmpty ? 'Welcome' : first, subtitle: 'Need something fixed or built?', badge: badge),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
           const BuildHomeCard(),
+          const HouseHomeCard(),
           StatRow([(n(stats?.a), 'Jobs posted', Icons.work_outline), (n(stats?.b), 'Open', Icons.mail_outline), (n(stats?.c), 'Hired', Icons.handshake_outlined)]),
           const SectionLabel('Find a trade'),
           QuickTiles([
@@ -185,6 +187,7 @@ class MemberHomeScreen extends ConsumerWidget {
             ref.invalidate(accountProfileProvider);
             ref.invalidate(homeStatsProvider(type));
             ref.invalidate(myBuildProvider);
+            ref.invalidate(myHouseProvider);
             ref.invalidate(invitationsProvider);
             ref.invalidate(approvalsProvider);
             ref.invalidate(notificationsProvider);

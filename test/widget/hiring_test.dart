@@ -6,6 +6,7 @@ import 'package:baid_x_mobile/features/auth/domain/auth_repository.dart';
 import 'package:baid_x_mobile/features/auth/domain/auth_user.dart';
 import 'package:baid_x_mobile/features/hiring/build_screen.dart';
 import 'package:baid_x_mobile/features/hiring/hiring_screens.dart';
+import 'package:baid_x_mobile/features/hiring/house_screen.dart';
 import 'package:baid_x_mobile/features/hiring/job_card_screen.dart';
 import 'package:baid_x_mobile/features/tabs/data/tabs_data.dart';
 import 'package:baid_x_mobile/features/tabs/presentation/tab_screens.dart';
@@ -140,5 +141,28 @@ void main() {
     expect(find.text('Set up my build'), findsOneWidget);
     expect(find.text('Not set'), findsOneWidget);
     expect(find.text('No jobs yet'), findsOneWidget);
+  });
+
+  testWidgets('House logbook lists who did what, reminders with due labels, and the trusted team', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 2400));
+    await tester.pumpWidget(_wrap(const HouseScreen(), [
+      myHouseProvider.overrideWith((ref) async => <String, dynamic>{
+            'history': [{'id': 'e1', 'card_no': 10495, 'title': 'Wiring and distribution board', 'worker': 'Kwame Asante', 'trade': 'Electrician', 'done_on': '2026-09-12T10:00:00Z'}],
+            'reminders': [
+              {'id': 'r1', 'title': 'Service the AC units', 'due_on': '2026-10-15', 'repeat_months': 6, 'worker_id': 'w3', 'worker': 'Kobby Frimpong', 'days': 9},
+              {'id': 'r2', 'title': 'Clean the water tank', 'due_on': '2026-10-01', 'days': -5},
+            ],
+            'team': [{'worker_id': 'w1', 'name': 'Kwame Asante', 'trade': 'Electrician', 'jobs': 2, 'rating': 5}],
+          }),
+    ]));
+    await tester.pumpAndSettle();
+    expect(find.text('WHO DID WHAT'), findsOneWidget);
+    expect(find.text('Kwame Asante · Electrician · Sep 2026'), findsOneWidget);
+    expect(find.text('Due 15 Oct 2026 · every 6 months · with Kobby Frimpong'), findsOneWidget);
+    expect(find.text('9 days'), findsOneWidget);
+    expect(find.text('Overdue'), findsOneWidget);
+    expect(find.text('Add reminder'), findsOneWidget);
+    expect(find.text('Electrician · 2 jobs · you rated 5.0'), findsOneWidget);
+    expect(find.text('Message'), findsOneWidget);
   });
 }
