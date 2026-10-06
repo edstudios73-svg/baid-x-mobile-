@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,7 +38,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
   @override
   void initState() {
     super.initState();
-    _release = Timer(const Duration(milliseconds: _total), () {
+    // On the web the page's own splash (web/index.html #boot) has already played while the
+    // app downloaded, so this one hands over at once instead of playing a second time.
+    _release = Timer(const Duration(milliseconds: kIsWeb ? 300 : _total), () {
       if (mounted) ref.read(splashReleasedProvider.notifier).release();
     });
   }
