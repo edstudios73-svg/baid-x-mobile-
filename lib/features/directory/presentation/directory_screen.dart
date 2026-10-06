@@ -15,6 +15,7 @@ import '../../../shared/widgets/verified_badge.dart';
 import '../../account_type/domain/account_type.dart';
 import '../data/directory_repository.dart';
 import '../../workspace/presentation/ws_forms.dart' show openInvite;
+import 'baid_bot.dart';
 import 'directory_filters.dart';
 import 'guest_home_hero.dart';
 import 'people_console.dart';
@@ -208,6 +209,8 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
               ),
             ),
           ),
+          // visitors: BAID Bot answers questions about BAID X (website js/baidbot.js)
+          if (!signedIn) Positioned(right: 16, bottom: 104 + MediaQuery.paddingOf(context).bottom, child: const BaidBotButton()),
         ],
       ),
     );

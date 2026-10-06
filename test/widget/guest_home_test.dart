@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:baid_x_mobile/features/directory/data/directory_repository.dart';
 import 'package:baid_x_mobile/features/directory/presentation/directory_screen.dart';
 import 'package:baid_x_mobile/features/directory/presentation/people_console.dart';
+import 'package:baid_x_mobile/features/directory/presentation/baid_bot.dart';
 import 'package:baid_x_mobile/shared/providers/app_providers.dart';
 import 'package:baid_x_mobile/features/directory/presentation/guest_home_hero.dart';
 
@@ -94,5 +95,26 @@ void main() {
     expect(rateRegions(all), ['Ashanti', 'Greater Accra'], reason: 'only regions with a rate');
     expect(checkMembers(all, 'a').map((m) => m.id), isEmpty, reason: 'two letters or more');
     expect(checkMembers(all, 'ow').map((m) => m.id), ['Ama Owusu']);
+  });
+
+  testWidgets('BAID Bot: opens from the button, sends a suggested question, shows the answer', (t) async {
+    List<Map<String, String>>? sent;
+    await t.pumpWidget(ProviderScope(
+      overrides: [
+        baidBotAskProvider.overrideWithValue((messages) async {
+          sent = messages;
+          return 'Joining is free for every account type.';
+        }),
+      ],
+      child: const MaterialApp(home: Scaffold(body: Center(child: BaidBotButton()))),
+    ));
+    await t.tap(find.byType(BaidBotButton));
+    await t.pumpAndSettle();
+    expect(find.text('BAID Bot'), findsOneWidget);
+    await t.tap(find.text('Is BAID X free?'));
+    await t.pumpAndSettle();
+    expect(sent, [{'role': 'user', 'content': 'Is BAID X free?'}]);
+    expect(find.text('Joining is free for every account type.'), findsOneWidget);
+    expect(find.text('Is BAID X free?'), findsOneWidget, reason: 'the question stays as a bubble; the suggestions are gone');
   });
 }
