@@ -133,10 +133,11 @@ List<AppDestination> destinationsFor(AccountType? type) {
       chats,
       profile,
     ],
+    // visitors get tools no member dashboard has; Chats and Profile open after signing in
     null => const [
       AppDestination(label: 'Home', icon: Icons.home_outlined, path: AppRoutes.discover),
-      chats,
-      profile,
+      AppDestination(label: 'Check', icon: Icons.verified_user_outlined, path: AppRoutes.check),
+      AppDestination(label: 'Rates', icon: Icons.payments_outlined, path: AppRoutes.rates),
     ],
   };
 }

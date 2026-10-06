@@ -121,7 +121,8 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                                   ],
                                 ),
                               ] else
-                                PillButton(label: 'Get verified', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
+                                // opens what the visitor Profile tab used to hold: the sign-in and join options
+                            PillButton(label: 'Get verified', expand: false, height: 40, onPressed: () => context.push(AppRoutes.profile)),
                             ],
                           ),
                         ],
@@ -143,7 +144,7 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                             }),
                             search: _q,
                             onSearch: (_) => setState(() {}),
-                            results: q.isEmpty ? null : data.asData?.value.let((all) => _visible(all, signedIn, q).length),
+                            
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -552,10 +553,6 @@ class _State extends StatelessWidget {
   }
 }
 
-extension _Let<T> on T {
-  R let<R>(R Function(T) f) => f(this);
-}
-
 /// The end of a visitor's Home: faces of members still to see and the way in.
 class SignInForMore extends StatelessWidget {
   const SignInForMore({required this.shown, required this.all, super.key});
@@ -567,7 +564,6 @@ class SignInForMore extends StatelessWidget {
     final ids = {for (final m in shown) m.id};
     final rest = all.where((m) => !ids.contains(m.id)).toList();
     final faces = rest.where((m) => (m.image ?? '').isNotEmpty).take(5).toList();
-    final extra = rest.length - faces.length;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // a fading rule, so the list visibly ends here and something more begins
       Container(
@@ -575,11 +571,12 @@ class SignInForMore extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 26),
         decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0x00FFFFFF), Color(0x40FFFFFF), Color(0x00FFFFFF)])),
       ),
-      if (faces.isNotEmpty || extra > 0)
+      // faces of members still to see; never how many there are
+      if (faces.isNotEmpty)
         Center(
           child: SizedBox(
             height: 46,
-            width: 46.0 + 32 * (faces.length + (extra > 0 ? 1 : 0) - 1).clamp(0, 9),
+            width: 46.0 + 32 * (faces.length - 1),
             child: Stack(children: [
               for (var i = 0; i < faces.length; i++)
                 Positioned(
@@ -590,23 +587,12 @@ class SignInForMore extends StatelessWidget {
                     child: InitialsAvatar(name: faces[i].name, photoUrl: faces[i].image, size: 42),
                   ),
                 ),
-              if (extra > 0)
-                Positioned(
-                  left: 32.0 * faces.length,
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFF0B0B0B), width: 2)),
-                    child: Text('+$extra', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black)),
-                  ),
-                ),
             ]),
           ),
         ),
       const SizedBox(height: 16),
       Text(
-        rest.isEmpty ? 'Everyone on BAID X, in one place' : '${rest.length} more ${rest.length == 1 ? 'member is' : 'members are'} on BAID X',
+        'Everyone else is one sign-in away',
         textAlign: TextAlign.center,
         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.15, letterSpacing: -.6),
       ),

@@ -21,6 +21,7 @@ class DirectoryMember {
     this.region,
     this.catId,
     this.joined,
+    this.rate,
   });
 
   final String group; // companies | professionals | managers | businesses
@@ -37,8 +38,9 @@ class DirectoryMember {
   final String? region;
   final String? catId; // what Discover's Category filter matches (website catId)
   final DateTime? joined;
+  final double? rate; // a professional's daily rate in GH₵, for the price guide
 
-  DirectoryMember withJoined(DateTime? at) => DirectoryMember(group: group, kind: kind, id: id, name: name, tag: tag, place: place, desc: desc, stats: stats, image: image, cover: cover, badge: badge, region: region, catId: catId, joined: at);
+  DirectoryMember withJoined(DateTime? at) => DirectoryMember(group: group, kind: kind, id: id, name: name, tag: tag, place: place, desc: desc, stats: stats, image: image, cover: cover, badge: badge, region: region, catId: catId, joined: at, rate: rate);
 
   static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -91,7 +93,7 @@ final _sources = <String, _Source>{
       final yrs = r['years_of_experience'];
       final photos = (r['portfolio_photo_urls'] as List?)?.whereType<String>().toList() ?? const [];
       return DirectoryMember(
-        group: 'professionals', kind: 'worker', id: r['id'], name: r['full_name'] ?? 'Professional', image: r['profile_photo_url'],
+        group: 'professionals', kind: 'worker', id: r['id'], name: r['full_name'] ?? 'Professional', image: r['profile_photo_url'], rate: num.tryParse('${r['daily_rate_ghs'] ?? ''}')?.toDouble(),
         cover: (r['cover_url'] as String?) ?? (photos.isEmpty ? null : photos.first), badge: _badge(r), region: r['region'], catId: r['primary_job_category_id'],
         desc: (r['short_bio'] as String?) ?? (trade != null ? '$trade based in ${r['city_town'] ?? 'Ghana'}.' : 'Skilled professional on BAID X.'),
         tag: trade ?? (_pretty(r['rank_tier']).ifEmpty('Professional')), place: _place(r),
@@ -167,4 +169,47 @@ List<DirectoryMember> guestShowcase(List<DirectoryMember> list, {int perGroup = 
     out.add(m);
   }
   return out;
+}
+
+/// One line of the price guide: what professionals in a trade charge per day.
+class TradeRate {
+  const TradeRate({required this.trade, required this.median, required this.low, required this.high});
+  final String trade;
+  final double median;
+  final double low;
+  final double high;
+}
+
+/// Daily rates by trade from what professionals set on BAID X, optionally in one
+/// region. Shows the middle rate and the range; never how many people are behind it.
+List<TradeRate> tradeRates(List<DirectoryMember> all, {String? region}) {
+  final by = <String, List<double>>{};
+  for (final m in all) {
+    final r = m.rate;
+    if (m.kind != 'worker' || r == null || r <= 0 || m.tag.trim().isEmpty) continue;
+    if (region != null && (m.region ?? '').toLowerCase() != region.toLowerCase()) continue;
+    by.putIfAbsent(m.tag, () => []).add(r);
+  }
+  final out = [
+    for (final e in by.entries)
+      () {
+        final v = [...e.value]..sort();
+        final mid = v.length.isOdd ? v[v.length ~/ 2] : (v[v.length ~/ 2 - 1] + v[v.length ~/ 2]) / 2;
+        return TradeRate(trade: e.key, median: mid, low: v.first, high: v.last);
+      }(),
+  ]..sort((a, b) => a.trade.toLowerCase().compareTo(b.trade.toLowerCase()));
+  return out;
+}
+
+/// Regions that have at least one professional with a daily rate, for the guide's filter.
+List<String> rateRegions(List<DirectoryMember> all) =>
+    {for (final m in all) if (m.kind == 'worker' && (m.rate ?? 0) > 0 && (m.region ?? '').trim().isNotEmpty) m.region!.trim()}.toList()..sort();
+
+/// The badge check: members whose name matches what was typed (two letters or more).
+List<DirectoryMember> checkMembers(List<DirectoryMember> all, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.length < 2) return const [];
+  final hits = all.where((m) => m.name.toLowerCase().contains(q)).toList()
+    ..sort((a, b) => (a.name.toLowerCase().startsWith(q) ? 0 : 1) - (b.name.toLowerCase().startsWith(q) ? 0 : 1));
+  return hits.take(20).toList();
 }

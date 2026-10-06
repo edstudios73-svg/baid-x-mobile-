@@ -6,6 +6,8 @@ const publicPaths = <String>{
   AppRoutes.splash,
   AppRoutes.marketplace,
   AppRoutes.discover,
+  AppRoutes.check,
+  AppRoutes.rates,
   AppRoutes.signIn,
   AppRoutes.signUp,
   AppRoutes.forgotPassword,

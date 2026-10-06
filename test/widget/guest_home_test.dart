@@ -50,17 +50,19 @@ void main() {
     expect(find.byType(Image), findsOneWidget, reason: 'the cover photo is shown');
   });
 
-  testWidgets('people console: real counts per group, verified share, filter taps and search count', (t) async {
+  testWidgets('people console: no member numbers, verified share and filter taps', (t) async {
     DirectoryMember m(String g, String id, {String? badge}) => DirectoryMember(group: g, kind: 'worker', id: id, name: id, tag: '', place: 'Accra', desc: '', stats: const [], badge: badge);
     final members = [m('professionals', 'a', badge: 'verified'), m('professionals', 'b'), m('companies', 'c', badge: 'verified'), m('businesses', 'd')];
     String? picked;
     await t.pumpWidget(MaterialApp(
-      home: Scaffold(body: SingleChildScrollView(child: PeopleConsole(members: members, filter: 'all', onFilter: (k) => picked = k, search: TextEditingController(), onSearch: (_) {}, results: 2))),
+      home: Scaffold(body: SingleChildScrollView(child: PeopleConsole(members: members, filter: 'all', onFilter: (k) => picked = k, search: TextEditingController(), onSearch: (_) {}))),
     ));
-    await t.pump(const Duration(seconds: 2)); // the live dot pulses forever, so wait out the count-up instead of settling
-    expect(find.text('4 members'), findsOneWidget);
+    await t.pump(const Duration(seconds: 2)); // the live dot pulses forever, so wait out the meter instead of settling
+    expect(find.textContaining('member'), findsNothing, reason: 'visitors never see how many people are on BAID X');
+    for (final n in ['1', '2', '3', '4']) {
+      expect(find.text(n), findsNothing);
+    }
     expect(find.text('50%'), findsOneWidget, reason: 'two of four are verified');
-    expect(find.text('2 found'), findsOneWidget);
     await t.tap(find.text('Suppliers'));
     expect(picked, 'businesses');
   });
@@ -78,5 +80,19 @@ void main() {
     ];
     final shown = guestShowcase(list).map((e) => e.id).toList();
     expect(shown, ['p0', 'p1', 'p2', 'p3', 'c0'], reason: 'members with a written description come first; at most 4 per type');
+  });
+
+  test('price guide: middle rate and range per trade, by region; badge check by name', () {
+    DirectoryMember w(String id, String trade, double? rate, String region) =>
+        DirectoryMember(group: 'professionals', kind: 'worker', id: id, name: id, tag: trade, place: region, desc: '', stats: const [], rate: rate, region: region);
+    final all = [w('Ama Owusu', 'Electrician', 200, 'Ashanti'), w('Kofi', 'Electrician', 300, 'Greater Accra'), w('Yaw', 'Electrician', 250, 'Greater Accra'), w('Esi', 'Mason', 150, 'Greater Accra'), w('Abena', 'Mason', null, 'Volta')];
+    final ghana = tradeRates(all);
+    expect(ghana.map((r) => r.trade), ['Electrician', 'Mason']);
+    expect([ghana.first.median, ghana.first.low, ghana.first.high], [250, 200, 300]);
+    final accra = tradeRates(all, region: 'Greater Accra');
+    expect(accra.first.median, 275);
+    expect(rateRegions(all), ['Ashanti', 'Greater Accra'], reason: 'only regions with a rate');
+    expect(checkMembers(all, 'a').map((m) => m.id), isEmpty, reason: 'two letters or more');
+    expect(checkMembers(all, 'ow').map((m) => m.id), ['Ama Owusu']);
   });
 }

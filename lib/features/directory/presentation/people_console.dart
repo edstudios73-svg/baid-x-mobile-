@@ -3,25 +3,28 @@ import 'package:flutter/material.dart';
 import '../data/directory_repository.dart';
 
 /// The head of the members section (website `.dir-head`), set straight on the page: a
-/// live dot and the member count, the heading, a five-way filter that shows each
-/// group's real count under a sliding white highlight, the share of members verified
-/// by BAID X, and the search field with a live result count.
+/// live dot, the heading, a five-way filter under a sliding white highlight, the share
+/// of members verified by BAID X, and the search field. No member numbers are shown.
 class PeopleConsole extends StatelessWidget {
-  const PeopleConsole({required this.members, required this.filter, required this.onFilter, required this.search, required this.onSearch, required this.results, super.key});
+  const PeopleConsole({required this.members, required this.filter, required this.onFilter, required this.search, required this.onSearch, super.key});
 
   final List<DirectoryMember>? members; // null while loading
   final String filter;
   final ValueChanged<String> onFilter;
   final TextEditingController search;
   final ValueChanged<String> onSearch;
-  final int? results; // shown while a search is typed
 
-  static const segments = [('all', 'All'), ('professionals', 'Pros'), ('companies', 'Companies'), ('managers', 'PMs'), ('businesses', 'Suppliers')];
+  static const segments = [
+    ('all', 'All', Icons.apps_rounded),
+    ('professionals', 'Pros', Icons.engineering_outlined),
+    ('companies', 'Companies', Icons.apartment_rounded),
+    ('managers', 'PMs', Icons.assignment_ind_outlined),
+    ('businesses', 'Suppliers', Icons.local_shipping_outlined),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final all = members ?? const <DirectoryMember>[];
-    int count(String k) => k == 'all' ? all.length : all.where((m) => m.group == k).length;
     final verified = all.isEmpty ? 0.0 : all.where((m) => m.badge != null).length / all.length;
     // open, not boxed: the parts sit straight on the page backdrop
     return Padding(
@@ -37,13 +40,6 @@ class PeopleConsole extends StatelessWidget {
                 'LIVE ON BAID X',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.6, color: Color(0xFFA3A3A3)),
               ),
-              const Spacer(),
-              if (members != null)
-                _CountUp(
-                  value: all.length,
-                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
-                  suffix: all.length == 1 ? ' member' : ' members',
-                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -60,11 +56,11 @@ class PeopleConsole extends StatelessWidget {
             style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800, height: 1.08, letterSpacing: -.9),
           ),
           const SizedBox(height: 18),
-          _Segments(filter: filter, onFilter: onFilter, count: members == null ? null : count),
+          _Segments(filter: filter, onFilter: onFilter),
           const SizedBox(height: 16),
           _VerifiedMeter(share: members == null ? null : verified),
           const SizedBox(height: 16),
-          _SearchField(controller: search, onChanged: onSearch, results: results),
+          _SearchField(controller: search, onChanged: onSearch),
         ],
       ),
     );
@@ -125,27 +121,11 @@ class _LiveDotState extends State<_LiveDot> with SingleTickerProviderStateMixin 
   );
 }
 
-/// A number that counts up from zero when it first appears (still under reduced motion).
-class _CountUp extends StatelessWidget {
-  const _CountUp({required this.value, required this.style, this.suffix = ''});
-  final int value;
-  final TextStyle style;
-  final String suffix;
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    tween: Tween(begin: 0, end: value.toDouble()),
-    duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 900),
-    curve: Curves.easeOutCubic,
-    builder: (context, v, _) => Text('${v.round()}$suffix', style: style.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
-  );
-}
-
 /// Five equal parts; the white highlight slides to the chosen one.
 class _Segments extends StatelessWidget {
-  const _Segments({required this.filter, required this.onFilter, required this.count});
+  const _Segments({required this.filter, required this.onFilter});
   final String filter;
   final ValueChanged<String> onFilter;
-  final int Function(String)? count;
 
   @override
   Widget build(BuildContext context) {
@@ -194,12 +174,12 @@ class _Segments extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AnimatedDefaultTextStyle(
+                          TweenAnimationBuilder<Color?>(
+                            tween: ColorTween(end: i == at ? Colors.black : Colors.white),
                             duration: const Duration(milliseconds: 200),
-                            style: base.merge(TextStyle(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -.4, color: i == at ? Colors.black : Colors.white)),
-                            child: count == null ? const Text('–') : _CountUp(value: count!(segs[i].$1), style: const TextStyle()),
+                            builder: (context, c, _) => Icon(segs[i].$3, size: 21, color: c),
                           ),
-                          const SizedBox(height: 1),
+                          const SizedBox(height: 3),
                           AnimatedDefaultTextStyle(
                             duration: const Duration(milliseconds: 200),
                             style: base.merge(TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: i == at ? const Color(0xFF3A3A3A) : const Color(0xFF9A9A9A))),
@@ -272,10 +252,9 @@ class _VerifiedMeter extends StatelessWidget {
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField({required this.controller, required this.onChanged, required this.results});
+  const _SearchField({required this.controller, required this.onChanged});
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
-  final int? results;
   @override
   Widget build(BuildContext context) => Container(
     height: 50,
@@ -308,15 +287,6 @@ class _SearchField extends StatelessWidget {
             ),
           ),
         ),
-        if (results != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: const Color(0x1FFFFFFF), borderRadius: BorderRadius.circular(99)),
-            child: Text(
-              '$results found',
-              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()]),
-            ),
-          ),
       ],
     ),
   );

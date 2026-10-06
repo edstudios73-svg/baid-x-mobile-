@@ -80,7 +80,7 @@ void main() {
     expect(find.text('Phone number'), findsOneWidget);
   });
 
-  testWidgets('the guest profile offers both sign-in options', (tester) async {
+  testWidgets('Get verified opens the guest profile with both sign-in options', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -91,7 +91,8 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Profile').last);
+    expect(find.text('Chats'), findsNothing, reason: 'visitors have Check and Rates instead');
+    await tester.tap(find.text('Get verified'));
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('I\'m a professional'), findsOneWidget);

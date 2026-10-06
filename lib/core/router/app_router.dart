@@ -18,6 +18,7 @@ import '../../features/directory/presentation/directory_screen.dart';
 import '../../features/home/presentation/main_shell.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/directory/presentation/guest_tools.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../shared/providers/app_providers.dart';
 import '../constants/app_routes.dart';
@@ -134,6 +135,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.discover,
             builder: (context, state) => const DirectoryScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.check,
+            builder: (context, state) => const CheckScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.rates,
+            builder: (context, state) => const RatesScreen(),
           ),
           GoRoute(
             path: AppRoutes.profile,

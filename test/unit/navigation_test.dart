@@ -43,8 +43,8 @@ void main() {
     }
   });
 
-  test('a visitor sees the guest Profile and Chats tabs, like the website', () {
-    for (final path in [AppRoutes.profile, AppRoutes.messages]) {
+  test('a visitor can open Check, Rates and the guest Profile (from Get verified)', () {
+    for (final path in [AppRoutes.check, AppRoutes.rates, AppRoutes.profile, AppRoutes.messages]) {
       expect(
         guardRedirect(
           authLoading: false,
@@ -169,7 +169,7 @@ void main() {
     expect(destinationsFor(AccountType.employer).map((item) => item.label), ['Home', 'Discover', 'Hires', 'Chats', 'Profile']);
     expect(destinationsFor(AccountType.projectManager).map((item) => item.label), ['Home', 'Discover', 'Projects', 'Chats', 'Profile']);
     expect(destinationsFor(AccountType.company).map((item) => item.label), ['Home', 'Workforce', 'Projects', 'Chats', 'Profile']);
-    expect(destinationsFor(null).map((item) => item.label), ['Home', 'Chats', 'Profile']);
+    expect(destinationsFor(null).map((item) => item.label), ['Home', 'Check', 'Rates'], reason: 'visitor tools no member dashboard has');
     for (final type in AccountType.values) {
       expect(destinationsFor(type).length, lessThanOrEqualTo(5));
     }

@@ -9,6 +9,8 @@ abstract final class AppRoutes {
   static const accountType = '/account-type';
   static const home = '/home';
   static const discover = '/discover';
+  static const check = '/check'; // visitors: check a badge
+  static const rates = '/rates'; // visitors: price guide
   static const work = '/work';
   static const myJobs = '/my-jobs';
   static const postJob = '/jobs/new';
