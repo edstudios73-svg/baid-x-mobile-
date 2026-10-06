@@ -62,7 +62,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   // "pro" or "client" from the link, or picked on the entry screen
   String? _group;
   // the side picked on the entry screen; a sign-in from there must match it
-  String? _gate;
+  AccountType? _gate;
   // creating an account always lists all five account types
   var _creating = false;
   String? _welcome;
@@ -281,9 +281,9 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           throw AuthFlowException('That account is a ${type.label} account. Go back and choose ${type.label}.');
         }
         // signed in from the professional or client panel: the account has to belong to that side
-        if (_gate != null && type != null && !_groups[_gate]!.$1.contains(type)) {
+        if (_gate != null && type != null && type != _gate) {
           await _auth.signOut();
-          throw AuthFlowException('That is a ${type.label} account. Go back and use ${_gate == 'pro' ? 'Client' : 'Professional'} sign in.');
+          throw AuthFlowException('That is a ${type.label} account. Go back and use ${type.label} sign in.');
         }
         if (type != null) await _rememberMe();
         if (!mounted) return;
@@ -386,7 +386,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
                               )
                             : const SizedBox.shrink(),
                       ),
-                      if (showBrand) const Padding(padding: EdgeInsets.only(top: 6), child: BrandFrame(size: 92)),
+                      if (showBrand) Padding(padding: const EdgeInsets.only(top: 6), child: BrandFrame(size: _view == _View.entry ? 72 : 92)),
                       Expanded(
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 280),
@@ -510,17 +510,21 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
     );
   }
 
-  void _openGate(String group, {required bool signIn}) => setState(() {
+  void _openGate(AccountType type, {required bool signIn}) => setState(() {
         _intent = false;
         _welcome = null;
+        _group = null;
+        _role = type;
         if (signIn) {
-          _gate = group;
-          _group = group;
-          _role = _roles.first;
+          _gate = type;
           _mode = 'signin';
           _go(_View.signin);
         } else {
-          _openCreate(_groups[group]!.$1.first);
+          // the panel already says which account this is, so creating goes straight to the phone step
+          _gate = null;
+          _creating = false;
+          _mode = 'signup';
+          _go(_View.phone);
         }
       });
 
@@ -536,30 +540,32 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   }
 
   // entry: professional or client, then sign in or create an account
+  // one panel per account type (website auth.js GATES)
+  static const _gateCopy = {
+    AccountType.worker: ('Electricians, masons, plumbers and more', ['Get verified and found', 'Jobs and payouts']),
+    AccountType.company: ('Construction and service companies', ['Run projects', 'Approve every payment']),
+    AccountType.projectManager: ('Run site delivery for companies', ['Crew and tasks', 'Reports and requests']),
+    AccountType.business: ('Materials and equipment for sale or rent', ['Catalog and orders', 'Reach real projects']),
+    AccountType.employer: ('Homeowners hiring for their home', ['Hire verified people', 'Pay through escrow']),
+  };
+
   Widget _entryView() {
     return _page(
       title: 'Welcome to BAID X',
       sub: 'Ghana\'s work network. How will you use it?',
       children: [
-        _Gate(
-          icon: Icons.handyman_outlined,
-          title: 'Professional',
-          sub: 'Workers, project managers and suppliers',
-          chips: const ['Get verified and found', 'Jobs, projects and payouts'],
-          delay: 0,
-          onSignIn: () => _openGate('pro', signIn: true),
-          onCreate: () => _openGate('pro', signIn: false),
-        ),
-        const SizedBox(height: 14),
-        _Gate(
-          icon: Icons.home_outlined,
-          title: 'Client',
-          sub: 'Homeowners and companies hiring',
-          chips: const ['Hire verified people', 'Pay through escrow'],
-          delay: 90,
-          onSignIn: () => _openGate('client', signIn: true),
-          onCreate: () => _openGate('client', signIn: false),
-        ),
+        for (final (i, t) in AccountType.pickerOrder.indexed) ...[
+          if (i > 0) const SizedBox(height: 12),
+          _Gate(
+            icon: _roleIcon(t),
+            title: t.label,
+            sub: _gateCopy[t]!.$1,
+            chips: _gateCopy[t]!.$2,
+            delay: i * 60,
+            onSignIn: () => _openGate(t, signIn: true),
+            onCreate: () => _openGate(t, signIn: false),
+          ),
+        ],
       ],
       foot: [
         TextButton(
@@ -631,7 +637,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   Widget _signinView() {
     return _page(
       title: 'Welcome back',
-      sub: _welcome ?? (_intent ? 'Signing in as ${_role.label}.' : _gate != null ? '${_gate == 'pro' ? 'Professional' : 'Client'} sign-in. Use the phone or email on your account.' : 'Sign in to your BAID X account.'),
+      sub: _welcome ?? (_intent ? 'Signing in as ${_role.label}.' : _gate != null ? '${_gate!.label} sign-in. Use the phone or email on your account.' : 'Sign in to your BAID X account.'),
       children: [
         _Seg(phone: _usePhone, onChanged: (v) => setState(() {
               _usePhone = v;
@@ -868,40 +874,40 @@ class _Gate extends StatelessWidget {
       builder: (context, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 18 * (1 - v)), child: child)),
       child: Glass(
         radius: 26,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(children: [
               Container(
-                width: 50,
-                height: 50,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x55FFFFFF), blurRadius: 24, offset: Offset(0, 10), spreadRadius: -8)]),
                 child: Icon(icon, color: Colors.black, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: AppTextStyles.headline.copyWith(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+                  Text(title, style: AppTextStyles.headline.copyWith(fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -.3)),
                   const SizedBox(height: 2),
-                  Text(sub, style: AppTextStyles.caption.copyWith(fontSize: 13, color: const Color(0xFFCFCFCF))),
+                  Text(sub, style: AppTextStyles.caption.copyWith(fontSize: 12.5, color: const Color(0xFFCFCFCF))),
                 ]),
               ),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Wrap(spacing: 6, runSpacing: 6, children: [
               for (final c in chips)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                   decoration: BoxDecoration(color: const Color(0x14FFFFFF), borderRadius: BorderRadius.circular(99), border: Border.all(color: const Color(0x29FFFFFF))),
-                  child: Text(c, style: AppTextStyles.caption.copyWith(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE6E6E6))),
+                  child: Text(c, style: AppTextStyles.caption.copyWith(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFFE6E6E6))),
                 ),
             ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: PillButton(label: 'Sign in', height: 48, onPressed: onSignIn)),
+              Expanded(child: PillButton(label: 'Sign in', height: 44, onPressed: onSignIn)),
               const SizedBox(width: 10),
-              Expanded(child: PillButton(label: 'Create account', light: false, height: 48, onPressed: onCreate)),
+              Expanded(child: PillButton(label: 'Create account', light: false, height: 44, onPressed: onCreate)),
             ]),
           ],
         ),

@@ -23,12 +23,13 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 1));
 
-    // visitors land on the entry: professional or client, each with sign in and create
+    // visitors land on the entry: one panel per account type, each with sign in and create
     expect(find.text('Welcome to BAID X'), findsOneWidget);
-    expect(find.text('Professional'), findsOneWidget);
-    expect(find.text('Client'), findsOneWidget);
-    expect(find.text('Sign in'), findsNWidgets(2));
-    expect(find.text('Create account'), findsNWidgets(2));
+    for (final t in AccountType.pickerOrder) {
+      expect(find.text(t.label), findsOneWidget);
+    }
+    expect(find.text('Sign in'), findsNWidgets(5));
+    expect(find.text('Create account'), findsNWidgets(5));
 
     // professional sign-in goes straight to the password step
     await tester.tap(find.text('Sign in').first);
@@ -36,7 +37,7 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
   });
 
-  testWidgets('create account lists all five account types', (tester) async {
+  testWidgets('create account on a panel goes straight to the phone step', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -51,10 +52,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Create account').last); // the Client panel
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Create your account'), findsOneWidget);
-    for (final t in AccountType.pickerOrder) {
-      expect(find.text(t.label), findsWidgets);
-    }
+    expect(find.text('Phone number'), findsOneWidget);
   });
 
   testWidgets('the guest profile offers both sign-in options', (tester) async {
