@@ -5,12 +5,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
 
 import 'package:baid_x_mobile/app.dart';
+import 'package:baid_x_mobile/core/constants/app_routes.dart';
+import 'package:baid_x_mobile/core/router/app_router.dart';
 import 'package:baid_x_mobile/core/services/storage_service.dart';
 import 'package:baid_x_mobile/core/theme/app_colors.dart';
 import 'package:baid_x_mobile/core/theme/app_theme.dart';
 import 'package:baid_x_mobile/shared/providers/app_providers.dart';
 
+// the sign-in entry is no longer the first screen in the app; open it as Get verified / Sign in do
+Future<void> _openEntry(WidgetTester tester) async {
+  ProviderScope.containerOf(tester.element(find.byType(BaidXApp))).read(appRouterProvider).go(AppRoutes.signIn);
+  await tester.pump(const Duration(seconds: 1));
+}
+
 void main() {
+  testWidgets('the app opens straight on Home, not the sign-in entry', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          keyValueStoreProvider.overrideWithValue(MemoryKeyValueStore()),
+        ],
+        child: const BaidXApp(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Welcome to BAID X'), findsNothing);
+    expect(find.text('How a badge is earned'), findsOneWidget);
+  });
+
   testWidgets('launch screen offers continue', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -22,6 +45,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 1));
+    await _openEntry(tester);
 
     // visitors land on the entry: one panel per account type, each with sign in and create
     expect(find.text('Welcome to BAID X'), findsOneWidget);
@@ -48,6 +72,7 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 5));
     await tester.pump(const Duration(seconds: 1));
+    await _openEntry(tester);
     await tester.ensureVisible(find.text('Create account').last);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Create account').last); // the Client panel
@@ -65,10 +90,6 @@ void main() {
       ),
     );
     await tester.pump(const Duration(seconds: 5));
-    await tester.pump(const Duration(seconds: 1));
-    await tester.ensureVisible(find.text('Explore BAID X first'));
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('Explore BAID X first'));
     await tester.pump(const Duration(seconds: 1));
     await tester.tap(find.text('Profile').last);
     await tester.pump(const Duration(milliseconds: 500));

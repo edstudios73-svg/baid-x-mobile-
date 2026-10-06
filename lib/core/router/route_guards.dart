@@ -76,8 +76,9 @@ String? guardRedirect({
         pendingJoinToken = t;
         return AppRoutes.signIn;
       }
-      // after the splash, visitors land on the professional / client sign-in entry
-      if (path == AppRoutes.splash) return AppRoutes.signIn;
+      // after the splash, visitors in the app go straight to Home; the account-type
+      // sign-in entry opens only when they choose to sign in or join (website only shows it first)
+      if (path == AppRoutes.splash) return AppRoutes.discover;
       if (_retired(path)) return AppRoutes.discover;
       return isPublic ? null : AppRoutes.signIn;
     case SessionGate.unverified:
