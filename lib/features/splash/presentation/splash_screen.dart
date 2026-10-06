@@ -30,7 +30,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProviderStateMixin {
-  static const _total = 4200; // ms
+  static const _total = 5000; // ms: the opening plays fast, then the bar fills to the end
   late final AnimationController _t = AnimationController(vsync: this, duration: const Duration(milliseconds: _total))..forward();
   late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
   Timer? _release;
@@ -67,17 +67,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
         animation: Listenable.merge([_t, _spin]),
         builder: (context, _) {
           final glow = .55 + .45 * math.sin(_t.value * _total / 3300 * math.pi);
-          final logo = _p(150, 1100, const Cubic(.2, .9, .25, 1.15));
-          final ring = _p(350, 1500, const Cubic(.6, 0, .2, 1));
-          final dash = _p(900, 800, Curves.ease);
-          final orbit = _p(500, 3200, const Cubic(.5, 0, .3, 1));
-          final wipe = _p(1000, 1000, const Cubic(.6, 0, .2, 1));
-          final tag = _p(1600, 900, Curves.ease);
-          final line = _p(1900, 1000, Curves.ease);
-          final by = _p(2100, 800, Curves.ease);
-          final name = _p(2100, 900, Curves.ease);
-          final prog = _p(2300, 1700, Curves.easeInOut);
-          final shimmer = (_t.value * _total / 2200) % 1;
+          final logo = _p(50, 600, const Cubic(.2, .9, .25, 1.15));
+          final ring = _p(150, 800, const Cubic(.6, 0, .2, 1));
+          final dash = _p(450, 500, Curves.ease);
+          final orbit = _p(250, 1800, const Cubic(.5, 0, .3, 1));
+          final wipe = _p(500, 550, const Cubic(.6, 0, .2, 1));
+          final tag = _p(850, 500, Curves.ease);
+          final line = _p(1000, 500, Curves.ease);
+          final by = _p(1100, 450, Curves.ease);
+          final name = _p(1100, 450, Curves.ease);
+          final prog = _p(0, _total - 350, Curves.linear);
+          final bar = _p(100, 300, Curves.ease); // the bar shows at once and fills for the whole 5 seconds
+          final shimmer = (_t.value * _total / 1800) % 1;
           final leave = 1 - _p(_total - 350, 350, Curves.easeIn);
           return Opacity(
             opacity: leave,
@@ -185,7 +186,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
                       ),
                       const SizedBox(height: 20),
                       Opacity(
-                        opacity: by,
+                        opacity: bar,
                         child: Container(
                           width: 120,
                           height: 2,
