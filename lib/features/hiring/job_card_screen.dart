@@ -14,6 +14,7 @@ import '../account/presentation/account_sheets.dart';
 import '../account/presentation/profile_pages.dart' show KV, backHead, field, dropdown;
 import '../tabs/data/tabs_data.dart';
 import '../workspace/presentation/ws_common.dart';
+import 'build_screen.dart' show myBuildProvider;
 import 'hiring_screens.dart';
 
 /// The Digital Job Card (website js/jobcard.js): one record per hired job with
@@ -80,6 +81,7 @@ class JobCardScreen extends ConsumerWidget {
       ref.invalidate(jobCardProvider(id));
       ref.invalidate(myEngagementsProvider);
       ref.invalidate(myJobCardsProvider);
+      ref.invalidate(myBuildProvider);
       ref.invalidate(walletProvider);
       return true;
     } catch (e) {

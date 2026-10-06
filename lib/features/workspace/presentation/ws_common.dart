@@ -336,7 +336,7 @@ class WsInboxCard extends StatelessWidget {
                     Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                   ]),
                 ),
-                WsPill(warn ? 'pending' : null, label: '$count'),
+                if (count > 0) WsPill(warn ? 'pending' : null, label: '$count'),
               ]),
             ),
           ),

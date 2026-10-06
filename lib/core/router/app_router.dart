@@ -24,6 +24,7 @@ import '../constants/app_routes.dart';
 import 'route_guards.dart';
 import '../../features/account/presentation/join_screen.dart';
 import '../../features/hiring/hiring_screens.dart';
+import '../../features/hiring/build_screen.dart';
 import '../../features/hiring/job_card_screen.dart';
 import '../../features/workspace/presentation/invites_approvals.dart';
 import '../../features/workspace/presentation/workspace_screen.dart';
@@ -203,6 +204,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: AppRoutes.approvals, builder: (context, state) => const ApprovalsScreen()),
           GoRoute(path: '${AppRoutes.applicants}/:id', builder: (context, state) => ApplicantsScreen(jobId: state.pathParameters['id']!)),
           GoRoute(path: '${AppRoutes.engagement}/:id', builder: (context, state) => JobCardScreen(id: state.pathParameters['id']!)),
+          GoRoute(path: AppRoutes.build, builder: (context, state) => const BuildScreen()),
           GoRoute(
             path: '${AppRoutes.workspace}/:id',
             builder: (context, state) => WorkspaceScreen(projectId: state.pathParameters['id']!, tab: state.uri.queryParameters['tab']),

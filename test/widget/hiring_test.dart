@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:baid_x_mobile/features/auth/domain/auth_repository.dart';
 import 'package:baid_x_mobile/features/auth/domain/auth_user.dart';
+import 'package:baid_x_mobile/features/hiring/build_screen.dart';
 import 'package:baid_x_mobile/features/hiring/hiring_screens.dart';
 import 'package:baid_x_mobile/features/hiring/job_card_screen.dart';
 import 'package:baid_x_mobile/features/tabs/data/tabs_data.dart';
@@ -104,5 +105,40 @@ void main() {
     expect(find.text('HIRED PROFESSIONALS'), findsOneWidget);
     expect(find.text('Paint the fence'), findsOneWidget);
     expect(find.text('In progress'), findsOneWidget);
+  });
+
+  testWidgets('My build sums the job cards: spent of budget, escrow, waiting sign-offs and jobs', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 2400));
+    await tester.pumpWidget(_wrap(const BuildScreen(), [
+      myBuildProvider.overrideWith((ref) async => <String, dynamic>{
+            'build': {'name': '4-bedroom house', 'location': 'Abuakwa, Kumasi', 'budget_ghs': 450000, 'due_on': '2027-03-31'},
+            'paid': 264000, 'held': 48000, 'progress': 62,
+            'waiting': [{'id': 'e1', 'card_no': 10490, 'title': 'Roof trusses', 'worker': 'Kofi Mensah', 'amount': 22000}],
+            'jobs': [{'id': 'e1', 'card_no': 10490, 'title': 'Roof trusses', 'worker': 'Kofi Mensah', 'status': 'submitted', 'progress': 100, 'amount': 22000}],
+            'photos': <Json>[],
+          }),
+    ]));
+    await tester.pumpAndSettle();
+    expect(find.text('4-bedroom house'), findsOneWidget);
+    expect(find.text('GH₵264,000 of GH₵450,000'), findsOneWidget);
+    expect(find.text('62%'), findsOneWidget);
+    expect(find.text('GH₵312,000'), findsOneWidget, reason: 'committed = paid + held');
+    expect(find.text('GH₵138,000'), findsOneWidget, reason: 'left in budget');
+    expect(find.text('GH₵48,000'), findsOneWidget);
+    expect(find.text('31 Mar 2027'), findsOneWidget);
+    expect(find.text('Sign off: Roof trusses'), findsOneWidget);
+    expect(find.text('JOBS IN THIS BUILD'), findsOneWidget);
+    expect(find.text('Latest from site'.toUpperCase()), findsOneWidget);
+  });
+
+  testWidgets('My build without a build offers to set one up', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 1600));
+    await tester.pumpWidget(_wrap(const BuildScreen(), [
+      myBuildProvider.overrideWith((ref) async => <String, dynamic>{'build': null, 'paid': 0, 'held': 0, 'progress': 0, 'waiting': <Json>[], 'jobs': <Json>[], 'photos': <Json>[]}),
+    ]));
+    await tester.pumpAndSettle();
+    expect(find.text('Set up my build'), findsOneWidget);
+    expect(find.text('Not set'), findsOneWidget);
+    expect(find.text('No jobs yet'), findsOneWidget);
   });
 }
