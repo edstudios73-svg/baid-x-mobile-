@@ -30,7 +30,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProviderStateMixin {
-  static const _total = 5000; // ms: the opening plays fast, then the bar fills to the end
+  static const _total = 4000; // ms: the opening plays fast, then the bar fills to the end
   late final AnimationController _t = AnimationController(vsync: this, duration: const Duration(milliseconds: _total))..forward();
   late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
   Timer? _release;
@@ -111,24 +111,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        width: 150,
-                        height: 150,
+                        width: 124,
+                        height: 124,
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            CustomPaint(size: const Size.square(150), painter: _Ring(draw: ring, dashOpacity: dash, spin: _spin.value, orbit: orbit)),
+                            CustomPaint(size: const Size.square(124), painter: _Ring(draw: ring, dashOpacity: dash, spin: _spin.value, orbit: orbit)),
                             Opacity(
                               opacity: logo.clamp(0, 1),
                               child: Transform.scale(
                                 scale: .6 + .4 * logo,
                                 child: Container(
-                                  width: 92,
-                                  height: 92,
+                                  width: 72,
+                                  height: 72,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(24),
+                                    borderRadius: BorderRadius.circular(19),
                                     boxShadow: const [BoxShadow(color: Color(0x66FFFFFF), spreadRadius: 1), BoxShadow(color: Color(0x2EFFFFFF), blurRadius: 60, offset: Offset(0, 20))],
                                   ),
-                                  child: ClipRRect(borderRadius: BorderRadius.circular(24), child: Image.asset('assets/images/logo/baidx_mark.png', fit: BoxFit.cover)),
+                                  child: ClipRRect(borderRadius: BorderRadius.circular(19), child: Image.asset('assets/images/logo/baidx_mark.png', fit: BoxFit.cover)),
                                 ),
                               ),
                             ),
@@ -140,12 +140,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
                       ClipRect(
                         clipper: _Wipe(wipe),
                         child: SizedBox(
-                          width: 188,
-                          height: 61,
+                          width: 150,
+                          height: 49,
                           child: OverflowBox(
                             alignment: Alignment.topLeft,
-                            maxWidth: 245,
-                            child: Transform.translate(offset: const Offset(-63, 0), child: Image.asset('assets/images/logo/baidx_logo_white.png', width: 245)),
+                            maxWidth: 196,
+                            child: Transform.translate(offset: const Offset(-50, 0), child: Image.asset('assets/images/logo/baidx_logo_white.png', width: 196)),
                           ),
                         ),
                       ),
