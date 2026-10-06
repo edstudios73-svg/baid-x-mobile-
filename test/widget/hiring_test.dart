@@ -7,6 +7,8 @@ import 'package:baid_x_mobile/features/auth/domain/auth_user.dart';
 import 'package:baid_x_mobile/features/hiring/build_screen.dart';
 import 'package:baid_x_mobile/features/hiring/hiring_screens.dart';
 import 'package:baid_x_mobile/features/hiring/house_screen.dart';
+import 'package:baid_x_mobile/features/account/data/profile_data.dart' show supplierCatalogProvider;
+import 'package:baid_x_mobile/features/account/presentation/profile_pages_b.dart' show SupplierScreen;
 import 'package:baid_x_mobile/features/hiring/job_card_screen.dart';
 import 'package:baid_x_mobile/features/tabs/data/tabs_data.dart';
 import 'package:baid_x_mobile/features/tabs/presentation/tab_screens.dart';
@@ -164,5 +166,46 @@ void main() {
     expect(find.text('Add reminder'), findsOneWidget);
     expect(find.text('Electrician · 2 jobs · you rated 5.0'), findsOneWidget);
     expect(find.text('Message'), findsOneWidget);
+  });
+
+  testWidgets('the marketplace shows listings as photo cards, filters by category and opens a gallery', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 2000));
+    await tester.pumpWidget(_wrap(const SupplierScreen(kind: 'equipment'), [
+      supplierCatalogProvider('equipment').overrideWith((ref) async => [
+            {'id': 'a', 'business_id': 'b1', 'business': 'Asafo Plant Hire', 'verified': true, 'town': 'Kumasi', 'name': 'CAT 320 excavator', 'category': 'Excavators', 'daily_rate': 2800, 'condition': 'good', 'description': '20-tonne tracked excavator with operator.', 'images': <String>[]},
+            {'id': 'b', 'business_id': 'b2', 'business': 'Tema Mixers', 'town': 'Tema', 'name': 'Concrete mixer', 'category': 'Mixers', 'daily_rate': 350, 'images': <String>[]},
+          ]),
+    ], type: 'worker'));
+    await tester.pumpAndSettle();
+    expect(find.text('CAT 320 excavator'), findsOneWidget);
+    expect(find.text('Concrete mixer'), findsOneWidget);
+    expect(find.text('Verified'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Mixers'));
+    await tester.pumpAndSettle();
+    expect(find.text('CAT 320 excavator'), findsNothing);
+    await tester.tap(find.widgetWithText(ChoiceChip, 'All'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CAT 320 excavator'));
+    await tester.pumpAndSettle();
+    expect(find.text('No photos yet'), findsOneWidget);
+    expect(find.text('20-tonne tracked excavator with operator.'), findsOneWidget);
+    expect(find.text('Good condition'), findsOneWidget);
+    expect(find.text('Message supplier'), findsOneWidget);
+    expect(find.text('Rent'), findsOneWidget, reason: 'only the price label; workers get no Rent button because ordering through escrow is for companies and clients');
+    expect(find.textContaining('Ordering through escrow is for company and client accounts'), findsOneWidget);
+  });
+
+  testWidgets('companies get Rent on a listing', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 2000));
+    await tester.pumpWidget(_wrap(const SupplierScreen(kind: 'equipment'), [
+      supplierCatalogProvider('equipment').overrideWith((ref) async => [
+            {'id': 'a', 'business_id': 'b1', 'business': 'Asafo Plant Hire', 'name': 'CAT 320 excavator', 'daily_rate': 2800, 'images': <String>[]},
+          ]),
+    ], type: 'company'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CAT 320 excavator'));
+    await tester.pumpAndSettle();
+    expect(find.text('Rent'), findsNWidgets(2), reason: 'price label and the Rent button');
+    expect(find.textContaining('Ordering through escrow'), findsNothing);
   });
 }

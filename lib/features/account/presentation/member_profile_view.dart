@@ -47,6 +47,8 @@ class MemberProfileView extends ConsumerWidget {
         AccountType.worker => [
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
             ('Wallet', 'Earnings, balance and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Materials', 'Building materials from suppliers.', () => context.push(AppRoutes.materials)),
+            ('Equipment', 'Rent or buy machines and tools.', () => context.push(AppRoutes.equipment)),
             ('Career growth', 'Experience, level and certifications.', () => context.push(AppRoutes.growth)),
             ('Portfolio', 'Add completed works with images and descriptions.', () => context.push(AppRoutes.portfolio)),
             ('Certifications', 'Upload trade certificates and licences.', () => context.push(AppRoutes.certs)),
@@ -66,6 +68,8 @@ class MemberProfileView extends ConsumerWidget {
         AccountType.projectManager => [
             ('Edit profile', 'Update profile details.', () => context.push(AppRoutes.checklist)),
             ('Wallet', 'Earnings, balance and withdrawals.', () => context.push(AppRoutes.wallet)),
+            ('Materials', 'Building materials from suppliers.', () => context.push(AppRoutes.materials)),
+            ('Equipment', 'Rent or buy machines and tools.', () => context.push(AppRoutes.equipment)),
             ('Past projects', 'Show projects you have delivered.', () => context.push(AppRoutes.portfolio)),
             ('Certifications', 'Add your project management certificates.', () => context.push(AppRoutes.certs)),
             ('Link a company', 'Join a company with its code.', () => context.push(AppRoutes.teamLink)),

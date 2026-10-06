@@ -15,6 +15,7 @@ import '../../tabs/data/tabs_data.dart';
 import '../data/profile_data.dart';
 import 'account_sheets.dart';
 import 'profile_pages.dart';
+import '../../market/listing_gallery.dart';
 
 /// Profile menu pages, part 2 (website js/billing.js, js/orgs.js,
 /// js/orders.js, js/market.js paymentsView / supplierView).
@@ -272,53 +273,208 @@ class PaymentsScreen extends ConsumerWidget {
 // ======================================================================
 // Equipment and materials from suppliers, with ordering
 // ======================================================================
-class SupplierScreen extends ConsumerWidget {
+class SupplierScreen extends ConsumerStatefulWidget {
   const SupplierScreen({required this.kind, super.key});
   final String kind; // equipment | products
+  @override
+  ConsumerState<SupplierScreen> createState() => _SupplierScreenState();
+}
+
+class _SupplierScreenState extends ConsumerState<SupplierScreen> {
+  var _q = '', _cat = '';
+
+  bool get _eq => widget.kind == 'equipment';
+  num _n(Object? v) => num.tryParse('${v ?? ''}') ?? 0;
+  String _cedis(Object? v) {
+    final n = _n(v);
+    final whole = n.truncate().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+    final frac = n == n.truncateToDouble() ? '' : n.toStringAsFixed(2).split('.').last;
+    return 'GH₵$whole${frac.isEmpty ? '' : '.$frac'}';
+  }
+
+  (String, String) _price(Json i) => _eq
+      ? (_n(i['daily_rate']) > 0 ? (_cedis(i['daily_rate']), '/day') : _n(i['sale_price']) > 0 ? (_cedis(i['sale_price']), '') : ('Ask for price', ''))
+      : (_n(i['price']) > 0 ? (_cedis(i['price']), '') : ('Ask for price', ''));
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final eq = kind == 'equipment';
+  Widget build(BuildContext context) {
+    final eq = _eq;
+    // Watched here so the account type is loaded before a listing opens (it decides Buy/Rent).
+    ref.watch(accountProfileProvider);
     return DashPage<List<Json>>(
       head: backHead(context, eq ? 'Equipment' : 'Materials'),
-      top: [Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(eq ? 'Machines and tools you can rent or buy from suppliers.' : 'Materials from suppliers across Ghana.', style: const TextStyle(fontSize: 13, color: AppColors.muted)))],
-      data: ref.watch(supplierCatalogProvider(kind)),
-      onRefresh: () => ref.refresh(supplierCatalogProvider(kind).future),
-      builder: (list) => list.isEmpty
-          ? [DashEmpty(icon: eq ? Icons.construction_outlined : Icons.inventory_2_outlined, title: 'No ${eq ? 'equipment' : 'materials'} listed yet', text: 'Suppliers list their products here. Check back soon, or find suppliers in Discover.', action: SmallButton('Find suppliers', onPressed: () => context.go(AppRoutes.discover)))]
-          : [
-              for (final i in list)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: SurfaceCard(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Expanded(child: Text('${i['name'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5))),
-                        Text(
-                          eq ? ((num.tryParse('${i['daily_rate'] ?? ''}') ?? 0) > 0 ? '${money(i['daily_rate'])}/day' : (num.tryParse('${i['sale_price'] ?? ''}') ?? 0) > 0 ? money(i['sale_price']) : '') : (i['price'] != null ? money(i['price']) : ''),
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFE8C46A)),
-                        ),
-                      ]),
-                      const SizedBox(height: 4),
-                      Text('${i['business'] ?? ''} · ${i['region'] ?? 'Ghana'}${i['category'] != null ? ' · ${i['category']}' : ''}', style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
-                      if ('${i['description'] ?? ''}'.isNotEmpty) ...[const SizedBox(height: 4), Text('${i['description']}', style: const TextStyle(fontSize: 12.5, color: AppColors.muted))],
-                      const SizedBox(height: 10),
-                      Wrap(spacing: 6, runSpacing: 6, children: [
-                        if (!eq && (num.tryParse('${i['price'] ?? 0}') ?? 0) > 0 && i['quantity'] != 0) SmallButton('Buy', onPressed: () => _order(context, ref, i, 'product', i['price'])),
-                        if (eq && (num.tryParse('${i['daily_rate'] ?? 0}') ?? 0) > 0) SmallButton('Rent', onPressed: () => _order(context, ref, i, 'equipment_rental', i['daily_rate'])),
-                        if (eq && (num.tryParse('${i['sale_price'] ?? 0}') ?? 0) > 0) SmallButton('Buy', onPressed: () => _order(context, ref, i, 'equipment_sale', i['sale_price'])),
-                        SmallButton('Message supplier', light: false, onPressed: () => startConversationWith(context, '${i['business_id']}')),
-                      ]),
-                    ]),
+      data: ref.watch(supplierCatalogProvider(widget.kind)),
+      onRefresh: () => ref.refresh(supplierCatalogProvider(widget.kind).future),
+      builder: (list) {
+        if (list.isEmpty) {
+          return [DashEmpty(icon: eq ? Icons.construction_outlined : Icons.inventory_2_outlined, title: 'No ${eq ? 'equipment' : 'materials'} listed yet', text: 'Suppliers list what they rent and sell here. Check back soon, or find suppliers in Discover.', action: SmallButton('Find suppliers', onPressed: () => context.go(AppRoutes.discover)))];
+        }
+        final cats = {for (final i in list) if ('${i['category'] ?? ''}'.isNotEmpty) '${i['category']}'}.toList()..sort();
+        final q = _q.toLowerCase();
+        final shown = list.where((i) => (_cat.isEmpty || i['category'] == _cat) && (q.isEmpty || '${i['name']} ${i['category'] ?? ''} ${i['business']} ${i['town'] ?? ''} ${i['region'] ?? ''}'.toLowerCase().contains(q))).toList();
+        return [
+          Text(eq ? 'Machines and tools to rent or buy from suppliers across Ghana.' : 'Building materials from suppliers across Ghana.', style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+          const SizedBox(height: 12),
+          TextField(
+            onChanged: (v) => setState(() => _q = v.trim()),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: eq ? 'Search excavators, mixers, scaffolds…' : 'Search cement, blocks, tiles…',
+              prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFBDBDBD)),
+              filled: true,
+              fillColor: const Color(0x12FFFFFF),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: const BorderSide(color: Color(0x2EFFFFFF), width: 1.5)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: const BorderSide(color: Color(0x2EFFFFFF), width: 1.5)),
+            ),
+          ),
+          if (cats.length > 1) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 36,
+              child: ListView(scrollDirection: Axis.horizontal, children: [
+                for (final c in ['', ...cats])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(c.isEmpty ? 'All' : c),
+                      selected: _cat == c,
+                      showCheckmark: false,
+                      onSelected: (_) => setState(() => _cat = c),
+                      labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _cat == c ? Colors.black : Colors.white),
+                      selectedColor: Colors.white,
+                      backgroundColor: const Color(0x0DFFFFFF),
+                      side: BorderSide(color: _cat == c ? Colors.white : const Color(0x38FFFFFF), width: 1.5),
+                      shape: const StadiumBorder(),
+                    ),
                   ),
-                ),
-            ],
+              ]),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (shown.isEmpty)
+            const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Text('Nothing matches. Try another word or category.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13.5, color: AppColors.muted)))
+          else
+            LayoutBuilder(
+              builder: (context, c) {
+                final cols = c.maxWidth >= 700 ? 3 : 2;
+                final w = (c.maxWidth - 12 * (cols - 1)) / cols;
+                return Wrap(spacing: 12, runSpacing: 12, children: [
+                  for (final i in shown)
+                    SizedBox(
+                      width: w,
+                      child: Builder(builder: (context) {
+                        final (p, per) = _price(i);
+                        return ListingCard(item: i, equipment: eq, price: p, per: per, onTap: () => _open(i));
+                      }),
+                    ),
+                ]);
+              },
+            ),
+        ];
+      },
     );
   }
 
-  void _order(BuildContext context, WidgetRef ref, Json item, String kind, Object? price) {
+  void _open(Json i) {
+    final eq = _eq;
+    final type = ref.read(accountProfileProvider).asData?.value?.type;
+    final canOrder = type == AccountType.company || type == AccountType.employer;
+    final accepting = i['accepting'] != false;
+    final imgs = listingImages(i);
+    final cond = '${i['condition'] ?? ''}';
+    final facts = [
+      if ('${i['category'] ?? ''}'.isNotEmpty) '${i['category']}',
+      if (eq && cond.isNotEmpty) '${cond[0].toUpperCase()}${cond.substring(1)} condition',
+      if (!eq && i['quantity'] != null) _n(i['quantity']) > 0 ? '${i['quantity']} in stock' : 'Out of stock',
+    ];
+    Widget priceBox(String label, String value, [String per = '']) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: const Color(0x0FFFFFFF), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0x24FFFFFF), width: 1.5)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(fontSize: 11.5, color: AppColors.muted)),
+          Text.rich(TextSpan(children: [TextSpan(text: value), if (per.isNotEmpty) TextSpan(text: per, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFBDBDBD)))]), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -.3)),
+        ]),
+      ),
+    );
+    final prices = <Widget>[
+      if (eq && _n(i['daily_rate']) > 0) priceBox('Rent', _cedis(i['daily_rate']), '/day'),
+      if (eq && _n(i['sale_price']) > 0) priceBox('Buy', _cedis(i['sale_price'])),
+      if (!eq && _n(i['price']) > 0) priceBox('Price', _cedis(i['price'])),
+    ];
+    showGlassSheet(
+      context,
+      title: '${i['name'] ?? ''}',
+      child: Flexible(
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            ListingGallery(images: imgs, equipment: eq, title: '${i['name'] ?? ''}'),
+            const SizedBox(height: 16),
+            Row(children: [for (final (k, w) in (prices.isEmpty ? [priceBox('Price', 'Ask the supplier')] : prices).indexed) ...[if (k > 0) const SizedBox(width: 10), w]]),
+            if (facts.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final f in facts)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(color: const Color(0x12FFFFFF), borderRadius: BorderRadius.circular(99), border: Border.all(color: const Color(0x24FFFFFF))),
+                    child: Text(f, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  ),
+              ]),
+            ],
+            if ('${i['description'] ?? ''}'.isNotEmpty) ...[const SizedBox(height: 12), Text('${i['description']}', style: const TextStyle(fontSize: 14, height: 1.55, color: Color(0xFFD6D6D6)))],
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0x0DFFFFFF), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0x1FFFFFFF))),
+              child: Row(children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(color: const Color(0xFF262626), borderRadius: BorderRadius.circular(12)),
+                  child: '${i['logo'] ?? ''}'.isNotEmpty ? Image.network('${i['logo']}', fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.storefront_outlined, color: Color(0xFFBDBDBD))) : const Icon(Icons.storefront_outlined, color: Color(0xFFBDBDBD)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Flexible(child: Text('${i['business'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+                      if (i['verified'] == true) ...[const SizedBox(width: 6), const StatusPill('open', label: 'Verified')],
+                    ]),
+                    Text([i['town'], i['region']].where((v) => v != null && '$v'.isNotEmpty).join(', ').ifEmpty('Ghana'), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 14),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              if (canOrder && accepting && !eq && _n(i['price']) > 0 && i['quantity'] != 0) SmallButton('Buy', onPressed: () => _order(i, 'product', i['price'])),
+              if (canOrder && accepting && eq && _n(i['daily_rate']) > 0) SmallButton('Rent', onPressed: () => _order(i, 'equipment_rental', i['daily_rate'])),
+              if (canOrder && accepting && eq && _n(i['sale_price']) > 0) SmallButton('Buy', onPressed: () => _order(i, 'equipment_sale', i['sale_price'])),
+              SmallButton('Message supplier', light: false, onPressed: () => startConversationWith(context, '${i['business_id']}')),
+            ]),
+            if (!canOrder || !accepting)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(!canOrder ? 'Ordering through escrow is for company and client accounts. Message the supplier to ask about price and delivery.' : 'This supplier isn\'t taking orders right now. Message them to ask.', style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.5)),
+              ),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _order(Json item, String kind, Object? price) {
+    Navigator.of(context).pop();
     showGlassSheet(context, title: kind == 'equipment_rental' ? 'Rent equipment' : 'Place order', child: _OrderSheet(item: item, kind: kind, price: num.tryParse('$price') ?? 0));
   }
+}
+
+extension on String {
+  String ifEmpty(String other) => isEmpty ? other : this;
 }
 
 class _OrderSheet extends ConsumerStatefulWidget {

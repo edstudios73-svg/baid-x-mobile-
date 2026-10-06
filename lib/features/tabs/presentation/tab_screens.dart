@@ -9,13 +9,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/providers/app_providers.dart';
 import '../../../shared/widgets/baid_ui.dart';
 import '../../../shared/widgets/dash_ui.dart';
-import '../../account/data/account_actions.dart';
 import '../../account/domain/account_setup.dart';
 import '../../account/presentation/account_sheets.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../account_type/domain/role_categories.dart';
 import '../../account/presentation/profile_pages.dart' show SecLabel;
 import '../../hiring/hiring_screens.dart';
+import '../../market/listing_gallery.dart';
 import '../data/tabs_data.dart';
 
 /// The dashboard tabs from the website (js/dash.js, js/market.js,
@@ -325,6 +325,15 @@ class _CatalogTabScreenState extends ConsumerState<CatalogTabScreen> {
     }
   }
 
+  void _photos(Json i) {
+    final seg = _seg;
+    showGlassSheet(
+      context,
+      title: 'Photos · ${i['name'] ?? 'Item'}',
+      child: ListingPhotosSheet(table: seg == 'equipment' ? 'business_equipment' : 'business_products', id: '${i['id']}', initial: listingImages(i), onChanged: () => ref.invalidate(catalogTabProvider(seg))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final eq = _seg == 'equipment';
@@ -347,8 +356,10 @@ class _CatalogTabScreenState extends ConsumerState<CatalogTabScreen> {
                   : null,
               icon: eq ? Icons.construction_outlined : Icons.inventory_2_outlined,
               title: '${i['name'] ?? 'Item'}',
-              sub: '${i['category'] ?? 'Uncategorised'}${(i['price'] ?? i['daily_rate']) != null ? ' · ${money(i['price'] ?? i['daily_rate'])}${eq ? '/day' : ''}' : ''}',
+              sub: '${i['category'] ?? 'Uncategorised'}${(i['price'] ?? i['daily_rate']) != null ? ' · ${money(i['price'] ?? i['daily_rate'])}${eq ? '/day' : ''}' : ''} · ${listingImages(i).length} photo${listingImages(i).length == 1 ? '' : 's'}',
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                SmallButton('Photos', light: false, onPressed: () => _photos(i)),
+                const SizedBox(width: 6),
                 StatusPill(i['available'] == false ? '' : 'open', label: i['available'] == false ? 'Hidden' : 'Listed'),
                 const SizedBox(width: 6),
                 SmallButton(i['available'] == false ? 'Show' : 'Hide', light: false, onPressed: () => _toggle(i)),
@@ -375,7 +386,7 @@ class _AddItem extends StatefulWidget {
 class _AddItemState extends State<_AddItem> {
   final _name = TextEditingController(), _cat = TextEditingController(), _price = TextEditingController(), _qty = TextEditingController(), _desc = TextEditingController();
   String _condition = 'good';
-  PlatformFile? _img;
+  List<PlatformFile> _imgs = const [];
   bool _busy = false;
 
   @override
@@ -391,13 +402,12 @@ class _AddItemState extends State<_AddItem> {
     if (_name.text.trim().isEmpty) return toast(context, 'Give it a name.');
     setState(() => _busy = true);
     try {
-      final c = SupabaseConfig.client!, uid = c.auth.currentUser!.id, a = AccountActions();
-      String? img;
-      if (_img != null) img = a.publicUrl('listing-images', await a.upload('listing-images', await _img!.readAsBytes(), _img!.name, 'item'));
+      final c = SupabaseConfig.client!, uid = c.auth.currentUser!.id;
+      final imgs = await uploadListingPhotos([for (final f in _imgs.take(maxListingPhotos)) (await f.readAsBytes(), f.name)]);
       final eq = widget.seg == 'equipment';
       final row = eq
-          ? {'business_id': uid, 'name': _name.text.trim(), 'category': _cat.text.trim().ifEmptyNull, 'daily_rate': num.tryParse(_price.text), 'condition': _condition, 'available': true, 'status': 'available', 'image_urls': [?img]}
-          : {'business_id': uid, 'name': _name.text.trim(), 'category': _cat.text.trim().ifEmptyNull, 'price': num.tryParse(_price.text), 'quantity': num.tryParse(_qty.text), 'description': _desc.text.trim().ifEmptyNull, 'listing_type': 'sale', 'available': true, 'status': 'in_stock', 'image_urls': [?img]};
+          ? {'business_id': uid, 'name': _name.text.trim(), 'category': _cat.text.trim().ifEmptyNull, 'daily_rate': num.tryParse(_price.text), 'condition': _condition, 'description': _desc.text.trim().ifEmptyNull, 'available': true, 'status': 'available', 'image_urls': imgs}
+          : {'business_id': uid, 'name': _name.text.trim(), 'category': _cat.text.trim().ifEmptyNull, 'price': num.tryParse(_price.text), 'quantity': num.tryParse(_qty.text), 'description': _desc.text.trim().ifEmptyNull, 'listing_type': 'sale', 'available': true, 'status': 'in_stock', 'image_urls': imgs};
       await c.from(eq ? 'business_equipment' : 'business_products').insert(row);
       widget.onSaved();
       if (!mounted) return;
@@ -419,7 +429,7 @@ class _AddItemState extends State<_AddItem> {
           _Field('Category', _cat),
           _Field(eq ? 'Daily rate (GH₵)' : 'Price (GH₵)', _price, number: true),
           if (!eq) _Field('Quantity', _qty, number: true),
-          if (!eq) _Field('Description', _desc, lines: 3),
+          _Field('Description', _desc, lines: 3),
           if (eq)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -432,10 +442,10 @@ class _AddItemState extends State<_AddItem> {
               ),
             ),
           Row(children: [
-            Expanded(child: Text(_img?.name ?? 'Photo (optional)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: AppColors.muted))),
+            Expanded(child: Text(_imgs.isEmpty ? 'Photos · up to $maxListingPhotos. Buyers see the first one first.' : '${_imgs.length} photo${_imgs.length == 1 ? '' : 's'} chosen', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: AppColors.muted))),
             SmallButton('Choose', light: false, onPressed: () async {
-              final f = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['jpg', 'jpeg', 'png', 'webp']);
-              if (f != null) setState(() => _img = f);
+              final f = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['jpg', 'jpeg', 'png', 'webp']);
+              if (f.isNotEmpty) setState(() => _imgs = f.take(maxListingPhotos).toList());
             }),
           ]),
           const SizedBox(height: 16),
