@@ -12,6 +12,7 @@ import '../../account/data/profile_data.dart';
 import '../../account/presentation/account_sheets.dart';
 import '../../account/presentation/profile_pages.dart' show KV, SecLabel;
 import '../../tabs/data/tabs_data.dart';
+import '../../hiring/job_card_screen.dart';
 import '../data/workspace_data.dart';
 import 'ws_common.dart';
 import 'ws_forms.dart';
@@ -154,6 +155,7 @@ class _OverviewTab extends ConsumerWidget {
           count: waiting,
           onTap: () => context.push(AppRoutes.approvals),
         ),
+      if (role == 'company' || role == 'pm') ProjectJobCards(pid: pid),
       WsCard(title: 'About this project', children: [
         if ('${ov['description'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('${ov['description']}', style: const TextStyle(fontSize: 13.5, height: 1.45))),
         KV('Company', '${company['name'] ?? ''}'),
