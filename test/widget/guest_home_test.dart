@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:baid_x_mobile/features/directory/data/directory_repository.dart';
 import 'package:baid_x_mobile/features/directory/presentation/directory_screen.dart';
+import 'package:baid_x_mobile/features/directory/presentation/people_console.dart';
 import 'package:baid_x_mobile/shared/providers/app_providers.dart';
 import 'package:baid_x_mobile/features/directory/presentation/guest_home_hero.dart';
 
@@ -47,5 +48,20 @@ void main() {
     expect(find.text('Based in'), findsOneWidget);
     expect(find.text('3–5'), findsOneWidget);
     expect(find.byType(Image), findsOneWidget, reason: 'the cover photo is shown');
+  });
+
+  testWidgets('people console: real counts per group, verified share, filter taps and search count', (t) async {
+    DirectoryMember m(String g, String id, {String? badge}) => DirectoryMember(group: g, kind: 'worker', id: id, name: id, tag: '', place: 'Accra', desc: '', stats: const [], badge: badge);
+    final members = [m('professionals', 'a', badge: 'verified'), m('professionals', 'b'), m('companies', 'c', badge: 'verified'), m('businesses', 'd')];
+    String? picked;
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(body: SingleChildScrollView(child: PeopleConsole(members: members, filter: 'all', onFilter: (k) => picked = k, search: TextEditingController(), onSearch: (_) {}, results: 2))),
+    ));
+    await t.pump(const Duration(seconds: 2)); // the live dot pulses forever, so wait out the count-up instead of settling
+    expect(find.text('4 members'), findsOneWidget);
+    expect(find.text('50%'), findsOneWidget, reason: 'two of four are verified');
+    expect(find.text('2 found'), findsOneWidget);
+    await t.tap(find.text('Suppliers'));
+    expect(picked, 'businesses');
   });
 }

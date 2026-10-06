@@ -17,6 +17,7 @@ import '../data/directory_repository.dart';
 import '../../workspace/presentation/ws_forms.dart' show openInvite;
 import 'directory_filters.dart';
 import 'guest_home_hero.dart';
+import 'people_console.dart';
 import 'member_sheet.dart';
 
 /// The website's member directory (index.html #screen-directory): Home for
@@ -127,28 +128,16 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                       sliver: SliverList.list(
                         children: [
                           SizedBox(height: signedIn ? 18 : 56),
-                          const _PeopleHeader(),
-                          const SizedBox(height: 16),
-                          _Search(controller: _q, onChanged: (_) => setState(() {})),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 40,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: directoryChips.length,
-                              separatorBuilder: (_, _) => const SizedBox(width: 8),
-                              itemBuilder: (context, i) {
-                                final (k, label) = directoryChips[i];
-                                return _Chip(
-                                  label: label,
-                                  on: _filter == k,
-                                  onTap: () => setState(() {
-                                    _filter = k;
-                                    _f = DirFilter(region: _f.region);
-                                  }),
-                                );
-                              },
-                            ),
+                          PeopleConsole(
+                            members: data.asData?.value,
+                            filter: _filter,
+                            onFilter: (k) => setState(() {
+                              _filter = k;
+                              _f = DirFilter(region: _f.region);
+                            }),
+                            search: _q,
+                            onSearch: (_) => setState(() {}),
+                            results: q.isEmpty ? null : data.asData?.value.let((all) => applyDirFilter(all, _filter, _f, q).length),
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -195,87 +184,6 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The start of the members section, set apart from the trust stack above it.
-class _PeopleHeader extends StatelessWidget {
-  const _PeopleHeader();
-  @override
-  Widget build(BuildContext context) => const Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'On BAID X',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFA3A3A3)),
-      ),
-      SizedBox(height: 4),
-      Text('People and companies you can trust', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.1, letterSpacing: -.6)),
-      SizedBox(height: 6),
-      Text('Professionals, companies, project managers and suppliers across Ghana. Search by name, trade or town.', style: TextStyle(fontSize: 13.5, height: 1.45, color: Color(0xFF9A9A9A))),
-    ],
-  );
-}
-
-class _Search extends StatelessWidget {
-  const _Search({required this.controller, required this.onChanged});
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: const Color(0x0AFFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.lineGlass),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 14),
-          const Icon(Icons.search, size: 22, color: Color(0xFF9A9A9A)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              style: AppTextStyles.body.copyWith(fontSize: 15, fontWeight: FontWeight.w400),
-              decoration: const InputDecoration(hintText: 'Search', filled: false, isCollapsed: true, border: InputBorder.none, enabledBorder: InputBorder.none, focusedBorder: InputBorder.none),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.on, required this.onTap});
-  final String label;
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: on ? Colors.white : const Color(0x0AFFFFFF),
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: on ? Colors.white : AppColors.lineGlass),
-          boxShadow: on ? const [BoxShadow(color: Color(0x8CFFFFFF), blurRadius: 30, spreadRadius: -10, offset: Offset(0, 10))] : null,
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.label.copyWith(fontSize: 13.5, fontWeight: FontWeight.w600, color: on ? Colors.black : const Color(0xFFCFD2D8)),
-        ),
       ),
     );
   }
@@ -618,4 +526,8 @@ class _State extends StatelessWidget {
       ),
     );
   }
+}
+
+extension _Let<T> on T {
+  R let<R>(R Function(T) f) => f(this);
 }
