@@ -14,6 +14,7 @@ import '../../account_type/domain/account_type.dart';
 import '../data/directory_repository.dart';
 import '../../workspace/presentation/ws_forms.dart' show openInvite;
 import 'directory_filters.dart';
+import 'guest_home_hero.dart';
 import 'member_sheet.dart';
 
 /// The website's member directory (index.html #screen-directory): Home for
@@ -57,9 +58,11 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
     final data = ref.watch(directoryProvider);
     final q = _q.text.trim().toLowerCase();
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
+      body: Stack(fit: StackFit.expand, children: [
+        if (!signedIn) const BlueprintBackdrop(),
+        SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
           color: Colors.black,
           backgroundColor: Colors.white,
           onRefresh: () => ref.refresh(directoryProvider.future),
@@ -95,7 +98,14 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                         PillButton(label: 'Get verified', expand: false, height: 40, onPressed: () => context.push('${AppRoutes.signUp}?group=pro')),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                ]),
+              ),
+              // visitors: the website landing's trust stack folds into one card as they scroll
+              if (!signedIn) const GuestTrustStackSliver(),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                sliver: SliverList.list(children: [
+                  SizedBox(height: signedIn ? 14 : 8),
                   _Search(controller: _q, onChanged: (_) => setState(() {})),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -114,7 +124,6 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (!signedIn) const _GuestHero(),
                 ]),
               ),
               ...data.when(
@@ -150,7 +159,8 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
             ],
           ),
         ),
-      ),
+        ),
+      ]),
     );
   }
 }
@@ -351,35 +361,4 @@ class _State extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Signed-out Home intro (website `.g-hero`): what BAID X does differently.
-class _GuestHero extends StatelessWidget {
-  const _GuestHero();
-  @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.lineGlass)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Hire verified people. Pay only when the work is done.', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.25, letterSpacing: -.2)),
-          const SizedBox(height: 12),
-          for (final (t, d) in const [
-            ('Ghana Card checked', 'Every profile is reviewed by BAID X before it shows a badge.'),
-            ('Money held safely', 'Your payment waits in escrow until you approve the work.'),
-            ('Run the whole job', 'Projects, crews, materials and payments in one place.'),
-          ])
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.only(left: 12),
-              decoration: const BoxDecoration(border: Border(left: BorderSide(color: Colors.white, width: 2))),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(t, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-                Text(d, style: const TextStyle(fontSize: 12.5, color: AppColors.muted)),
-              ]),
-            ),
-          const SizedBox(height: 4),
-          PillButton(label: 'Get started', height: 46, onPressed: () => context.push(AppRoutes.signUp)),
-        ]),
-      );
 }
