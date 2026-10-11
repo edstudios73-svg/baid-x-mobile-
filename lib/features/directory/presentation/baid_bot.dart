@@ -110,12 +110,13 @@ class _BotSheetState extends ConsumerState<_BotSheet> {
   }
 
   void _toEnd() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scroll.hasClients)
+    if (_scroll.hasClients) {
       _scroll.animateTo(
         _scroll.position.maxScrollExtent,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
+    }
   });
 
   Future<void> _ask(String text) async {
