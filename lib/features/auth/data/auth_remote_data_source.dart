@@ -106,16 +106,22 @@ class AuthRemoteDataSource {
     if (user == null) throw const AuthFlowException('Your session expired. Sign in again.');
     // no email is assigned at sign-up: members add their own from the profile
     final values = switch (type) {
-      AccountType.worker => {'full_name': name, 'phone_number': phone, 'primary_job_category_id': ?category?.id},
-      AccountType.company => {'company_name': name, 'contact_phone': phone, 'industry_sector': ?category?.id},
-      AccountType.projectManager => {'full_name': name, 'phone_number': phone, 'specialization': ?category?.id},
-      AccountType.business => {'business_name': name, 'contact_person_name': name, 'contact_phone': phone, 'specialty': ?category?.name},
-      AccountType.employer => {'full_name': name, 'phone_number': phone, 'profile_sections': {'need_category': ?category?.name}},
+      AccountType.worker => {'full_name': name, 'phone_number': ?_orNull(phone), 'primary_job_category_id': ?category?.id},
+      AccountType.company => {'company_name': name, 'contact_phone': ?_orNull(phone), 'industry_sector': ?category?.id},
+      AccountType.projectManager => {'full_name': name, 'phone_number': ?_orNull(phone), 'specialization': ?category?.id},
+      AccountType.business => {'business_name': name, 'contact_person_name': name, 'contact_phone': ?_orNull(phone), 'specialty': ?category?.name},
+      AccountType.employer => {'full_name': name, 'phone_number': ?_orNull(phone), 'profile_sections': {'need_category': ?category?.name}},
     };
     try {
       await _client.from(type.table).insert({'id': user.id, ...values});
     } on PostgrestException catch (e) {
-      if (e.code != '23505') rethrow; // a retry after a dropped connection: the profile already exists
+      if (e.code != '23505') rethrow;
+      // A duplicate is fine only when it is this user's own profile (a retry after a dropped
+      // connection). Otherwise another account already holds this phone number.
+      final mine = await _client.from(type.table).select('id').eq('id', user.id).maybeSingle();
+      if (mine == null) {
+        throw const AuthFlowException('This phone number is already on another BAID X account. Sign in with that number instead.');
+      }
     }
   }
 
@@ -125,6 +131,21 @@ class AuthRemoteDataSource {
 
   Future<void> updatePassword(String password) {
     return _client.auth.updateUser(UserAttributes(password: password));
+  }
+
+  Future<void> changePassword({required String current, required String next}) async {
+    final email = _safeUser()?.email;
+    if (email == null || email.isEmpty) {
+      throw const AuthFlowException('This account has no password yet. Sign out and use "Forgot password" to set one.');
+    }
+    // signing in again proves the current password and gives a fresh session, so the change
+    // is never refused as needing reauthentication (phone accounts can't receive that email)
+    try {
+      await _client.auth.signInWithPassword(email: email, password: current);
+    } on AuthException {
+      throw const AuthFlowException("Your current password isn't right.");
+    }
+    await _client.auth.updateUser(UserAttributes(password: next));
   }
 
   Future<void> resendVerification(String email) {
@@ -158,3 +179,6 @@ class AuthRemoteDataSource {
     );
   }
 }
+
+/// A blank phone is stored as "not given", never as an empty string (the column is unique).
+String? _orNull(String v) => v.trim().isEmpty ? null : v.trim();

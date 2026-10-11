@@ -66,6 +66,10 @@ abstract class AuthRepository {
 
   Future<void> sendPasswordReset(String email);
   Future<void> updatePassword(String password);
+
+  /// Signed-in password change: re-checks [current] (which also refreshes the session, so
+  /// Supabase never asks for reauthentication), then sets [next].
+  Future<void> changePassword({required String current, required String next});
   Future<void> resendVerification(String email);
   Future<void> signOut();
 }

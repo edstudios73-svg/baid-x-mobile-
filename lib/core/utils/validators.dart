@@ -31,14 +31,18 @@ abstract final class Validators {
     return null;
   }
 
-  /// Ghana mobile number: 0XXXXXXXXX or +233XXXXXXXXX (the server normalises it).
-  static String? ghanaPhone(String? value) {
-    final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
-    final ok = (digits.length == 10 && digits.startsWith('0')) ||
-        (digits.length == 12 && digits.startsWith('233')) ||
-        digits.length == 9;
-    return ok ? null : 'Enter a valid Ghana mobile number.';
+  /// A Ghana number as +233XXXXXXXXX, or null. Accepts 020 607 1106, 20 607 1106,
+  /// +233 20 607 1106, 233…, 00233… and +233 0…; the 9 digits after 233 start with 2, 3 or 5,
+  /// the same rule as the website (js/auth.js) and the server (api/_lib/sasusync/phone.js).
+  static String? ghanaE164(String? value) {
+    var d = (value ?? '').replaceAll(RegExp(r'\D'), '').replaceFirst(RegExp(r'^00'), '');
+    if (d.startsWith('233') && d.length > 10) d = d.substring(3);
+    d = d.replaceFirst(RegExp(r'^0+'), '');
+    return RegExp(r'^[235]\d{8}$').hasMatch(d) ? '+233$d' : null;
   }
+
+  /// Ghana mobile number in any of the forms [ghanaE164] accepts.
+  static String? ghanaPhone(String? value) => ghanaE164(value) == null ? 'Enter a valid Ghana mobile number.' : null;
 
   /// Same rule as the website: 8+ characters, a letter, a number, and a capital letter or a symbol.
   static String? strongPassword(String? value) {

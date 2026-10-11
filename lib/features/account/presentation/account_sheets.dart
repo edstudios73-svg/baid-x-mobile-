@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException, UserAttributes;
 
 import '../../../core/config/supabase_config.dart';
+import '../../../core/constants/app_routes.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
@@ -188,11 +190,12 @@ class _ChangePassword extends ConsumerStatefulWidget {
 }
 
 class _ChangePasswordState extends ConsumerState<_ChangePassword> {
-  final _a = TextEditingController(), _b = TextEditingController();
+  final _cur = TextEditingController(), _a = TextEditingController(), _b = TextEditingController();
   bool _busy = false;
 
   @override
   void dispose() {
+    _cur.dispose();
     _a.dispose();
     _b.dispose();
     super.dispose();
@@ -200,12 +203,14 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
 
   Future<void> _save() async {
     if (_busy) return;
+    if (_cur.text.isEmpty) return toast(context, 'Enter your current password.');
     final weak = Validators.strongPassword(_a.text);
     if (weak != null) return toast(context, weak);
     if (_a.text != _b.text) return toast(context, "The two passwords don't match.");
+    if (_a.text == _cur.text) return toast(context, 'Choose a password different from your current one.');
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).updatePassword(_a.text);
+      await ref.read(authRepositoryProvider).changePassword(current: _cur.text, next: _a.text);
       if (!mounted) return;
       Navigator.of(context).pop();
       toast(context, 'Password updated');
@@ -217,10 +222,24 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
 
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        TextField(controller: _a, obscureText: true, decoration: const InputDecoration(labelText: 'New password', helperText: 'At least 8 characters.')),
+        TextField(controller: _cur, obscureText: true, autofillHints: const [AutofillHints.password], textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Current password')),
         const SizedBox(height: 12),
-        TextField(controller: _b, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm new password')),
+        TextField(controller: _a, obscureText: true, autofillHints: const [AutofillHints.newPassword], textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'New password', helperText: '8+ characters with a letter, a number, and a capital letter or symbol.', helperMaxLines: 2)),
+        const SizedBox(height: 12),
+        TextField(controller: _b, obscureText: true, autofillHints: const [AutofillHints.newPassword], textInputAction: TextInputAction.done, onSubmitted: (_) => _save(), decoration: const InputDecoration(labelText: 'Confirm new password')),
         const SizedBox(height: 16),
         PillButton(label: 'Update password', loading: _busy, onPressed: _busy ? null : _save),
+        TextButton(
+          onPressed: _busy
+              ? null
+              : () async {
+                  // a forgotten password is reset with an SMS code from the signed-out screen
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).pop();
+                  await ref.read(authRepositoryProvider).signOut();
+                  router.go(AppRoutes.forgotPassword);
+                },
+          child: const Text('Forgot your current password?'),
+        ),
       ]);
 }

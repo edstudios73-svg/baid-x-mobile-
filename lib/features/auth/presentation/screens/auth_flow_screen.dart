@@ -214,7 +214,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
 
   // ---------- actions ----------
   Future<void> _sendCode() => _run(() async {
-        await _auth.startPhoneCode(phone: _phone.text.trim(), purpose: _mode == 'reset' ? PhoneCodePurpose.reset : PhoneCodePurpose.signup);
+        await _auth.startPhoneCode(phone: _e164(_phone.text), purpose: _mode == 'reset' ? PhoneCodePurpose.reset : PhoneCodePurpose.signup);
         _code.clear();
         _startResend();
         if (_view != _View.code) _go(_View.code);
@@ -237,7 +237,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       _error = null;
     });
     try {
-      await _auth.verifyPhoneCode(phone: _phone.text.trim(), code: _code.text);
+      await _auth.verifyPhoneCode(phone: _e164(_phone.text), code: _code.text);
       ref.read(pendingPhoneProvider.notifier).set(_phone.text.trim());
       HapticFeedback.mediumImpact();
       setState(() => _otpState = _OtpState.ok);
@@ -264,7 +264,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           final bad = Validators.ghanaPhone(_siPhone.text);
           if (bad != null) throw AuthFlowException(bad);
           if (_siPass.text.isEmpty) throw const AuthFlowException('Enter your password.');
-          await _auth.signInWithPhone(phone: _siPhone.text.trim(), password: _siPass.text);
+          await _auth.signInWithPhone(phone: _e164(_siPhone.text), password: _siPass.text);
         } else {
           final bad = Validators.email(_email.text);
           if (bad != null) throw const AuthFlowException('Enter a valid email address.');
@@ -318,13 +318,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         if (mounted) context.go(_role.homePath);
       });
 
-  static String _e164(String raw) {
-    final d = raw.replaceAll(RegExp(r'\D'), '');
-    if (d.isEmpty) return '';
-    if (d.startsWith('233')) return '+$d';
-    if (d.startsWith('0')) return '+233${d.substring(1)}';
-    return '+233$d';
-  }
+  static String _e164(String raw) => Validators.ghanaE164(raw) ?? '';
 
   // ---------- layout ----------
   @override
