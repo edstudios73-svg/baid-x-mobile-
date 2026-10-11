@@ -323,7 +323,7 @@ class _TopCard extends StatelessWidget {
                 children: [
                   Text('Kwame A.', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
                   Text(
-                    'Electrician · East Legon',
+                    'Example · Electrician',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11.5, color: Color(0xFFA3A3A3)),

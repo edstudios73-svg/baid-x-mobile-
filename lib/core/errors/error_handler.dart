@@ -31,7 +31,8 @@ abstract final class ErrorHandler {
     if (text.contains('socket') ||
         text.contains('network') ||
         text.contains('failed host lookup') ||
-        text.contains('connection')) {
+        text.contains('connection') ||
+        text.contains('timeout')) {
       return const NetworkException(
         'Couldn\'t reach BAID X. Check your connection and try again.',
       );

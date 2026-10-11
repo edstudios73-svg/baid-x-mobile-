@@ -83,18 +83,26 @@ void main() {
     expect(shown, ['p0', 'p1', 'p2', 'p3', 'c0'], reason: 'members with a written description come first; at most 4 per type');
   });
 
-  test('price guide: middle rate and range per trade, by region; badge check by name', () {
-    DirectoryMember w(String id, String trade, double? rate, String region) =>
-        DirectoryMember(group: 'professionals', kind: 'worker', id: id, name: id, tag: trade, place: region, desc: '', stats: const [], rate: rate, region: region);
-    final all = [w('Ama Owusu', 'Electrician', 200, 'Ashanti'), w('Kofi', 'Electrician', 300, 'Greater Accra'), w('Yaw', 'Electrician', 250, 'Greater Accra'), w('Esi', 'Mason', 150, 'Greater Accra'), w('Abena', 'Mason', null, 'Volta')];
+  test('price guide: a trade needs 3 rates, odd rates are dropped; badge check finds verified members only', () {
+    DirectoryMember w(String id, String trade, double? rate, String region, {String? badge}) =>
+        DirectoryMember(group: 'professionals', kind: 'worker', id: id, name: id, tag: trade, place: region, desc: '', stats: const [], rate: rate, region: region, badge: badge);
+    final all = [
+      w('Ama Owusu', 'Electrician', 200, 'Ashanti', badge: 'identity'),
+      w('Kofi', 'Electrician', 300, 'Greater Accra'),
+      w('Yaw', 'Electrician', 250, 'Greater Accra'),
+      w('Kwesi', 'Electrician', 2500, 'Greater Accra'),
+      w('Esi', 'Mason', 150, 'Greater Accra'),
+      w('Efua', 'Mason', 160, 'Greater Accra'),
+      w('Abena', 'Mason', null, 'Volta'),
+      w('Ama Owoo', 'Plumber', 180, 'Volta'),
+    ];
     final ghana = tradeRates(all);
-    expect(ghana.map((r) => r.trade), ['Electrician', 'Mason']);
-    expect([ghana.first.median, ghana.first.low, ghana.first.high], [250, 200, 300]);
-    final accra = tradeRates(all, region: 'Greater Accra');
-    expect(accra.first.median, 275);
-    expect(rateRegions(all), ['Ashanti', 'Greater Accra'], reason: 'only regions with a rate');
-    expect(checkMembers(all, 'a').map((m) => m.id), isEmpty, reason: 'two letters or more');
-    expect(checkMembers(all, 'ow').map((m) => m.id), ['Ama Owusu']);
+    expect(ghana.map((r) => r.trade), ['Electrician'], reason: 'Mason and Plumber have fewer than 3 rates');
+    expect([ghana.first.median, ghana.first.low, ghana.first.high], [250, 200, 300], reason: 'GH₵2,500 is over 3 times the middle and is dropped');
+    expect(tradeRates(all, region: 'Greater Accra'), isEmpty, reason: 'only 2 steady electrician rates in Greater Accra');
+    expect(rateRegions(all), isEmpty, reason: 'no region has a trade with 3 rates');
+    expect(checkMembers(all, 'ow').map((m) => m.id), isEmpty, reason: 'three letters or more');
+    expect(checkMembers(all, 'ama ow').map((m) => m.id), ['Ama Owusu'], reason: 'unverified Ama Owoo is not listed');
   });
 
   testWidgets('BAID Bot: opens from the button, sends a suggested question, shows the answer', (t) async {

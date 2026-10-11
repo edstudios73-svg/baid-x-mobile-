@@ -142,7 +142,7 @@ final directoryProvider = FutureProvider<List<DirectoryMember>>((ref) async {
   final parts = await Future.wait(_sources.values.map((s) async {
     final rows = await client.from(s.table).select('${s.cols},created_at').or('account_status.is.null,account_status.eq.active').order('created_at', ascending: true).limit(100);
     return [for (final r in rows) (DateTime.tryParse('${r['created_at'] ?? ''}'), s.map(r))];
-  }));
+  })).timeout(const Duration(seconds: 8)); // a slow network shows "couldn't load", not a spinner for ever
   final all = parts.expand((e) => e).toList()
     ..sort((a, b) => (a.$1 ?? DateTime(2100)).compareTo(b.$1 ?? DateTime(2100)));
   return [for (final e in all) e.$2.withJoined(e.$1)];
@@ -180,6 +180,13 @@ class TradeRate {
   final double high;
 }
 
+/// A trade shows in the price guide only with at least this many rates, after rates far
+/// from the middle (under a third or over three times it) are dropped, so one odd rate
+/// can't set the guide. Same rule as the website's js/landing.js.
+const minRateSamples = 3;
+
+double _middle(List<double> v) => v.length.isOdd ? v[v.length ~/ 2] : (v[v.length ~/ 2 - 1] + v[v.length ~/ 2]) / 2;
+
 /// Daily rates by trade from what professionals set on BAID X, optionally in one
 /// region. Shows the middle rate and the range; never how many people are behind it.
 List<TradeRate> tradeRates(List<DirectoryMember> all, {String? region}) {
@@ -190,26 +197,34 @@ List<TradeRate> tradeRates(List<DirectoryMember> all, {String? region}) {
     if (region != null && (m.region ?? '').toLowerCase() != region.toLowerCase()) continue;
     by.putIfAbsent(m.tag, () => []).add(r);
   }
-  final out = [
+  final out = <TradeRate>[
     for (final e in by.entries)
-      () {
-        final v = [...e.value]..sort();
-        final mid = v.length.isOdd ? v[v.length ~/ 2] : (v[v.length ~/ 2 - 1] + v[v.length ~/ 2]) / 2;
-        return TradeRate(trade: e.key, median: mid, low: v.first, high: v.last);
-      }(),
+      if (_steady(e.value) case final v? when v.length >= minRateSamples)
+        TradeRate(trade: e.key, median: _middle(v), low: v.first, high: v.last),
   ]..sort((a, b) => a.trade.toLowerCase().compareTo(b.trade.toLowerCase()));
   return out;
 }
 
-/// Regions that have at least one professional with a daily rate, for the guide's filter.
-List<String> rateRegions(List<DirectoryMember> all) =>
-    {for (final m in all) if (m.kind == 'worker' && (m.rate ?? 0) > 0 && (m.region ?? '').trim().isNotEmpty) m.region!.trim()}.toList()..sort();
+List<double>? _steady(List<double> rates) {
+  final all = [...rates]..sort();
+  if (all.isEmpty) return null;
+  final m0 = _middle(all);
+  return all.where((r) => r >= m0 / 3 && r <= m0 * 3).toList();
+}
 
-/// The badge check: members whose name matches what was typed (two letters or more).
+/// Regions with at least one trade in the price guide, for the guide's filter.
+List<String> rateRegions(List<DirectoryMember> all) => {
+      for (final m in all)
+        if (m.kind == 'worker' && (m.rate ?? 0) > 0 && (m.region ?? '').trim().isNotEmpty) m.region!.trim()
+    }.where((r) => tradeRates(all, region: r).isNotEmpty).toList()
+      ..sort();
+
+/// The badge check: verified members whose name matches what was typed (three letters
+/// or more). It answers "has BAID X verified this person?", not "who is on BAID X".
 List<DirectoryMember> checkMembers(List<DirectoryMember> all, String query) {
   final q = query.trim().toLowerCase();
-  if (q.length < 2) return const [];
-  final hits = all.where((m) => m.name.toLowerCase().contains(q)).toList()
+  if (q.length < 3) return const [];
+  final hits = all.where((m) => m.badge != null && m.name.toLowerCase().contains(q)).toList()
     ..sort((a, b) => (a.name.toLowerCase().startsWith(q) ? 0 : 1) - (b.name.toLowerCase().startsWith(q) ? 0 : 1));
-  return hits.take(20).toList();
+  return hits.take(8).toList();
 }

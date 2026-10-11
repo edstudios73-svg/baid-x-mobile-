@@ -137,7 +137,7 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
       children: [
         _Field(controller: _q, hint: 'Their full name', onChanged: (_) => setState(() {})),
         const SizedBox(height: 18),
-        if (q.length < 2) ...const [
+        if (q.length < 3) ...const [
           _Note(icon: Icons.verified_outlined, title: 'A badge is earned, not bought', body: 'Badges come from checks a person at BAID X has done: profile, Ghana Card, trade and background.'),
           _Note(icon: Icons.lock_outline, title: 'Pay through escrow', body: 'On BAID X the money waits safely until you approve the work. Never send cash upfront to someone you have not checked.'),
           _Note(icon: Icons.badge_outlined, title: 'Ask for their BAID X name', body: 'The name on their profile is the one to search here, the same as on their Ghana Card.'),
@@ -151,8 +151,8 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
                 return const [
                   _Note(
                     icon: Icons.report_gmailerrorred_outlined,
-                    title: 'No one by that name is on BAID X',
-                    body: 'Check the spelling. If they still don\'t appear, they are not on BAID X: be careful before paying them, and ask them to join and get verified.',
+                    title: 'No verified member by that name',
+                    body: 'Check the spelling and use the full name on their profile. If they still don\'t appear, BAID X has not verified them: be careful before paying, and hire through escrow.',
                   ),
                 ];
               }
@@ -248,7 +248,7 @@ class _RatesScreenState extends ConsumerState<RatesScreen> {
               ),
             const SizedBox(height: 16),
             if (rates.isEmpty)
-              const _Note(icon: Icons.payments_outlined, title: 'No rates here yet', body: 'Rates appear as professionals add their daily rate. Try All Ghana.')
+              const _Note(icon: Icons.payments_outlined, title: 'Not enough rates here yet', body: 'A trade appears once several professionals have set a daily rate, so one rate never sets the guide. Try All Ghana.')
             else
               for (final r in rates) _RateRow(rate: r, top: top),
             const SizedBox(height: 6),

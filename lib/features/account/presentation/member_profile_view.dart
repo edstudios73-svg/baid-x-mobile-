@@ -130,7 +130,8 @@ class MemberProfileView extends ConsumerWidget {
                 ('User guide', 'How to use BAID X, step by step, for every role.', () => web('docs.html')),
                 ('Terms of service', 'Read our service terms.', () => web('terms.html')),
                 ('Privacy policy', 'Read how we handle your information.', () => web('privacy.html')),
-                ('About BAID X', 'Product and company information.', () => web('about.html')),
+                ('Contact us', 'info@baidencreatives.org · +233 20 607 1106', () => web('contact.html')),
+                ('About BAID X', 'An organization under Baiden Creatives.', () => web('about.html')),
               ]),
               const SizedBox(height: 10),
               _LogOut(onTap: () async {

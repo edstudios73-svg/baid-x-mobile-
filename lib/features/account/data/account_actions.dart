@@ -56,7 +56,7 @@ class AccountActions {
     if (email.endsWith('.invalid')) throw const AuthFlowException('Use your own email address.');
     try {
       // flagged so the website mirrors only an email the member added themselves
-      await _c.auth.updateUser(UserAttributes(email: email, data: {'email_added': true}), emailRedirectTo: 'https://baid-x-website.vercel.app/index.html');
+      await _c.auth.updateUser(UserAttributes(email: email, data: {'email_added': true}), emailRedirectTo: 'https://www.baid-x.com/index.html');
     } on AuthException catch (e) {
       final m = e.message.toLowerCase();
       if (m.contains('already') || m.contains('registered') || m.contains('exists')) throw const AuthFlowException('That email is already used by another account.');

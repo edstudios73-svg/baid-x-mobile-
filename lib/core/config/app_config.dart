@@ -24,7 +24,7 @@ abstract final class AppConfig {
   /// its server so the app never holds a secret.
   static const webBase = String.fromEnvironment(
     'BAIDX_WEB_URL',
-    defaultValue: 'https://baid-x-website.vercel.app',
+    defaultValue: 'https://www.baid-x.com',
   );
 
   /// Where the website API is called from. The web build is hosted by the
