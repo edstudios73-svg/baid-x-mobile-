@@ -158,10 +158,12 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
             KV('Refund deadline', '${_date(refund.toIso8601String())} (7 days from activation)'),
             const SizedBox(height: 10),
             const Note('You can stop renewal at any time and keep paid access until the end of the period. If a payment fails you get 7 days of grace. Nothing is ever deleted.'),
-            PillButton(label: 'Pay ${cedi(plan['price_minor'], plan['currency'])} with Paystack', onPressed: () async {
+            PillButton(label: 'Pay ${cedi(plan['price_minor'], plan['currency'])}', onPressed: () async {
               Navigator.of(context).pop();
-              await openPaystack(context, () => rpcCall('billing_start_checkout', {'p_plan': plan['id'], 'p_org': null}));
+              await openPaystack(context, () => rpcCall('billing_start_checkout', {'p_plan': plan['id'], 'p_org': null}), interval: annual ? 'annual' : 'monthly');
             }),
+            const SizedBox(height: 6),
+            const Text('Next, choose Mobile Money, bank or card.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
             const SizedBox(height: 8),
             const Text('Access starts only after Paystack confirms your payment to BAID X.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: AppColors.muted)),
           ]),
@@ -183,6 +185,32 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
         ]),
       );
 
+  /// Website buyService for a job boost: choose which open job to boost.
+  Future<void> _boostJob(Json x) async {
+    final col = ref.read(accountProfileProvider).asData?.value?.type == AccountType.company ? 'company_id' : 'employer_id';
+    final uid = sb.auth.currentUser?.id;
+    if (uid == null) return;
+    final jobs = asList(await sb.from('jobs').select('id,title').eq(col, uid).eq('status', 'open').order('created_at', ascending: false).limit(20));
+    if (!mounted) return;
+    if (jobs.isEmpty) return toast(context, 'Post a job first, then boost it.');
+    await showGlassSheet(
+      context,
+      title: '${x['label'] ?? 'Job boost'}',
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('Choose the job to boost.', style: TextStyle(fontSize: 13, color: AppColors.muted)),
+        const SizedBox(height: 10),
+        for (final j in jobs)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: PillButton(label: '${j['title'] ?? 'Job'}', light: false, onPressed: () async {
+              Navigator.of(context).pop();
+              await openPaystack(context, () => rpcCall('billing_start_service', {'p_kind': 'boost', 'p_code': x['code'], 'p_target': {'target_id': j['id']}, 'p_org': null}));
+            }),
+          ),
+      ]),
+    );
+  }
+
   static const _kind = {'verification': 'Verification', 'boost': 'Boosts', 'xid': 'Digital ID', 'promotion': 'Promotions'};
   List<Widget> _services(BillingData b) {
     if (b.services.isEmpty) return const [Text('No services are available for your account type yet.', style: TextStyle(color: AppColors.muted, fontSize: 13))];
@@ -193,7 +221,7 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
       out.add(SecLabel(_kind[k]!));
       for (final x in list) {
         final meta = x['metadata'] is Map ? x['metadata'] as Map : const {};
-        final later = k == 'promotion' || meta['target'] == 'project' || meta['target'] == 'business_listing' || meta['target'] == 'job';
+        final later = k == 'promotion' || meta['target'] == 'project' || meta['target'] == 'business_listing';
         final hours = num.tryParse('${x['duration_hours'] ?? 0}') ?? 0;
         out.add(DashRow(
           icon: k == 'verification' ? Icons.verified_outlined : k == 'boost' ? Icons.bolt_outlined : k == 'xid' ? Icons.badge_outlined : Icons.campaign_outlined,
@@ -204,12 +232,12 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
             const SizedBox(height: 4),
             later
                 ? const Text('From your listing', style: TextStyle(fontSize: 11, color: AppColors.muted))
-                : SmallButton('Buy', onPressed: () => openPaystack(context, () => rpcCall('billing_start_service', {'p_kind': k, 'p_code': x['code'], 'p_target': <String, dynamic>{}, 'p_org': null}))),
+                : SmallButton(k == 'boost' ? 'Boost' : k == 'xid' ? 'Get' : 'Buy', onPressed: () => meta['target'] == 'job' ? _boostJob(x) : openPaystack(context, () => rpcCall('billing_start_service', {'p_kind': k, 'p_code': x['code'], 'p_target': <String, dynamic>{}, 'p_org': null}))),
           ]),
         ));
       }
     }
-    out.add(const Padding(padding: EdgeInsets.only(top: 8), child: Text('Secure payment with Paystack · Mobile Money or card', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: AppColors.muted))));
+    out.add(const Padding(padding: EdgeInsets.only(top: 8), child: Text('Secure payment with Paystack · Mobile Money, bank or card', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: AppColors.muted))));
     return out;
   }
 

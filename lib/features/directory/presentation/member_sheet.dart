@@ -5,6 +5,7 @@ import '../../../core/config/supabase_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/baid_ui.dart';
+import '../../../shared/widgets/verified_badge.dart';
 import '../../account/presentation/account_sheets.dart';
 import '../data/directory_repository.dart';
 
@@ -34,6 +35,7 @@ Future<void> showMemberSheet(BuildContext context, {required DirectoryMember mem
                 Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 4, children: [
                   Text(m.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                   if (m.badge != null) const Pill('Verified', tone: PillTone.ok),
+                  if (m.planLabel != null) PlanMark(m.planLabel!),
                 ]),
                 const SizedBox(height: 3),
                 Text('${m.tag} · ${m.place}', style: TextStyle(fontSize: 12.5, color: AppColors.muted)),

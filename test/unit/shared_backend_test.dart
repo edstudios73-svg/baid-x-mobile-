@@ -6,6 +6,8 @@ import 'package:baid_x_mobile/core/utils/validators.dart';
 import 'package:baid_x_mobile/features/account/presentation/profile_pages_b.dart' show accessPlanText;
 import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
 import 'package:baid_x_mobile/features/account_type/domain/role_categories.dart';
+import 'package:baid_x_mobile/features/directory/data/directory_repository.dart';
+import 'package:baid_x_mobile/features/tabs/data/tabs_data.dart' show featureBoostedJobs;
 
 void main() {
   test('the app uses the same backend as the website', () {
@@ -96,5 +98,42 @@ void main() {
     expect(accessPlanText('company'), contains('1 open job post at a time'));
     expect(accessPlanText('individual-employer'), contains('1 open job post at a time'));
     expect(accessPlanText('business'), isNot(contains('job')));
+  });
+
+  test('Discover ranks boosted, then paid plans, then verified, then earliest (website rankMembers)', () {
+    DirectoryMember m(String id, {String? badge, int day = 1}) => DirectoryMember(
+          group: 'professionals', kind: 'worker', id: id, name: id, tag: '', place: 'Accra', desc: '', stats: const [], badge: badge, joined: DateTime(2026, 1, day));
+    final list = [m('old', day: 1), m('verified', badge: 'verified', day: 2), m('pro', day: 3), m('premium', day: 4), m('boosted', day: 5)];
+    final promo = {
+      'members': [
+        {'id': 'pro', 'tier': 'pro'},
+        {'id': 'premium', 'tier': 'premium'},
+      ],
+      'boosts': [
+        {'type': 'worker_profile', 'id': 'boosted'},
+        {'type': 'job', 'id': 'old'}, // a job boost never lifts a profile
+      ],
+    };
+    final ranked = rankMembers(list, promo);
+    expect(ranked.map((x) => x.id), ['boosted', 'premium', 'pro', 'verified', 'old']);
+    expect(ranked.firstWhere((x) => x.id == 'pro').planLabel, 'Pro');
+    expect(ranked.firstWhere((x) => x.id == 'old').planLabel, isNull);
+    expect(rankMembers(list, const {}).map((x) => x.id), ['verified', 'old', 'pro', 'premium', 'boosted']);
+  });
+
+  test('boosted jobs come first and are marked (website jobsView)', () {
+    final jobs = [
+      {'id': 'a', 'title': 'Newest'},
+      {'id': 'b', 'title': 'Wall Tilling'},
+      {'id': 'c', 'title': 'Older'},
+    ];
+    final out = featureBoostedJobs(jobs, {
+      'boosts': [
+        {'type': 'job', 'id': 'b'},
+      ],
+    });
+    expect(out.map((j) => j['id']), ['b', 'a', 'c']);
+    expect(out.first['boosted'], isTrue);
+    expect(out[1]['boosted'], isFalse);
   });
 }

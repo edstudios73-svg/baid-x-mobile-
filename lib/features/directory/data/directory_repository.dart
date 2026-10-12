@@ -22,6 +22,8 @@ class DirectoryMember {
     this.catId,
     this.joined,
     this.rate,
+    this.plan,
+    this.boosted = false,
   });
 
   final String group; // companies | professionals | managers | businesses
@@ -39,8 +41,17 @@ class DirectoryMember {
   final String? catId; // what Discover's Category filter matches (website catId)
   final DateTime? joined;
   final double? rate; // a professional's daily rate in GH₵, for the price guide
+  final String? plan; // pro | premium | enterprise while they pay for a plan (the card's plan mark)
+  final bool boosted; // a paid profile boost is running (Featured)
 
-  DirectoryMember withJoined(DateTime? at) => DirectoryMember(group: group, kind: kind, id: id, name: name, tag: tag, place: place, desc: desc, stats: stats, image: image, cover: cover, badge: badge, region: region, catId: catId, joined: at, rate: rate);
+  DirectoryMember withJoined(DateTime? at) => copyWith(joined: at);
+
+  DirectoryMember copyWith({DateTime? joined, String? plan, bool? boosted}) => DirectoryMember(
+        group: group, kind: kind, id: id, name: name, tag: tag, place: place, desc: desc, stats: stats, image: image, cover: cover, badge: badge,
+        region: region, catId: catId, joined: joined ?? this.joined, rate: rate, plan: plan ?? this.plan, boosted: boosted ?? this.boosted);
+
+  /// "Pro", "Premium" or "Enterprise" for the plan mark beside the name.
+  String? get planLabel => plan == null ? null : '${plan![0].toUpperCase()}${plan!.substring(1)}';
 
   static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -134,18 +145,53 @@ extension _Let<T> on T {
   R let<R>(R Function(T) f) => f(this);
 }
 
-/// Every active member, the earliest to join first: people who came to BAID X
-/// first are shown first (same order as the website).
+const _planRank = {'enterprise': 3, 'premium': 2, 'pro': 1};
+
+/// Discover order, same as the website's rankMembers: boosted profiles, then paid
+/// plans (Enterprise, Premium, Pro), then verified members, then the earliest to join.
+/// [promo] is the public `promoted()` result: {members: [{id, tier}], boosts: [{type, id}]}.
+List<DirectoryMember> rankMembers(List<DirectoryMember> list, Map promo) {
+  final plans = {for (final m in (promo['members'] as List? ?? const [])) if (m is Map) '${m['id']}': '${m['tier']}'};
+  final boosted = {
+    for (final b in (promo['boosts'] as List? ?? const []))
+      if (b is Map && !const ['job', 'project', 'business_listing'].contains(b['type'])) '${b['id']}',
+  };
+  final out = [for (final m in list) m.copyWith(plan: plans[m.id], boosted: boosted.contains(m.id))];
+  int cmp(DirectoryMember a, DirectoryMember b) {
+    if (a.boosted != b.boosted) return a.boosted ? -1 : 1;
+    final p = (_planRank[b.plan] ?? 0) - (_planRank[a.plan] ?? 0);
+    if (p != 0) return p;
+    if ((a.badge != null) != (b.badge != null)) return a.badge != null ? -1 : 1;
+    return (a.joined ?? DateTime(2100)).compareTo(b.joined ?? DateTime(2100));
+  }
+  // List.sort isn't stable; ties keep their place by index
+  final idx = {for (final (i, m) in out.indexed) m: i};
+  out.sort((a, b) { final c = cmp(a, b); return c != 0 ? c : idx[a]! - idx[b]!; });
+  return out;
+}
+
+/// Who pays for a plan and what is boosted right now (public by design: it is what
+/// the Pro mark and Featured placement show). Empty on any error.
+Future<Map> fetchPromoted() async {
+  try {
+    final r = await SupabaseConfig.client?.rpc('promoted');
+    return r is Map ? r : const {};
+  } catch (_) {
+    return const {};
+  }
+}
+
+/// Every active member in Discover order (see [rankMembers]); same as the website.
 final directoryProvider = FutureProvider<List<DirectoryMember>>((ref) async {
   final client = SupabaseConfig.client;
   if (client == null) throw const ConfigurationException('BAID X is not connected yet.');
+  final promo = fetchPromoted();
   final parts = await Future.wait(_sources.values.map((s) async {
     final rows = await client.from(s.table).select('${s.cols},created_at').or('account_status.is.null,account_status.eq.active').order('created_at', ascending: true).limit(100);
     return [for (final r in rows) (DateTime.tryParse('${r['created_at'] ?? ''}'), s.map(r))];
   })).timeout(const Duration(seconds: 8)); // a slow network shows "couldn't load", not a spinner for ever
-  final all = parts.expand((e) => e).toList()
-    ..sort((a, b) => (a.$1 ?? DateTime(2100)).compareTo(b.$1 ?? DateTime(2100)));
-  return [for (final e in all) e.$2.withJoined(e.$1)];
+  final all = [for (final e in parts.expand((e) => e)) e.$2.withJoined(e.$1)];
+  return rankMembers(all, await promo);
 });
 
 /// What signed-out visitors see on Home: up to [perGroup] members of each type, only

@@ -12,6 +12,7 @@ import '../../../shared/widgets/member_ui.dart';
 import '../../../shared/widgets/verified_badge.dart';
 import '../../account_type/domain/account_type.dart';
 import '../../auth/domain/auth_repository.dart';
+import '../data/profile_data.dart' show myPlanProvider;
 import '../domain/account_setup.dart';
 import 'account_sheets.dart';
 
@@ -189,6 +190,11 @@ class _Header extends StatelessWidget {
               Row(children: [
                 Flexible(child: Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -.4))),
                 if (tier != null) ...[const SizedBox(width: 6), VerifiedBadge(tier, size: 19)],
+                // your paid plan's mark, as others see it on your card
+                Consumer(builder: (_, ref, _) {
+                  final plan = ref.watch(myPlanProvider).asData?.value;
+                  return plan == null ? const SizedBox.shrink() : Padding(padding: const EdgeInsets.only(left: 6), child: PlanMark('${plan[0].toUpperCase()}${plan.substring(1)}'));
+                }),
               ]),
               if (phone.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 3), child: Text(phone, style: TextStyle(fontSize: 13, color: AppColors.muted))),
               const SizedBox(height: 10),

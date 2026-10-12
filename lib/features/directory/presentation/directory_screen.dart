@@ -269,6 +269,7 @@ class MemberCard extends ConsumerWidget {
                         child: _Cover(url: m.cover, name: m.name),
                       ),
                       Positioned(top: 12, right: 12, child: _GlassTag(m.kindLabel.toUpperCase())),
+                      if (m.boosted) const Positioned(top: 12, left: 12, child: _GlassTag('FEATURED', bright: true)),
                       Positioned(
                         left: 16,
                         bottom: 0,
@@ -307,6 +308,7 @@ class MemberCard extends ConsumerWidget {
                             ),
                           ),
                           if (m.badge != null) ...[const SizedBox(width: 6), VerifiedBadge(m.badge, size: 18)],
+                          if (m.planLabel != null) ...[const SizedBox(width: 6), PlanMark(m.planLabel!)],
                         ],
                       ),
                       const SizedBox(height: 2),
@@ -421,8 +423,9 @@ class _Cover extends StatelessWidget {
 }
 
 class _GlassTag extends StatelessWidget {
-  const _GlassTag(this.label);
+  const _GlassTag(this.label, {this.bright = false});
   final String label;
+  final bool bright; // Featured (a paid boost): lighter glass, like the website's .m-feat
   @override
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(99),
@@ -431,9 +434,9 @@ class _GlassTag extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0x59000000),
+          color: bright ? const Color(0x29FFFFFF) : const Color(0x59000000),
           borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: const Color(0x40FFFFFF)),
+          border: Border.all(color: bright ? const Color(0x66FFFFFF) : const Color(0x40FFFFFF)),
         ),
         child: Text(
           label,

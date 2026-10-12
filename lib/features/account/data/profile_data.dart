@@ -67,9 +67,10 @@ final walletProvider = FutureProvider<WalletData>((ref) async {
 
 /// Starts a Paystack checkout for a reference made by a database function and
 /// returns the secure payment page to open.
-Future<String> paystackUrl(String reference) async {
+/// [method] is momo, bank or card: Paystack then opens on that option only.
+Future<String> paystackUrl(String reference, {String? method}) async {
   final token = sb.auth.currentSession?.accessToken;
-  final j = await WebApi().post('/api/paystack-initialize', {'reference': reference}, token: token);
+  final j = await WebApi().post('/api/paystack-initialize', {'reference': reference, 'method': ?method}, token: token);
   final url = j['authorization_url'];
   if (url is! String || url.isEmpty) throw const AuthFlowException('Couldn\'t reach Paystack. Nothing was charged.');
   return url;
@@ -136,6 +137,16 @@ class BillingData {
   final Json? slots;
   final Json summary;
 }
+
+/// The signed-in member's paid plan tier (pro, premium, enterprise), or null on
+/// the free Access plan. Shown as the plan mark on their own profile.
+final myPlanProvider = FutureProvider<String?>((ref) async {
+  _follow(ref);
+  final uid = sb.auth.currentUser?.id;
+  if (uid == null) return null;
+  final r = asMap(await sb.rpc('effective_plan', params: {'p_user': uid, 'p_org': null}));
+  return r['paid'] == true ? '${r['tier']}' : null;
+});
 
 final billingProvider = FutureProvider<BillingData>((ref) async {
   _follow(ref);

@@ -115,14 +115,90 @@ Future<bool> runAction(BuildContext context, Future<void> Function() fn, {String
   }
 }
 
-Future<void> openPaystack(BuildContext context, Future<dynamic> Function() start) async {
+/// Website METHODS: how the member pays. Paystack then opens on that option only.
+const payMethods = [
+  ('momo', 'Mobile Money', 'MTN MoMo, Telecel Cash or AirtelTigo Money', Icons.phone_iphone_outlined),
+  ('bank', 'Bank', 'Pay from your bank account', Icons.account_balance_outlined),
+  ('card', 'Card', 'Visa or Mastercard', Icons.credit_card_outlined),
+];
+
+/// Website methodSheet. [interval] is set for a plan: card renews by itself,
+/// Mobile Money and bank pay for one period at a time.
+Future<String?> choosePayMethod(BuildContext context, {String? interval}) async {
+  String? picked;
+  final period = interval == 'annual' ? 'year' : 'month';
+  await showGlassSheet(
+    context,
+    title: 'How do you want to pay?',
+    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      for (final (key, label, sub, icon) in payMethods)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: PayMethodTile(icon: icon, label: label, sub: sub, onTap: () {
+            picked = key;
+            Navigator.of(context).pop();
+          }),
+        ),
+      if (interval != null)
+        Text('Card renews automatically each $period. With Mobile Money or bank you pay for one $period and renew from Plans & billing; we remind you before it ends.', style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4)),
+      const SizedBox(height: 8),
+      const Text('Paid securely through Paystack. BAID X never sees your PIN or card number.', style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4)),
+    ]),
+  );
+  return picked;
+}
+
+class PayMethodTile extends StatelessWidget {
+  const PayMethodTile({super.key, required this.icon, required this.label, required this.sub, required this.onTap});
+  final IconData icon;
+  final String label;
+  final String sub;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: const Color(0x0FFFFFFF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0x24FFFFFF))),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(color: const Color(0x1AFFFFFF), borderRadius: BorderRadius.circular(13)),
+                  child: Icon(icon, size: 22, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(sub, style: const TextStyle(fontSize: 12.5, color: Color(0x9EFFFFFF))),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, size: 20, color: Color(0x8CFFFFFF)),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+Future<void> openPaystack(BuildContext context, Future<dynamic> Function() start, {String? interval}) async {
   // the sheet that called this is usually closing; keep the app's root screen and providers instead
   final root = Navigator.of(context, rootNavigator: true).context;
   final container = ProviderScope.containerOf(context, listen: false);
+  final method = await choosePayMethod(root, interval: interval);
+  if (method == null || !root.mounted) return;
   try {
     final ck = asMap(await start());
     final reference = '${ck['reference']}';
-    final url = await paystackUrl(reference);
+    final url = await paystackUrl(reference, method: method);
     // confirm the payment ourselves when the payer comes back, so it activates even if Paystack's webhook is late
     if (root.mounted) _PaystackReturn.watch(root, container, reference);
     await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -224,7 +300,7 @@ class WalletScreen extends ConsumerWidget {
     'worker': 'Clients pay when they hire you and your money lands here once the work is approved. You can withdraw it to Mobile Money any time.',
     'business': 'When a customer\'s order is delivered and confirmed, the payment lands here. You can withdraw it to Mobile Money any time.',
     'project-manager': 'Your project fees land here when the client approves the work. You can withdraw them to Mobile Money any time.',
-    'individual-employer': 'Add money with Paystack (Mobile Money or card), then pay for work and products from your balance. Money held for a job is only released when you approve it.',
+    'individual-employer': 'Add money with Paystack (Mobile Money, bank or card), then pay for work and products from your balance. Money held for a job is only released when you approve it.',
     'company': 'Companies both pay and get paid: add money to fund hires and projects, and withdraw what you earn from work you deliver.',
   };
   static const _role = {'worker': 'Professional', 'company': 'Company', 'project-manager': 'Project manager', 'business': 'Supplier', 'individual-employer': 'Client'};
@@ -385,7 +461,7 @@ class _DepositState extends State<_Deposit> {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('Pay securely with Paystack by Mobile Money or card. Your balance updates the moment the payment is confirmed.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
+      const Text('Pay securely with Paystack by Mobile Money, bank or card. Your balance updates the moment the payment is confirmed.', style: TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4)),
       const SizedBox(height: 12),
       TextField(
         controller: _amount,

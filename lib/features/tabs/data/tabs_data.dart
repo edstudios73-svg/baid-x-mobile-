@@ -60,14 +60,28 @@ class JobsTab {
   final Map<String, String> applied; // job id -> application status
 }
 
+/// Website jobsView: boosted jobs (a paid boost, from the public `promoted()`) come
+/// first and carry `boosted: true`; otherwise the newest first.
+List<Json> featureBoostedJobs(List<Json> jobs, Map promo) {
+  final boosted = {
+    for (final b in (promo['boosts'] as List? ?? const []))
+      if (b is Map && b['type'] == 'job') '${b['id']}',
+  };
+  final out = [for (final j in jobs) {...j, 'boosted': boosted.contains('${j['id']}')}];
+  final top = [for (final j in out) if (j['boosted'] == true) j];
+  return [...top, for (final j in out) if (j['boosted'] != true) j];
+}
+
 final jobsTabProvider = FutureProvider<JobsTab>((ref) async {
   _followAccount(ref);
   final c = _client(), uid = _uid();
-  final r = await Future.wait([
+  final r = await Future.wait<dynamic>([
     c.from('jobs').select('id,title,description,job_category_id,city_town,region,daily_rate_ghs,workers_needed,created_at').eq('status', 'open').order('created_at', ascending: false).limit(50),
     c.from('job_applications').select('job_id,status').eq('worker_id', uid).limit(200),
+    c.rpc('promoted').then((v) => v, onError: (_) => const {}),
   ]);
-  return JobsTab(r[0], {for (final a in r[1]) '${a['job_id']}': '${a['status']}'});
+  final jobs = featureBoostedJobs([for (final j in r[0] as List) Map<String, dynamic>.from(j as Map)], r[2] is Map ? r[2] as Map : const {});
+  return JobsTab(jobs, {for (final a in r[1] as List) '${a['job_id']}': '${a['status']}'});
 });
 
 Future<void> applyToJob(String jobId) async {

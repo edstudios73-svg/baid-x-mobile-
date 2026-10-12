@@ -34,3 +34,24 @@ class VerifiedBadge extends StatelessWidget {
     );
   }
 }
+
+/// A paid member's plan mark beside the name (website `.m-plan`): solid white with
+/// black text, so it reads apart from the verification seal. It says the member
+/// pays for BAID X, not that BAID X checked them.
+class PlanMark extends StatelessWidget {
+  const PlanMark(this.label, {super.key});
+
+  final String label; // Pro | Premium | Enterprise
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: '$label member',
+        child: Container(
+          height: 19,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
+          child: Text(label.toUpperCase(), style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .6, height: 1)),
+        ),
+      );
+}

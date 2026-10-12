@@ -134,6 +134,18 @@ class _JobCard extends StatelessWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (job['boosted'] == true)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  // a paid job boost (website .job-boost)
+                  child: Container(
+                    height: 20,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: const Color(0x1FFFFFFF), borderRadius: BorderRadius.circular(99), border: Border.all(color: const Color(0x66FFFFFF))),
+                    child: const Text('FEATURED', style: TextStyle(fontSize: 10.5, letterSpacing: .6, fontWeight: FontWeight.w800, color: Colors.white)),
+                  ),
+                ),
               if (trade != null) Text(trade.toUpperCase(), style: const TextStyle(fontSize: 10.5, letterSpacing: .8, fontWeight: FontWeight.w700, color: Color(0xFFBDBDBD))),
               Text('${job['title'] ?? 'Job'}', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
             ]),
