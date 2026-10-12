@@ -132,10 +132,13 @@ final ordersProvider = FutureProvider<List<Json>>((ref) async {
 
 // ---------- Plans & billing ----------
 class BillingData {
-  const BillingData({required this.plans, required this.slots, required this.summary, required this.payments, required this.services});
+  const BillingData({required this.plans, required this.slots, required this.summary, required this.payments, required this.services, this.role = '', this.boosts = const [], this.jobs = const []});
   final List<Json> plans, payments, services;
   final Json? slots;
   final Json summary;
+  final String role; // account_roles.role
+  final List<Json> boosts; // your boosts (running ones are shown)
+  final List<Json> jobs; // your open jobs, for a job boost
 }
 
 /// The signed-in member's paid plan tier (pro, premium, enterprise), or null on
@@ -151,16 +154,29 @@ final myPlanProvider = FutureProvider<String?>((ref) async {
 final billingProvider = FutureProvider<BillingData>((ref) async {
   _follow(ref);
   final role = (await ref.watch(accountProfileProvider.future))?.type?.webRole ?? '';
+  final uid = sb.auth.currentUser?.id ?? '';
+  final jobBoost = billingBoostFor(role) == 'job';
   final r = await Future.wait(<Future<dynamic>>[
     sb.from('membership_plans').select('*').eq('role', role).eq('is_active', true),
     sb.from('founding_slots').select('*').eq('role', role).maybeSingle(),
     sb.rpc('billing_summary').then((v) => v, onError: (_) => {'subscribed': false}),
-    sb.rpc('my_payments').then((v) => v, onError: (_) => <Json>[]),
+    sb.rpc('my_receipts').then((v) => v, onError: (_) => <Json>[]),
     sb.from('service_catalog').select('id,kind,code,label,price_minor,currency,duration_hours,metadata,role').eq('is_active', true).order('price_minor', ascending: true),
+    sb.from('boosts').select('target_type,target_id,expires_at').eq('user_id', uid).order('expires_at', ascending: false).limit(20).then((v) => v, onError: (_) => <Json>[]),
+    jobBoost ? sb.from('jobs').select('id,title').eq(role == 'company' ? 'company_id' : 'employer_id', uid).eq('status', 'open').order('created_at', ascending: false).limit(30) : Future.value(<Json>[]),
   ]);
-  final services = [for (final s in asList(r[4])) if (s['role'] == null || s['role'] == role) s];
-  return BillingData(plans: asList(r[0]), slots: r[1] == null ? null : asMap(r[1]), summary: asMap(r[2]), payments: asList(r[3]), services: services);
+  return BillingData(plans: asList(r[0]), slots: r[1] == null ? null : asMap(r[1]), summary: asMap(r[2]), payments: asList(r[3]), services: billingServicesFor(role, asList(r[4])), role: role, boosts: asList(r[5]), jobs: asList(r[6]));
 });
+
+/// Website BOOST_FOR: a worker, project manager or supplier boosts their profile
+/// (Discover); a company or client boosts a job (the job list).
+String billingBoostFor(String role) => role == 'company' || role == 'individual-employer' ? 'job' : 'profile';
+
+/// The services this account can buy (website billingView `mine`).
+List<Json> billingServicesFor(String role, List<Json> all) => [
+      for (final s in all)
+        if ((s['role'] == null || s['role'] == role) && (s['kind'] != 'boost' || ((s['metadata'] is Map && (s['metadata'] as Map)['target'] == 'job') == (billingBoostFor(role) == 'job')))) s,
+    ];
 
 // ---------- Organizations ----------
 final myOrgsProvider = FutureProvider<List<Json>>((ref) async {
