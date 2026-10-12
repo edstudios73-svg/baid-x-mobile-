@@ -101,18 +101,19 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
           ],
         ]),
       ),
-      DashSegs(items: const [('monthly', 'Monthly'), ('annual', 'Annual · save 20%')], active: _interval, onTap: (k) => setState(() => _interval = k)),
+      DashSegs(items: const [('monthly', 'Monthly'), ('annual', 'Annual · 2 months free')], active: _interval, onTap: (k) => setState(() => _interval = k)),
       if (open) Note('Founding member prices are open. ${total - claimed} places left. Your price stays the same for 12 months from your start date.', icon: Icons.star_border_rounded),
-      _planCard('Access', 'Free', 'Everything you need to get started, free for good: profile, search, messaging, applications, reviews and reputation, and XID lookup.', current: cur == 'access'),
+      _planCard('Access', 'Free', accessPlanText('${b.plans.firstOrNull?['role'] ?? ''}'), current: cur == 'access'),
       for (final t in tiers)
         () {
           final std = find(t, false), f = open ? find(t, true) : null, show = f ?? std;
           if (show == null) return const SizedBox.shrink();
           final caps = (std?['capacity_limits'] is Map ? (std!['capacity_limits'] as Map) : const {}).entries.map((e) => '${e.value} ${_cap[e.key] ?? prettyText(e.key)}').toList();
+          final perks = [for (final b in (std?['metadata'] is Map && std!['metadata']['benefits'] is List ? std['metadata']['benefits'] as List : const [])) if (b is Map && b['t'] is String) b['t'] as String];
           return _planCard(
             _tierName[t]!,
             '${cedi(show['price_minor'], show['currency'])} per ${_interval == 'monthly' ? 'month' : 'year'}',
-            caps.join(' · '),
+            [...perks, ...caps].join(' · '),
             current: cur == t,
             was: f != null && std != null ? cedi(std['price_minor'], std['currency']) : null,
             action: cur == t ? null : SmallButton(cur == 'access' ? 'Choose ${_tierName[t]}' : 'Switch to ${_tierName[t]}', onPressed: () => _checkout(show)),
@@ -1027,3 +1028,11 @@ class _OrgDetailScreenState extends ConsumerState<OrgDetailScreen> {
     );
   }
 }
+
+/// What the free Access plan includes for each account type; the limits are checked by the
+/// database (supabase/phase20_pricing_v2.sql on the website) and match js/billing.js.
+String accessPlanText(String role) => switch (role) {
+      'worker' => 'Free for good: profile, search, messaging, reviews, escrow payments and 5 job applications a month.',
+      'company' || 'individual-employer' => 'Free for good: profile, search, messaging, reviews, escrow payments and 1 open job post at a time.',
+      _ => 'Free for good: profile, search, messaging, reviews and escrow payments.',
+    };

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:baid_x_mobile/core/config/app_config.dart';
 import 'package:baid_x_mobile/core/router/route_guards.dart';
 import 'package:baid_x_mobile/core/utils/validators.dart';
+import 'package:baid_x_mobile/features/account/presentation/profile_pages_b.dart' show accessPlanText;
 import 'package:baid_x_mobile/features/account_type/domain/account_type.dart';
 import 'package:baid_x_mobile/features/account_type/domain/role_categories.dart';
 
@@ -88,5 +89,12 @@ void main() {
     expect(go('/setup/worker', null), isNull);
     expect(go('/role/worker', null), '/account-type');
     expect(go('/setup/worker', 'worker'), '/role/worker');
+  });
+
+  test('free Access plan wording matches the database limits and the website', () {
+    expect(accessPlanText('worker'), contains('5 job applications a month'));
+    expect(accessPlanText('company'), contains('1 open job post at a time'));
+    expect(accessPlanText('individual-employer'), contains('1 open job post at a time'));
+    expect(accessPlanText('business'), isNot(contains('job')));
   });
 }

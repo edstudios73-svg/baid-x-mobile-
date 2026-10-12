@@ -76,6 +76,8 @@ abstract final class ErrorHandler {
 
   static String? _sharedMessage(String message) {
     final text = message.toLowerCase();
+    // the free-plan limits (database checks) already speak to the member: show them as written
+    if (text.contains('the free plan includes')) return message;
     if (text.contains('already set')) {
       return 'This account already has a type.';
     }

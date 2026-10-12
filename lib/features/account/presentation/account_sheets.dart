@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show AuthException, User
 import '../../../core/config/supabase_config.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/errors/error_handler.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/providers/app_providers.dart';
@@ -56,7 +57,8 @@ Future<void> showGlassSheet(BuildContext context, {required String title, requir
 String friendlyError(Object e) => switch (e) {
       AppException(:final message) => message,
       AuthException(:final message) => message,
-      _ => 'Something went wrong. Check your connection and try again.',
+      // database and network errors get the same plain wording as the rest of the app
+      _ => ErrorHandler.toAppException(e).message,
     };
 
 void toast(BuildContext context, String text) {
