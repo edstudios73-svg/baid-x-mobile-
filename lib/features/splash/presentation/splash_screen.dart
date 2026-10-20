@@ -1,14 +1,23 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_text_styles.dart';
+import 'baidx_mark_path.dart';
 
 /// Becomes true after the opening moment, so routing can leave the splash.
-final splashReleasedProvider = NotifierProvider<SplashRelease, bool>(SplashRelease.new);
+final splashReleasedProvider = NotifierProvider<SplashRelease, bool>(
+  SplashRelease.new,
+);
+
+class SplashScreen extends ConsumerStatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
 
 class SplashRelease extends Notifier<bool> {
   @override
@@ -19,28 +28,32 @@ class SplashRelease extends Notifier<bool> {
   }
 }
 
-/// The website's opening (index.html #splash, css/theme.css .sp-*): grid and glow,
-/// the ring drawing itself around the mark with an orbiting dot, the wordmark
-/// wiping in, "Ghana's work network", then "Powered by BAIDEN CREATIVES".
-class SplashScreen extends ConsumerStatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  ConsumerState<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProviderStateMixin {
-  static const _total = 4000; // ms: the opening plays fast, then the bar fills to the end
-  late final AnimationController _t = AnimationController(vsync: this, duration: const Duration(milliseconds: _total))..forward();
-  late final AnimationController _spin = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
+/// The opening: a pen of light sketches the BAID X tile and its tools on a faint
+/// drawing grid, the mark fills in, settles above the wordmark and "Ghana's work
+/// network", then zooms through the screen into the app.
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  static const _total = 3700; // ms
+  static const _calm = 700; // ms, when the phone asks for reduced motion
+  late final AnimationController _t = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: _total),
+  );
+  late final Path _tools = baidxToolsPath();
   Timer? _release;
+  bool _reduced = false;
 
   @override
-  void initState() {
-    super.initState();
-    // On the web the page's own splash (web/index.html #boot) has already played while the
-    // app downloaded, so this one hands over at once instead of playing a second time.
-    _release = Timer(const Duration(milliseconds: kIsWeb ? 300 : _total), () {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_release != null) return;
+    _reduced = MediaQuery.disableAnimationsOf(context);
+    if (_reduced) {
+      _t.value = .78; // the settled logo, no motion
+    } else {
+      _t.forward();
+    }
+    _release = Timer(Duration(milliseconds: _reduced ? _calm : _total), () {
       if (mounted) ref.read(splashReleasedProvider.notifier).release();
     });
   }
@@ -49,7 +62,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
   void dispose() {
     _release?.cancel();
     _t.dispose();
-    _spin.dispose();
     super.dispose();
   }
 
@@ -64,142 +76,136 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with TickerProvider
     return Scaffold(
       backgroundColor: Colors.black,
       body: AnimatedBuilder(
-        animation: Listenable.merge([_t, _spin]),
+        animation: _t,
         builder: (context, _) {
-          final glow = .55 + .45 * math.sin(_t.value * _total / 3300 * math.pi);
-          final logo = _p(50, 600, const Cubic(.2, .9, .25, 1.15));
-          final ring = _p(150, 800, const Cubic(.6, 0, .2, 1));
-          final dash = _p(450, 500, Curves.ease);
-          final orbit = _p(250, 1800, const Cubic(.5, 0, .3, 1));
-          final wipe = _p(500, 550, const Cubic(.6, 0, .2, 1));
-          final tag = _p(850, 500, Curves.ease);
-          final line = _p(1000, 500, Curves.ease);
-          final by = _p(1100, 450, Curves.ease);
-          final name = _p(1100, 450, Curves.ease);
-          final prog = _p(0, _total - 350, Curves.linear);
-          final bar = _p(100, 300, Curves.ease); // the bar shows at once and fills for the whole 5 seconds
-          final shimmer = (_t.value * _total / 1800) % 1;
-          final leave = 1 - _p(_total - 350, 350, Curves.easeIn);
-          return Opacity(
-            opacity: leave,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // grid, masked to a soft circle
-                ShaderMask(
-                  blendMode: BlendMode.dstIn,
-                  shaderCallback: (r) => const RadialGradient(center: Alignment(0, -.08), radius: .75, colors: [Colors.black, Colors.transparent], stops: [0, 1]).createShader(r),
-                  child: CustomPaint(painter: _Grid()),
-                ),
-                // breathing glow
-                Align(
-                  alignment: const Alignment(0, -.08),
-                  child: Opacity(
-                    opacity: glow.clamp(0, 1),
-                    child: Container(
-                      width: 400,
-                      height: 400,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [Color(0x38FFFFFF), Color(0x0DFFFFFF), Color(0x00FFFFFF)], stops: [0, .45, .7])),
+          final grid = _p(0, 600, Curves.easeOut);
+          final tile = _p(150, 900, const Cubic(.6, 0, .25, 1));
+          final tools = _p(700, 1000, const Cubic(.5, 0, .3, 1));
+          final fill = _p(1650, 380, Curves.easeOut);
+          final pop = _p(1650, 520, const Cubic(.2, .9, .25, 1.25));
+          final sweep = _p(1800, 650, Curves.easeInOut);
+          final settle = _p(2050, 600, const Cubic(.65, 0, .25, 1));
+          final word = _p(2250, 600, const Cubic(.6, 0, .2, 1));
+          final tag = _p(2550, 450, Curves.ease);
+          final shine = _p(2450, 900, Curves.easeInOut);
+          final zoom = _p(3150, 550, const Cubic(.7, 0, .84, 0));
+          final away = _p(3150, 220, Curves.easeOut); // the words leave first, so the mark zooms alone
+          final size = MediaQuery.sizeOf(context);
+          final mark = (size.shortestSide * .34).clamp(110.0, 170.0);
+          final scale =
+              (1 - .38 * settle) * (.94 + .06 * pop) * (1 + 11 * zoom);
+          final lift = -mark * .42 * settle * (1 - _p(3150, 300, Curves.easeInOut));
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: grid * (1 - zoom),
+                child: CustomPaint(painter: _Grid(draw: grid)),
+              ),
+              // a soft pool of light behind the mark once it fills
+              Center(
+                child: Opacity(
+                  opacity: (fill * .9 * (1 - zoom)).clamp(0, 1),
+                  child: Container(
+                    width: mark * 3,
+                    height: mark * 3,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Color(0x2EFFFFFF),
+                          Color(0x08FFFFFF),
+                          Color(0x00FFFFFF),
+                        ],
+                        stops: [0, .45, .72],
+                      ),
                     ),
                   ),
                 ),
-                // vignette
-                const DecoratedBox(decoration: BoxDecoration(gradient: RadialGradient(radius: 1, colors: [Colors.transparent, Color(0xD9000000)], stops: [.4, 1]))),
-                Align(
-                  alignment: const Alignment(0, -.08),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 124,
-                        height: 124,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            CustomPaint(size: const Size.square(124), painter: _Ring(draw: ring, dashOpacity: dash, spin: _spin.value, orbit: orbit)),
-                            Opacity(
-                              opacity: logo.clamp(0, 1),
-                              child: Transform.scale(
-                                scale: .6 + .4 * logo,
-                                child: Container(
-                                  width: 72,
-                                  height: 72,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(19),
-                                    boxShadow: const [BoxShadow(color: Color(0x66FFFFFF), spreadRadius: 1), BoxShadow(color: Color(0x2EFFFFFF), blurRadius: 60, offset: Offset(0, 20))],
+              ),
+              Center(
+                child: Transform.translate(
+                  offset: Offset(0, lift),
+                  child: Opacity(
+                    opacity: (1 - zoom * 1.15).clamp(0, 1),
+                    child: Transform.scale(
+                      scale: scale,
+                      child: CustomPaint(
+                        size: Size.square(mark),
+                        painter: _Mark(
+                          tools: _tools,
+                          tile: tile,
+                          toolsDraw: tools,
+                          fill: fill,
+                          sweep: sweep,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Center(
+                child: Transform.translate(
+                  offset: Offset(0, mark * .36),
+                  child: Opacity(
+                    opacity: 1 - away,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // the "BAID X" part of the logo, revealed left to right with a pass of light
+                        ClipRect(
+                          clipper: _Wipe(word),
+                          child: ShaderMask(
+                            blendMode: BlendMode.srcIn,
+                            shaderCallback: (r) => LinearGradient(
+                              begin: Alignment(-3 + shine * 5, 0),
+                              end: Alignment(-1 + shine * 5, 0),
+                              colors: const [
+                                Color(0xFFBDBDBD),
+                                Colors.white,
+                                Color(0xFFBDBDBD),
+                              ],
+                            ).createShader(r),
+                            child: SizedBox(
+                              width: 168,
+                              height: 55,
+                              child: OverflowBox(
+                                alignment: Alignment.topLeft,
+                                maxWidth: 220,
+                                child: Transform.translate(
+                                  offset: const Offset(-56, 0),
+                                  child: Image.asset(
+                                    'assets/images/logo/baidx_logo_white.png',
+                                    width: 220,
                                   ),
-                                  child: ClipRRect(borderRadius: BorderRadius.circular(19), child: Image.asset('assets/images/logo/baidx_mark.png', fit: BoxFit.cover)),
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // wordmark wipe: the "BAID X" part of the logo, revealed left to right
-                      ClipRect(
-                        clipper: _Wipe(wipe),
-                        child: SizedBox(
-                          width: 150,
-                          height: 49,
-                          child: OverflowBox(
-                            alignment: Alignment.topLeft,
-                            maxWidth: 196,
-                            child: Transform.translate(offset: const Offset(-50, 0), child: Image.asset('assets/images/logo/baidx_logo_white.png', width: 196)),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Opacity(
-                        opacity: tag,
-                        child: Transform.translate(
-                          offset: Offset(0, 10 * (1 - tag)),
-                          child: const Text('GHANA\'S WORK NETWORK', style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, fontWeight: FontWeight.w600, letterSpacing: 3.9, color: Color(0xFF9A9A9A))),
+                        const SizedBox(height: 16),
+                        Opacity(
+                          opacity: tag,
+                          child: Transform.translate(
+                            offset: Offset(0, 8 * (1 - tag)),
+                            child: const Text(
+                              'Ghana\'s work network',
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.family,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: .2,
+                                color: Color(0xFF9A9A9A),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 46 + MediaQuery.paddingOf(context).bottom,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 1, height: 34 * line, decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.white, Colors.transparent]))),
-                      const SizedBox(height: 16),
-                      Opacity(opacity: by, child: const Text('POWERED BY', style: TextStyle(fontFamily: 'monospace', fontSize: 10.5, fontWeight: FontWeight.w600, letterSpacing: 3.2, color: Color(0xFF777777)))),
-                      const SizedBox(height: 10),
-                      Opacity(
-                        opacity: name,
-                        child: ShaderMask(
-                          blendMode: BlendMode.srcIn,
-                          shaderCallback: (r) => LinearGradient(
-                            begin: Alignment(-1 + shimmer * 4 - 2, 0),
-                            end: Alignment(1 + shimmer * 4 - 2, 0),
-                            colors: const [Color(0xFF7A7A7A), Colors.white, Colors.white, Color(0xFF7A7A7A)],
-                            stops: const [.2, .45, .55, .8],
-                          ).createShader(r),
-                          child: const Text('BAIDEN CREATIVES', style: TextStyle(fontFamily: AppTextStyles.family, fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: 6)),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Opacity(
-                        opacity: bar,
-                        child: Container(
-                          width: 120,
-                          height: 2,
-                          decoration: BoxDecoration(color: const Color(0x24FFFFFF), borderRadius: BorderRadius.circular(2)),
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(widthFactor: prog, child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2), boxShadow: const [BoxShadow(color: Colors.white, blurRadius: 8)]))),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -216,54 +222,154 @@ class _Wipe extends CustomClipper<Rect> {
   bool shouldReclip(_Wipe old) => old.v != v;
 }
 
+/// Faint drafting lines that draw down the screen, strongest in the middle.
 class _Grid extends CustomPainter {
+  _Grid({required this.draw});
+  final double draw;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = const Color(0x0EFFFFFF);
-    for (double x = 0; x < size.width; x += 44) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
+    const step = 48.0;
+    final cx = size.width / 2;
+    for (double x = cx % step; x < size.width; x += step) {
+      final fade = (1 - ((x - cx).abs() / (size.width * .6))).clamp(0.0, 1.0);
+      final p = Paint()..color = Color.fromRGBO(255, 255, 255, .07 * fade);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height * draw), p);
     }
-    for (double y = 0; y < size.height; y += 44) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+    for (double y = size.height / 2 % step; y < size.height * draw; y += step) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        Paint()..color = const Color(0x0AFFFFFF),
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _Grid old) => old.draw != draw;
 }
 
-/// Outer ring drawn on, inner dashed ring spinning, and a glowing dot orbiting once.
-class _Ring extends CustomPainter {
-  _Ring({required this.draw, required this.dashOpacity, required this.spin, required this.orbit});
-  final double draw, dashOpacity, spin, orbit;
+/// The mark: the tile outline, then the tools' outlines, each traced by a glowing pen;
+/// then the tile fills white, the tools fill black, and a band of light crosses it.
+class _Mark extends CustomPainter {
+  _Mark({
+    required this.tools,
+    required this.tile,
+    required this.toolsDraw,
+    required this.fill,
+    required this.sweep,
+  });
+  final Path tools;
+  final double tile, toolsDraw, fill, sweep;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero), k = size.width / 200;
-    final outer = Paint()
-      ..color = const Color(0xD9FFFFFF)
+    final k = size.width / 512;
+    canvas.save();
+    canvas.scale(k);
+    final rrect = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(0, 0, 512, 512),
+      const Radius.circular(64),
+    );
+    final tilePath = Path()..addRRect(rrect);
+    final stroke = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    canvas.drawArc(Rect.fromCircle(center: c, radius: 92 * k), -math.pi / 2, 2 * math.pi * draw, false, outer);
-    if (dashOpacity > 0) {
-      final inner = Paint()
-        ..color = Colors.white.withValues(alpha: .35 * dashOpacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .8;
-      const n = 60;
-      for (var i = 0; i < n; i++) {
-        final a = spin * 2 * math.pi + i * 2 * math.pi / n;
-        canvas.drawArc(Rect.fromCircle(center: c, radius: 78 * k), a, 2 * math.pi / n * .3, false, inner);
+      ..strokeWidth = 1.6 / k
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white.withValues(alpha: .92 * (1 - fill));
+
+    if (fill > 0) {
+      canvas.drawShadow(
+        tilePath,
+        Colors.white.withValues(alpha: .25 * fill),
+        18 / k,
+        false,
+      );
+      canvas.drawRRect(
+        rrect,
+        Paint()..color = Colors.white.withValues(alpha: fill),
+      );
+      canvas.drawPath(
+        tools,
+        Paint()..color = Colors.black.withValues(alpha: fill),
+      );
+      if (sweep > 0 && sweep < 1) {
+        canvas.save();
+        canvas.clipRRect(rrect);
+        final x = -300 + sweep * 1100;
+        canvas.drawRect(
+          const Rect.fromLTWH(-400, -400, 1400, 1400),
+          Paint()
+            ..shader = ui.Gradient.linear(
+              Offset(x - 160, 0),
+              Offset(x + 160, 160),
+              [
+                const Color(0x00FFFFFF),
+                const Color(0x8CFFFFFF),
+                const Color(0x00FFFFFF),
+              ],
+              [0, .5, 1],
+            )
+            ..blendMode = BlendMode.srcATop,
+        );
+        canvas.restore();
       }
     }
-    if (orbit > 0) {
-      final a = -math.pi / 2 + orbit * 2 * math.pi;
-      final dot = c + Offset(math.cos(a), math.sin(a)) * 92 * k;
-      canvas.drawCircle(dot, 6, Paint()..color = const Color(0x55FFFFFF)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
-      canvas.drawCircle(dot, 3.5 * k + .8, Paint()..color = Colors.white);
+    if (fill < 1) {
+      final head1 = _trace(canvas, tilePath, tile, stroke, startAt: .5);
+      final head2 = _trace(canvas, tools, toolsDraw, stroke);
+      for (final h in [
+        if (tile > 0 && tile < 1) head1,
+        if (toolsDraw > 0 && toolsDraw < 1) head2,
+      ]) {
+        if (h == null) continue;
+        canvas.drawCircle(
+          h,
+          14 / k,
+          Paint()
+            ..color = const Color(0x66FFFFFF)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 / k),
+        );
+        canvas.drawCircle(h, 3.2 / k, Paint()..color = Colors.white);
+      }
     }
+    canvas.restore();
+  }
+
+  /// Draws [t] of every contour in [path] (all contours together, in order) and returns the pen's position.
+  /// [startAt] starts a closed outline part of the way round (the tile starts at its bottom middle).
+  Offset? _trace(
+    Canvas canvas,
+    Path path,
+    double t,
+    Paint paint, {
+    double startAt = 0,
+  }) {
+    if (t <= 0) return null;
+    final metrics = path.computeMetrics().toList();
+    final total = metrics.fold<double>(0, (s, m) => s + m.length);
+    var left = total * t;
+    Offset? head;
+    for (final m in metrics) {
+      if (left <= 0) break;
+      final len = left.clamp(0.0, m.length);
+      final from = m.length * startAt;
+      if (from + len <= m.length) {
+        canvas.drawPath(m.extractPath(from, from + len), paint);
+      } else {
+        canvas.drawPath(m.extractPath(from, m.length), paint);
+        canvas.drawPath(m.extractPath(0, from + len - m.length), paint);
+      }
+      head = m.getTangentForOffset((from + len) % m.length)?.position;
+      left -= m.length;
+    }
+    return head;
   }
 
   @override
-  bool shouldRepaint(covariant _Ring old) => true;
+  bool shouldRepaint(covariant _Mark old) =>
+      old.tile != tile ||
+      old.toolsDraw != toolsDraw ||
+      old.fill != fill ||
+      old.sweep != sweep;
 }

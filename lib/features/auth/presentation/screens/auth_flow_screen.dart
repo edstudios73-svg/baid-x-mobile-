@@ -17,6 +17,7 @@ import '../../../account_type/domain/account_type.dart';
 import '../../../account_type/domain/role_categories.dart';
 import '../../data/remembered_accounts.dart';
 import '../../domain/auth_repository.dart';
+import '../widgets/code_motion.dart';
 
 /// Where the flow opens.
 enum AuthStart { type, signIn, reset, onboard }
@@ -57,6 +58,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   var _showPw = false;
   String? _error;
   var _otpState = _OtpState.idle;
+  // the full-screen moment over the flow: sending the code, checking it, verified
+  var _moment = CodeMoment.none;
   // signing in from a guest page: the type is chosen first and checked after sign-in
   var _intent = false;
   // "pro" or "client" from the link, or picked on the entry screen
@@ -214,10 +217,20 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
 
   // ---------- actions ----------
   Future<void> _sendCode() => _run(() async {
-        await _auth.startPhoneCode(phone: _e164(_phone.text), purpose: _mode == 'reset' ? PhoneCodePurpose.reset : PhoneCodePurpose.signup);
+        final first = _view != _View.code;
+        if (first) setState(() => _moment = CodeMoment.sending);
+        try {
+          // the dots show for at least a beat, so a fast network doesn't flash the screen
+          await Future.wait([
+            _auth.startPhoneCode(phone: _e164(_phone.text), purpose: _mode == 'reset' ? PhoneCodePurpose.reset : PhoneCodePurpose.signup),
+            Future<void>.delayed(const Duration(milliseconds: 900)),
+          ]);
+        } finally {
+          if (mounted && first) setState(() => _moment = CodeMoment.none);
+        }
         _code.clear();
         _startResend();
-        if (_view != _View.code) _go(_View.code);
+        if (first) _go(_View.code);
       });
 
   void _startResend() {
@@ -234,22 +247,33 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
     if (_code.text.length < 6 || _otpState == _OtpState.checking) return;
     setState(() {
       _otpState = _OtpState.checking;
+      _moment = CodeMoment.verifying;
       _error = null;
     });
     try {
-      await _auth.verifyPhoneCode(phone: _e164(_phone.text), code: _code.text);
+      await Future.wait([
+        _auth.verifyPhoneCode(phone: _e164(_phone.text), code: _code.text),
+        Future<void>.delayed(const Duration(milliseconds: 900)),
+      ]);
       ref.read(pendingPhoneProvider.notifier).set(_phone.text.trim());
       HapticFeedback.mediumImpact();
-      setState(() => _otpState = _OtpState.ok);
-      await Future<void>.delayed(const Duration(milliseconds: 1300));
+      setState(() {
+        _otpState = _OtpState.ok;
+        _moment = CodeMoment.verified;
+      });
+      await Future<void>.delayed(CodeMotion.verifiedHold);
       if (!mounted) return;
-      setState(() => _otpState = _OtpState.idle);
+      setState(() {
+        _otpState = _OtpState.idle;
+        _moment = CodeMoment.none;
+      });
       _go(_mode == 'reset' ? _View.pass : _View.name);
     } catch (e) {
       HapticFeedback.heavyImpact();
       setState(() {
+        _moment = CodeMoment.none;
         _otpState = _OtpState.bad;
-        _error = e is AppException ? e.message : 'That code isn\'t right.';
+        _error = e is AppException ? e.message : 'That code isn\'t right. Try again.';
       });
       await Future<void>.delayed(const Duration(milliseconds: 650));
       if (!mounted) return;
@@ -320,6 +344,8 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
 
   static String _e164(String raw) => Validators.ghanaE164(raw) ?? '';
 
+  String get _shownPhone => _e164(_phone.text).replaceFirstMapped(RegExp(r'^\+233(\d{2})(\d{3})(\d{4})$'), (m) => '+233 ${m[1]} ${m[2]} ${m[3]}');
+
   // ---------- layout ----------
   @override
   Widget build(BuildContext context) {
@@ -335,7 +361,10 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
       },
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-        body: AppBackdrop(
+        body: CodeMomentLayer(
+          moment: _moment,
+          phone: _shownPhone,
+          child: AppBackdrop(
           art: true,
           child: SafeArea(
             child: Center(
@@ -399,6 +428,7 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -414,9 +444,10 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         _View.pass => _passView(),
       };
 
-  Widget _page({required String title, String? sub, required List<Widget> children, required List<Widget> foot, bool small = false, bool scroll = true}) {
+  Widget _page({required String title, String? sub, required List<Widget> children, required List<Widget> foot, bool small = false, bool scroll = true, Widget? art}) {
     final head = [
       SizedBox(height: small ? 2 : 20),
+      ?art,
       Text(title, textAlign: TextAlign.center, style: AppTextStyles.headline.copyWith(fontSize: small ? 17 : 25, fontWeight: FontWeight.w700, shadows: const [Shadow(color: Color(0x80000000), blurRadius: 24)])),
       const SizedBox(height: 6),
       if (sub != null) ...[
@@ -680,12 +711,12 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
   // code
   Widget _codeView() {
     return _page(
-      title: 'Confirm phone number',
-      sub: 'Enter the confirmation code sent to ${_e164(_phone.text).replaceFirstMapped(RegExp(r'^\+233(\d{2})(\d{3})(\d{4})$'), (m) => '+233 ${m[1]} ${m[2]} ${m[3]}')}.',
+      art: const Padding(padding: EdgeInsets.only(bottom: 18), child: CodeArt()),
+      title: 'Confirmation',
+      sub: 'Enter the 6-digit code sent to $_shownPhone.',
       children: [
         _Otp(controller: _code, focus: _codeFocus, state: _otpState, onComplete: _verify),
         const SizedBox(height: 6),
-        if (_otpState == _OtpState.ok) const _Seal(),
         if (_otpState != _OtpState.ok) ...[
           _err(),
           Center(
@@ -1240,11 +1271,11 @@ class _OtpBoxesState extends State<_Otp> with TickerProviderStateMixin {
     final (border, bg, glow) = switch (s) {
       _OtpState.ok => (const Color(0xFFBFF3D9), const [Color(0x6634D399), Color(0x1434D399)], const Color(0x8C34D399)),
       _OtpState.bad => (const Color(0xFFFF8A8A), const [Color(0x61F87171), Color(0x14F87171)], const Color(0xA6F87171)),
-      _OtpState.checking => (const Color(0xBF7DD3FC), const [Color(0x2EFFFFFF), Color(0x0FFFFFFF)], const Color(0x667DD3FC)),
+      _OtpState.checking => (const Color(0xBFFFFFFF), const [Color(0x2EFFFFFF), Color(0x0FFFFFFF)], const Color(0x40FFFFFF)),
       _OtpState.idle => (
           active ? Colors.white : (filled ? const Color(0xB3FFFFFF) : const Color(0x4DFFFFFF)),
           filled ? const [Color(0x42FFFFFF), Color(0x12FFFFFF)] : const [Color(0x9E0E0E0E), Color(0x570E0E0E), Color(0x24FFFFFF)],
-          active ? const Color(0x737DD3FC) : Colors.transparent,
+          active ? const Color(0x40FFFFFF) : Colors.transparent,
         ),
     };
     return TweenAnimationBuilder<double>(
@@ -1275,56 +1306,6 @@ class _OtpBoxesState extends State<_Otp> with TickerProviderStateMixin {
             color: s == _OtpState.ok ? const Color(0xFFEAFFF4) : s == _OtpState.bad ? const Color(0xFFFFE3E3) : Colors.white,
             shadows: filled ? const [Shadow(color: Color(0xB3FFFFFF), blurRadius: 14)] : null,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Verified" seal after a right code: a green ring draws itself and a check appears.
-class _Seal extends StatelessWidget {
-  const _Seal();
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
-      builder: (context, v, _) => Padding(
-        padding: const EdgeInsets.only(top: 28),
-        child: Column(
-          children: [
-            SizedBox(
-              width: 112,
-              height: 112,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Opacity(
-                    opacity: (1 - v).clamp(0, 1) * .9,
-                    child: Transform.scale(scale: .45 + 1.2 * v, child: Container(decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xCCBEF3D9), width: 1.5)))),
-                  ),
-                  Container(
-                    width: 96 * (.6 + .4 * v),
-                    height: 96 * (.6 + .4 * v),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0x8C10201A),
-                      border: Border.all(color: Color.lerp(const Color(0xFFBFF3D9), const Color(0xFF7DD3FC), v)!, width: 3),
-                      boxShadow: [BoxShadow(color: const Color(0xB334D399).withValues(alpha: .7 * v), blurRadius: 18)],
-                    ),
-                    child: Opacity(opacity: v, child: const Icon(Icons.check_rounded, size: 52, color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Opacity(
-              opacity: v,
-              child: const Text('VERIFIED', style: TextStyle(fontFamily: AppTextStyles.family, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 3.8, color: Color(0xFFD9FBE9), shadows: [Shadow(color: Color(0xCC34D399), blurRadius: 16)])),
-            ),
-          ],
         ),
       ),
     );

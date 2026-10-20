@@ -111,7 +111,13 @@ void main() {
       overrides: [
         baidBotAskProvider.overrideWithValue((messages) async {
           sent = messages;
-          return 'Joining is free for every account type.';
+          if (messages.last['content']!.contains('electrician')) {
+            return const BotReply('My top pick is Kwame Mensah.', [
+              BotCard({'kind': 'worker', 'id': 'w1', 'name': 'Kwame Mensah', 'trade': 'Electrician', 'town': 'Accra', 'rate': 250, 'experience': '5-10', 'verified': true, 'badge': 'verified'}),
+              BotCard({'kind': 'worker', 'id': 'w2', 'name': 'Kofi Boateng', 'trade': 'Electrician', 'town': 'Tema', 'verified': false}),
+            ]);
+          }
+          return const BotReply('Escrow holds your money until you approve the work.');
         }),
       ],
       child: const MaterialApp(home: Scaffold(body: Center(child: BaidBotButton()))),
@@ -119,10 +125,19 @@ void main() {
     await t.tap(find.byType(BaidBotButton));
     await t.pumpAndSettle();
     expect(find.text('BAID Bot'), findsOneWidget);
-    await t.tap(find.text('Is BAID X free?'));
+    await t.tap(find.text('How does escrow protect me?'));
     await t.pumpAndSettle();
-    expect(sent, [{'role': 'user', 'content': 'Is BAID X free?'}]);
-    expect(find.text('Joining is free for every account type.'), findsOneWidget);
-    expect(find.text('Is BAID X free?'), findsOneWidget, reason: 'the question stays as a bubble; the suggestions are gone');
+    expect(sent, [{'role': 'user', 'content': 'How does escrow protect me?'}]);
+    expect(find.text('Escrow holds your money until you approve the work.'), findsOneWidget);
+    expect(find.text('How does escrow protect me?'), findsOneWidget, reason: 'the question stays as a bubble; the suggestions are gone');
+
+    await t.enterText(find.byType(TextField), 'Find me a top electrician in Accra');
+    await t.testTextInput.receiveAction(TextInputAction.send);
+    await t.pumpAndSettle();
+    expect(sent!.length, 3, reason: 'the conversation goes with the question; cards stay on this side');
+    expect(find.text('Kwame Mensah'), findsOneWidget);
+    expect(find.text('Top match'), findsOneWidget, reason: 'only the first pick');
+    expect(find.text('GH₵250 a day'), findsOneWidget);
+    expect(find.text('Not verified yet'), findsOneWidget, reason: 'an unverified pick says so');
   });
 }
