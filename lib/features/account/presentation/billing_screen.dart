@@ -875,7 +875,7 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
         ),
       ),
       const _Fine(
-        'A plan never buys a verification badge. Badges come from a review by a person at BAID X.',
+        'A plan never includes a badge. Badges come from a review by our team.',
       ),
     ];
   }
@@ -1555,7 +1555,7 @@ class _BillingScreenState extends ConsumerState<PlansBillingScreen> {
       _hero(
         VerifiedBadge(cur ?? 'identity', size: 28),
         cur != null ? 'Go further' : 'Get verified',
-        'A person at BAID X checks your documents. The fee pays for the review, not the result, and a paid plan never buys a badge.',
+        'Our team checks your documents by hand. The fee pays for the check, not the result, and no plan includes a badge.',
       ),
       for (final x in list)
         () {

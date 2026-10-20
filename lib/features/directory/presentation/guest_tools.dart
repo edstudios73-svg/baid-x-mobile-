@@ -133,14 +133,14 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
       eyebrow: 'Check a badge',
       lead: 'Check before ',
       tail: 'you pay anyone.',
-      intro: 'Someone says they are on BAID X? Type their name to see if a person at BAID X has checked them.',
+      intro: 'Got a call from someone who says they\'re on BAID X? Type their name. If we\'ve verified them, you\'ll see their badge in seconds.',
       children: [
         _Field(controller: _q, hint: 'Their full name', onChanged: (_) => setState(() {})),
         const SizedBox(height: 18),
         if (q.length < 3) ...const [
-          _Note(icon: Icons.verified_outlined, title: 'A badge is earned, not bought', body: 'Badges come from checks a person at BAID X has done: profile, Ghana Card, trade and background.'),
-          _Note(icon: Icons.lock_outline, title: 'Pay through escrow', body: 'On BAID X the money waits safely until you approve the work. Never send cash upfront to someone you have not checked.'),
-          _Note(icon: Icons.badge_outlined, title: 'Ask for their BAID X name', body: 'The name on their profile is the one to search here, the same as on their Ghana Card.'),
+          _Note(icon: Icons.verified_outlined, title: 'A badge is earned, not bought', body: 'Every badge comes from checks our team does by hand: profile, Ghana Card, trade and background.'),
+          _Note(icon: Icons.lock_outline, title: 'Pay through escrow', body: 'Your money waits safely until you approve the work. Never send cash up front to someone you haven\'t checked.'),
+          _Note(icon: Icons.badge_outlined, title: 'Ask for their BAID X name', body: 'Search the full name on their profile. It matches the name on their Ghana Card.'),
         ] else
           ...data.when(
             loading: () => const [Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))],
@@ -152,7 +152,7 @@ class _CheckScreenState extends ConsumerState<CheckScreen> {
                   _Note(
                     icon: Icons.report_gmailerrorred_outlined,
                     title: 'No verified member by that name',
-                    body: 'Check the spelling and use the full name on their profile. If they still don\'t appear, BAID X has not verified them: be careful before paying, and hire through escrow.',
+                    body: 'Check the spelling and try their full name. If they still don\'t show up, we haven\'t verified them. Be careful, and only pay through escrow.',
                   ),
                 ];
               }
@@ -226,7 +226,7 @@ class _RatesScreenState extends ConsumerState<RatesScreen> {
       eyebrow: 'Price guide',
       lead: 'What work costs ',
       tail: 'in Ghana.',
-      intro: 'Daily rates professionals set on BAID X. Use them to budget a job and to spot a quote that is far off.',
+      intro: 'Real day rates set by professionals on BAID X. Know what\'s fair before you hire, and spot a quote that\'s way off.',
       children: data.when(
         loading: () => const [Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))],
         error: (e, _) => [_Note(icon: Icons.wifi_off_rounded, title: 'Couldn\'t load rates', body: ErrorHandler.toAppException(e).message)],
@@ -248,11 +248,11 @@ class _RatesScreenState extends ConsumerState<RatesScreen> {
               ),
             const SizedBox(height: 16),
             if (rates.isEmpty)
-              const _Note(icon: Icons.payments_outlined, title: 'Not enough rates here yet', body: 'A trade appears once several professionals have set a daily rate, so one rate never sets the guide. Try All Ghana.')
+              const _Note(icon: Icons.payments_outlined, title: 'No rates here yet', body: 'A trade shows up once enough pros in the area have set their rate, so one price can\'t skew the guide. Try All Ghana for now.')
             else
               for (final r in rates) _RateRow(rate: r, top: top),
             const SizedBox(height: 6),
-            const Text('Middle rate shown large; the bar runs from the lowest to the highest rate set. Final prices depend on the job.', style: TextStyle(fontSize: 12, height: 1.45, color: Color(0xFF7A7A7A))),
+            const Text('The big number is the typical day rate. The bar runs from the lowest to the highest. Every job is different, so agree the final price with your pro.', style: TextStyle(fontSize: 12, height: 1.45, color: Color(0xFF7A7A7A))),
           ];
         },
       ),

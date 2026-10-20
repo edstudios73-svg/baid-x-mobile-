@@ -217,7 +217,7 @@ class _VerifiedMeter extends StatelessWidget {
               const SizedBox(width: 6),
               const Expanded(
                 child: Text(
-                  'Verified by a person at BAID X',
+                  'Checked by the BAID X team',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12.5, color: Color(0xFFBDBDBD)),

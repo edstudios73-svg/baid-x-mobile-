@@ -60,10 +60,10 @@ class GuestTrustStage extends StatelessWidget {
   final double progress; // raw scroll progress, ticks the checks
 
   static const _checks = [
-    ('Profile reviewed', 'A person at BAID X looks at every profile.'),
-    ('Ghana Card checked', 'Identity matched to an official ID.'),
-    ('Trade proven', 'Certificates and past work verified.'),
-    ('Money held in escrow', 'GH₵900 waits until the client approves.'),
+    ('Profile reviewed', 'Our team reads every profile before it goes live.'),
+    ('Ghana Card checked', 'We match their name and photo to their Ghana Card.'),
+    ('Trade proven', 'Certificates and finished jobs, checked by us.'),
+    ('Money held in escrow', 'GH₵900 stays safe until you approve the work.'),
   ];
 
   @override
@@ -170,7 +170,7 @@ class TrustStackScene extends StatelessWidget {
   final double p;
 
   static const _layers = [
-    ('Profile reviewed', 'By a person at BAID X', '01'),
+    ('Profile reviewed', 'Checked by our team', '01'),
     ('Identity verified', 'Ghana Card checked', '02'),
     ('Trade proven', 'Certificates checked', '03'),
     ('GH₵900 held', 'Released when the work is approved', '04'),
@@ -391,47 +391,39 @@ class _TopCard extends StatelessWidget {
   );
 }
 
-/// The website's hero stats as one slim glass pill.
+/// The website's hero stats (`.proof`): four columns, the figure above its label.
 class StatsPill extends StatelessWidget {
   const StatsPill({super.key});
-  static const _items = [('5', 'account types'), ('50', 'trades'), ('16', 'regions'), ('Free', 'to join')];
+  static const _items = [('50', 'trades'), ('16', 'regions'), ('Escrow', 'on every job'), ('Free', 'to join')];
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 9),
+    padding: const EdgeInsets.symmetric(vertical: 14),
     decoration: BoxDecoration(
       color: const Color(0x12FFFFFF),
-      borderRadius: BorderRadius.circular(99),
+      borderRadius: BorderRadius.circular(18),
       border: Border.all(color: const Color(0x29FFFFFF)),
     ),
-    child: Row(
-      children: [
-        for (var i = 0; i < _items.length; i++)
-          Expanded(
-            flex: i == 0 ? 13 : 10,
-            child: Container(
-              decoration: i == 0
-                  ? null
-                  : const BoxDecoration(
-                      border: Border(left: BorderSide(color: Color(0x29FFFFFF))),
-                    ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: _items[i].$1,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5),
-                      ),
-                      TextSpan(text: ' ${_items[i].$2}'),
-                    ],
-                  ),
-                  style: const TextStyle(fontSize: 11.5, color: Color(0xFFA3A3A3)),
+    child: IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < _items.length; i++)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: i == 0 ? null : const BoxDecoration(border: Border(left: BorderSide(color: Color(0x29FFFFFF)))),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(_items[i].$1, maxLines: 1, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(_items[i].$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.2, color: Color(0xFFA3A3A3))),
+                  ],
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     ),
   );
 }
