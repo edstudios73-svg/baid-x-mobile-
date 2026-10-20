@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_routes.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../features/directory/presentation/baid_bot.dart';
 import 'baid_ui.dart';
 import 'brand_logo.dart';
 import 'verified_badge.dart';
@@ -14,7 +15,7 @@ import 'verified_badge.dart';
 /// the glass greeting card, stat tiles, quick-access tiles, cards and the
 /// "profile isn't public yet" banner.
 
-/// Logo, bell and the member's avatar (`.appbar`).
+/// Logo, BAID Bot, bell and the member's avatar (`.appbar`).
 class MemberAppBar extends StatelessWidget {
   const MemberAppBar({required this.name, this.photo, super.key});
   final String name;
@@ -28,6 +29,8 @@ class MemberAppBar extends StatelessWidget {
         children: [
           const BrandLogo(width: 104),
           const Spacer(),
+          const BaidBotHeaderButton(),
+          const SizedBox(width: 8),
           GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
           const SizedBox(width: 10),
           GestureDetector(

@@ -76,6 +76,9 @@ void main() {
     }
     expect(Validators.strongPassword('Bx#2026pass'), isNull);
     expect(Validators.strongPassword('password1'), isNotNull);
+    expect(Validators.strongPassword('Password1'), isNotNull, reason: 'Supabase Auth also wants a symbol; it refused this at sign-up');
+    expect(Validators.strongPassword('PASSWORD1!'), isNotNull, reason: 'and a small letter');
+    expect(Validators.strongPassword('Password1!'), isNull);
     expect(Validators.code('482915'), isNull);
     expect(Validators.code('48a'), isNotNull);
   });

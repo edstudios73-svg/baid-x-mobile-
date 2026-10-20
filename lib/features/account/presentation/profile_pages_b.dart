@@ -93,16 +93,8 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
 
   bool get _eq => widget.kind == 'equipment';
   num _n(Object? v) => num.tryParse('${v ?? ''}') ?? 0;
-  String _cedis(Object? v) {
-    final n = _n(v);
-    final whole = n.truncate().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
-    final frac = n == n.truncateToDouble() ? '' : n.toStringAsFixed(2).split('.').last;
-    return 'GH₵$whole${frac.isEmpty ? '' : '.$frac'}';
-  }
 
-  (String, String) _price(Json i) => _eq
-      ? (_n(i['daily_rate']) > 0 ? (_cedis(i['daily_rate']), '/day') : _n(i['sale_price']) > 0 ? (_cedis(i['sale_price']), '') : ('Ask for price', ''))
-      : (_n(i['price']) > 0 ? (_cedis(i['price']), '') : ('Ask for price', ''));
+  (String, String) _price(Json i) => listingPrice(i, equipment: _eq);
 
   @override
   Widget build(BuildContext context) {
@@ -207,9 +199,9 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
       ),
     );
     final prices = <Widget>[
-      if (eq && _n(i['daily_rate']) > 0) priceBox('Rent', _cedis(i['daily_rate']), '/day'),
-      if (eq && _n(i['sale_price']) > 0) priceBox('Buy', _cedis(i['sale_price'])),
-      if (!eq && _n(i['price']) > 0) priceBox('Price', _cedis(i['price'])),
+      if (eq && _n(i['daily_rate']) > 0) priceBox('Rent', cedisText(i['daily_rate']), '/day'),
+      if (eq && _n(i['sale_price']) > 0) priceBox('Buy', cedisText(i['sale_price'])),
+      if (!eq && _n(i['price']) > 0) priceBox('Price', cedisText(i['price'])),
     ];
     showGlassSheet(
       context,

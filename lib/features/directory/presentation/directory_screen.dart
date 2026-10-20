@@ -92,6 +92,8 @@ class _DirectoryScreenState extends ConsumerState<DirectoryScreen> {
                               const BrandLogo(width: 104),
                               const Spacer(),
                               if (signedIn) ...[
+                                const BaidBotHeaderButton(),
+                                const SizedBox(width: 8),
                                 GlassIconButton(icon: Icons.notifications_none_rounded, tooltip: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
                                 const SizedBox(width: 8),
                                 Stack(

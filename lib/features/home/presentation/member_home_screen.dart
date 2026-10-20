@@ -16,6 +16,7 @@ import '../../hiring/house_screen.dart';
 import '../../workspace/data/workspace_data.dart';
 import '../../workspace/presentation/home_inbox.dart';
 import '../../account/presentation/extra_screens.dart' show notificationsProvider;
+import '../../directory/presentation/baid_bot.dart';
 
 /// Numbers for the member Home (website js/dash.js HOME[role]); null means
 /// "couldn't load" and shows as a dash, never a made-up figure.
@@ -97,6 +98,7 @@ class MemberHomeScreen extends ConsumerWidget {
         body.addAll([
           GreetingHero(title: first.isEmpty ? 'Welcome' : first, subtitle: '$trade · ${place.isEmpty ? 'Add your location' : place}', badge: badge, chips: [if (p['available_for_work'] == true) '● Available for work', '$rank · $xp XP']),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
+          BotPromptBar(type: type),
           StatRow([(n(stats?.a), 'Open jobs', Icons.work_outline), (n(stats?.b), 'Applications', Icons.mail_outline), (n(stats?.c), 'Accepted', Icons.task_alt)]),
           DashCard(
             title: rank == 'New' ? 'New worker' : rank,
@@ -120,6 +122,7 @@ class MemberHomeScreen extends ConsumerWidget {
         body.addAll([
           GreetingHero(title: me.displayName.isEmpty ? 'Your company' : me.displayName, subtitle: 'Here\'s how your projects and hiring are doing.', badge: badge),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
+          BotPromptBar(type: type),
           StatRow([(n(stats?.a), 'Active projects', Icons.folder_outlined), (n(stats?.b), 'Open jobs', Icons.work_outline), (n(stats?.c), 'Applicants', Icons.groups_outlined)]),
           _projectCard(context, pr, emptyTitle: 'Start your first project', emptyText: 'Define the workers, project manager, equipment and materials you need, then invite people in.', cta: ('Create a project', () => context.push(AppRoutes.createProject))),
           const SectionLabel('Run the business'),
@@ -135,6 +138,7 @@ class MemberHomeScreen extends ConsumerWidget {
         body.addAll([
           GreetingHero(title: '${first.isEmpty ? 'You' : first} on site', subtitle: '${n(stats?.a)} assigned project${stats?.a == 1 ? '' : 's'} · ${n(stats?.b)} open task${stats?.b == 1 ? '' : 's'}', badge: badge),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
+          BotPromptBar(type: type),
           StatRow([(n(stats?.a), 'Projects', Icons.folder_outlined), (n(stats?.b), 'Open tasks', Icons.task_alt), ('${stats?.c ?? '—'}%', 'Avg progress', Icons.trending_up)]),
           _projectCard(context, pr, emptyTitle: 'No project yet', emptyText: 'Ask your company for a join code. Once they approve the link, their projects appear here.'),
           const SectionLabel('Your projects'),
@@ -150,6 +154,7 @@ class MemberHomeScreen extends ConsumerWidget {
         body.addAll([
           GreetingHero(title: me.displayName.isEmpty ? 'Your shop' : me.displayName, subtitle: 'Your catalog, equipment and customer inquiries.', badge: badge, chips: [if (p['accepting_orders'] == true) '● Accepting orders']),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
+          BotPromptBar(type: type),
           StatRow([(n(stats?.a), 'Products', Icons.inventory_2_outlined), (n(stats?.b), 'Equipment', Icons.construction_outlined), (n(stats?.c), 'Inquiries', Icons.mail_outline)]),
           DashCard(
             title: inq == null ? 'No inquiries yet' : 'Inquiry from ${inq['inquirer_name'] ?? 'a customer'}',
@@ -167,6 +172,7 @@ class MemberHomeScreen extends ConsumerWidget {
         body.addAll([
           GreetingHero(title: first.isEmpty ? 'Welcome' : first, subtitle: 'Need something fixed or built?', badge: badge),
           if (!verified && cl.done < cl.total) SetupBanner(done: cl.done, total: cl.total),
+          BotPromptBar(type: type),
           const BuildHomeCard(),
           const HouseHomeCard(),
           StatRow([(n(stats?.a), 'Jobs posted', Icons.work_outline), (n(stats?.b), 'Open', Icons.mail_outline), (n(stats?.c), 'Hired', Icons.handshake_outlined)]),

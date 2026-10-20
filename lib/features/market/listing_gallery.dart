@@ -16,6 +16,22 @@ import '../tabs/data/tabs_data.dart';
 
 const maxListingPhotos = 6;
 
+/// A cedi amount as listings show it: GH₵2,500 or GH₵12.50.
+String cedisText(Object? v) {
+  final x = num.tryParse('${v ?? ''}') ?? 0;
+  final whole = x.truncate().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+  final frac = x == x.truncateToDouble() ? '' : x.toStringAsFixed(2).split('.').last;
+  return 'GH₵$whole${frac.isEmpty ? '' : '.$frac'}';
+}
+
+/// The price a listing card shows: equipment by the day, else its sale price; materials by price.
+(String, String) listingPrice(Json i, {required bool equipment}) {
+  num n(Object? v) => num.tryParse('${v ?? ''}') ?? 0;
+  return equipment
+      ? (n(i['daily_rate']) > 0 ? (cedisText(i['daily_rate']), '/day') : n(i['sale_price']) > 0 ? (cedisText(i['sale_price']), '') : ('Ask for price', ''))
+      : (n(i['price']) > 0 ? (cedisText(i['price']), '') : ('Ask for price', ''));
+}
+
 List<String> listingImages(Json i) => [for (final u in (i['images'] ?? i['image_urls'] ?? const []) as List) if ('$u'.isNotEmpty) '$u'];
 
 Widget _photo(String url, {BoxFit fit = BoxFit.cover}) => Image.network(

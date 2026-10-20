@@ -33,15 +33,20 @@ class SplashRelease extends Notifier<bool> {
 /// network", then zooms through the screen into the app.
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
-  static const _total = 3700; // ms
-  static const _calm = 700; // ms, when the phone asks for reduced motion
+  // The steps below are timed on a 3.7 s plan and played in 2.2 s, so the opening stays quick.
+  static const _plan = 3700; // ms
+  static const _total = 2200; // ms
+  static const _calm = 500; // ms, when the phone asks for reduced motion
   late final AnimationController _t = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: _total),
   );
   late final Path _tools = baidxToolsPath();
-  Timer? _release;
+  Timer? _release, _hold;
   bool _reduced = false;
+  // still here after the opening (a signed-in member's account is loading): settle on the
+  // logo with a quiet loading line instead of an empty black screen
+  bool _held = false;
 
   @override
   void didChangeDependencies() {
@@ -56,18 +61,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _release = Timer(Duration(milliseconds: _reduced ? _calm : _total), () {
       if (mounted) ref.read(splashReleasedProvider.notifier).release();
     });
+    _hold = Timer(Duration(milliseconds: (_reduced ? _calm : _total) + 200), () {
+      if (!mounted) return;
+      _t.value = 3000 / _plan; // the settled logo, before the zoom
+      setState(() => _held = true);
+    });
   }
 
   @override
   void dispose() {
     _release?.cancel();
+    _hold?.cancel();
     _t.dispose();
     super.dispose();
   }
 
   /// Progress of a step that starts at [startMs] and lasts [ms], with [curve].
   double _p(int startMs, int ms, [Curve curve = Curves.easeOutCubic]) {
-    final v = ((_t.value * _total - startMs) / ms).clamp(0.0, 1.0);
+    final v = ((_t.value * _plan - startMs) / ms).clamp(0.0, 1.0);
     return curve.transform(v);
   }
 
@@ -200,6 +211,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             ),
                           ),
                         ),
+                        if (_held)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 22),
+                            child: SizedBox(
+                              width: 72,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.all(Radius.circular(2)),
+                                child: LinearProgressIndicator(minHeight: 2, color: Colors.white, backgroundColor: Color(0x24FFFFFF)),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

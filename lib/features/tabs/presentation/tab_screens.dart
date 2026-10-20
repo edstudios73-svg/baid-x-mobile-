@@ -109,18 +109,21 @@ class _JobsTabScreenState extends ConsumerState<JobsTabScreen> {
             ),
           ];
         }
-        return [for (final j in list) _JobCard(job: j, applied: t.applied['${j['id']}'], busy: _applying.contains('${j['id']}'), onApply: () => _apply('${j['id']}'))];
+        return [for (final j in list) JobCard(job: j, applied: t.applied['${j['id']}'], busy: _applying.contains('${j['id']}'), onApply: () => _apply('${j['id']}'))];
       },
     );
   }
 }
 
-class _JobCard extends StatelessWidget {
-  const _JobCard({required this.job, required this.applied, required this.busy, required this.onApply});
+/// An open job as Find work shows it (website .job); BAID Bot uses it for its job matches.
+class JobCard extends StatelessWidget {
+  const JobCard({required this.job, this.applied, this.busy = false, this.onApply, this.actionLabel = 'Apply now', super.key});
   final Json job;
   final String? applied;
   final bool busy;
-  final VoidCallback onApply;
+  // no action shows no button (members who can't apply)
+  final VoidCallback? onApply;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -172,11 +175,13 @@ class _JobCard extends StatelessWidget {
             Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.event_outlined, size: 14, color: AppColors.muted), const SizedBox(width: 3), Text(ago(job['created_at']), style: meta)]),
           ]),
         ),
-        const SizedBox(height: 10),
-        Align(
-          alignment: Alignment.centerRight,
-          child: applied != null ? StatusPill(applied) : PillButton(label: busy ? 'Applying…' : 'Apply now', expand: false, height: 34, loading: busy, onPressed: busy ? null : onApply),
-        ),
+        if (applied != null || onApply != null) ...[
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: applied != null ? StatusPill(applied) : PillButton(label: busy ? 'Applying…' : actionLabel, expand: false, height: 34, loading: busy, onPressed: busy ? null : onApply),
+          ),
+        ],
       ]),
     );
   }

@@ -226,7 +226,7 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         TextField(controller: _cur, obscureText: true, autofillHints: const [AutofillHints.password], textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'Current password')),
         const SizedBox(height: 12),
-        TextField(controller: _a, obscureText: true, autofillHints: const [AutofillHints.newPassword], textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'New password', helperText: '8+ characters with a letter, a number, and a capital letter or symbol.', helperMaxLines: 2)),
+        TextField(controller: _a, obscureText: true, autofillHints: const [AutofillHints.newPassword], textInputAction: TextInputAction.next, decoration: const InputDecoration(labelText: 'New password', helperText: '8+ characters with a small letter, a capital letter, a number and a symbol.', helperMaxLines: 2)),
         const SizedBox(height: 12),
         TextField(controller: _b, obscureText: true, autofillHints: const [AutofillHints.newPassword], textInputAction: TextInputAction.done, onSubmitted: (_) => _save(), decoration: const InputDecoration(labelText: 'Confirm new password')),
         const SizedBox(height: 16),

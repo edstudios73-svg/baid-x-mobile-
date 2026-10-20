@@ -5,6 +5,8 @@ import 'package:baid_x_mobile/features/directory/data/directory_repository.dart'
 import 'package:baid_x_mobile/features/directory/presentation/directory_screen.dart';
 import 'package:baid_x_mobile/features/directory/presentation/people_console.dart';
 import 'package:baid_x_mobile/features/directory/presentation/baid_bot.dart';
+import 'package:baid_x_mobile/features/market/listing_gallery.dart';
+import 'package:baid_x_mobile/features/tabs/presentation/tab_screens.dart' show JobCard;
 import 'package:baid_x_mobile/shared/providers/app_providers.dart';
 import 'package:baid_x_mobile/features/directory/presentation/guest_home_hero.dart';
 
@@ -109,10 +111,10 @@ void main() {
     List<Map<String, String>>? sent;
     await t.pumpWidget(ProviderScope(
       overrides: [
-        baidBotAskProvider.overrideWithValue((messages) async {
+        baidBotAskProvider.overrideWithValue((messages, {viewer}) async {
           sent = messages;
           if (messages.last['content']!.contains('electrician')) {
-            return const BotReply('My top pick is Kwame Mensah.', [
+            return const BotReply('Here are the strongest verified electricians in Accra, best match first.', [
               BotCard({'kind': 'worker', 'id': 'w1', 'name': 'Kwame Mensah', 'trade': 'Electrician', 'town': 'Accra', 'rate': 250, 'experience': '5-10', 'verified': true, 'badge': 'verified'}),
               BotCard({'kind': 'worker', 'id': 'w2', 'name': 'Kofi Boateng', 'trade': 'Electrician', 'town': 'Tema', 'verified': false}),
             ]);
@@ -125,6 +127,7 @@ void main() {
     await t.tap(find.byType(BaidBotButton));
     await t.pumpAndSettle();
     expect(find.text('BAID Bot'), findsOneWidget);
+    expect(find.text('Find me a top electrician in Accra'), findsOneWidget, reason: 'visitors are offered searches first');
     await t.tap(find.text('How does escrow protect me?'));
     await t.pumpAndSettle();
     expect(sent, [{'role': 'user', 'content': 'How does escrow protect me?'}]);
@@ -135,9 +138,33 @@ void main() {
     await t.testTextInput.receiveAction(TextInputAction.send);
     await t.pumpAndSettle();
     expect(sent!.length, 3, reason: 'the conversation goes with the question; cards stay on this side');
+    expect(find.byType(MemberCard), findsNWidgets(2), reason: 'matches are drawn as Discover member cards');
     expect(find.text('Kwame Mensah'), findsOneWidget);
-    expect(find.text('Top match'), findsOneWidget, reason: 'only the first pick');
-    expect(find.text('GH₵250 a day'), findsOneWidget);
-    expect(find.text('Not verified yet'), findsOneWidget, reason: 'an unverified pick says so');
+    expect(find.text('2 PROFESSIONALS · 1 VERIFIED'), findsOneWidget);
+    expect(find.text('Swipe for more'), findsOneWidget);
+  });
+
+  testWidgets('BAID Bot: jobs and equipment come back as Find work and marketplace cards', (t) async {
+    await t.pumpWidget(ProviderScope(
+      overrides: [
+        baidBotAskProvider.overrideWithValue((messages, {viewer}) async => messages.last['content']!.contains('job')
+            ? const BotReply('Here are the open jobs in Greater Accra.', [BotCard({'kind': 'job', 'id': 'j1', 'title': 'Wall Tilling', 'town': 'Accra', 'region': 'Greater Accra', 'rate': 200, 'workers_needed': 5})])
+            : const BotReply('Here is the best excavator listing.', [BotCard({'kind': 'equipment', 'id': 'e1', 'name': 'Excavator', 'business': 'Baiden Creatives', 'town': 'Accra', 'daily_rate': 2500, 'verified': true})])),
+      ],
+      child: const MaterialApp(home: Scaffold(body: Center(child: BaidBotButton()))),
+    ));
+    await t.tap(find.byType(BaidBotButton));
+    await t.pumpAndSettle();
+    await t.enterText(find.byType(TextField), 'Any jobs in Accra?');
+    await t.testTextInput.receiveAction(TextInputAction.send);
+    await t.pumpAndSettle();
+    expect(find.byType(JobCard), findsOneWidget);
+    expect(find.text('Wall Tilling'), findsOneWidget);
+    expect(find.text('Join to apply'), findsOneWidget, reason: 'a visitor joins to apply');
+    await t.enterText(find.byType(TextField), 'Rent an excavator');
+    await t.testTextInput.receiveAction(TextInputAction.send);
+    await t.pumpAndSettle();
+    expect(find.byType(ListingCard), findsOneWidget);
+    expect(find.text('GH₵2,500/day', findRichText: true), findsOneWidget);
   });
 }

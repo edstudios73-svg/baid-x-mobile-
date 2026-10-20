@@ -44,15 +44,18 @@ abstract final class Validators {
   /// Ghana mobile number in any of the forms [ghanaE164] accepts.
   static String? ghanaPhone(String? value) => ghanaE164(value) == null ? 'Enter a valid Ghana mobile number.' : null;
 
-  /// Same rule as the website: 8+ characters, a letter, a number, and a capital letter or a symbol.
+  /// The symbols the sign-in service (Supabase Auth) counts.
+  static final passwordSymbol = RegExp(r'''[!@#$%^&*()_+\-=\[\]{};'\\:"|<>?,./`~]''');
+
+  /// Supabase Auth's own rule, as on the website: 8+ characters with a small letter, a capital,
+  /// a number and a symbol. Anything looser is refused by Auth when the password is saved.
   static String? strongPassword(String? value) {
     final p = value ?? '';
     if (p.length < 8) return 'Use at least 8 characters.';
-    if (!RegExp(r'[A-Za-z]').hasMatch(p)) return 'Add a letter.';
+    if (!RegExp(r'[a-z]').hasMatch(p)) return 'Add a small letter.';
+    if (!RegExp(r'[A-Z]').hasMatch(p)) return 'Add a capital letter.';
     if (!RegExp(r'\d').hasMatch(p)) return 'Add a number.';
-    if (!RegExp(r'[A-Z]').hasMatch(p) && !RegExp(r'[^A-Za-z0-9]').hasMatch(p)) {
-      return 'Add a capital letter or a symbol.';
-    }
+    if (!passwordSymbol.hasMatch(p)) return 'Add a symbol, like ! @ # ?';
     return null;
   }
 

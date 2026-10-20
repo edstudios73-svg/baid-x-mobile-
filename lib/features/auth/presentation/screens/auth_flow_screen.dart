@@ -330,12 +330,10 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
           context.go(AppRoutes.home);
           return;
         }
-        final profile = _auth.createRoleProfile(type: _role, name: _name.text.trim(), category: _cat, phone: _e164(ref.read(pendingPhoneProvider)));
-        if (_mode == 'signup') {
-          await Future.wait([_auth.setPhonePassword(_pass.text), profile]);
-        } else {
-          await profile;
-        }
+        // the password first, then the profile: a password the sign-in service refuses must not
+        // leave a new account with a profile but no password
+        if (_mode == 'signup') await _auth.setPhonePassword(_pass.text);
+        await _auth.createRoleProfile(type: _role, name: _name.text.trim(), category: _cat, phone: _e164(ref.read(pendingPhoneProvider)));
         ref.invalidate(accountProfileProvider);
         await ref.read(accountProfileProvider.future);
         await _rememberMe();
@@ -810,13 +808,14 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
     final p = _pass.text;
     final rules = [
       ('At least 8 characters', p.length >= 8),
+      ('A small letter', RegExp(r'[a-z]').hasMatch(p)),
+      ('A capital letter', RegExp(r'[A-Z]').hasMatch(p)),
       ('A number', RegExp(r'\d').hasMatch(p)),
-      ('A letter', RegExp(r'[A-Za-z]').hasMatch(p)),
-      ('A capital letter or a symbol', RegExp(r'[A-Z]').hasMatch(p) || RegExp(r'[^A-Za-z0-9]').hasMatch(p)),
+      ('A symbol, like ! @ # ?', Validators.passwordSymbol.hasMatch(p)),
     ];
     final score = rules.where((r) => r.$2).length;
     final ok = Validators.strongPassword(p) == null;
-    final label = p.isEmpty ? '' : ['Too weak', 'Weak', 'Fair', 'Good', 'Strong'][score];
+    final label = p.isEmpty ? '' : ['Too weak', 'Too weak', 'Weak', 'Fair', 'Good', p.length >= 12 ? 'Strong' : 'Good'][score];
     return _page(
       title: _mode == 'reset' ? 'New password' : 'Create a password',
       sub: 'Use a secure password for sign-in. Your account will still be tied to mobile authentication.',
@@ -832,20 +831,20 @@ class _AuthFlowScreenState extends ConsumerState<AuthFlowScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            for (var i = 0; i < 4; i++) ...[
+            for (var i = 0; i < 5; i++) ...[
               Expanded(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
                   height: 4,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: i < score ? const Color(0xFF7DD3FC) : const Color(0x1FFFFFFF)),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(99), color: i < score ? Colors.white : const Color(0x1FFFFFFF)),
                 ),
               ),
-              if (i < 3) const SizedBox(width: 6),
+              if (i < 4) const SizedBox(width: 6),
             ],
           ],
         ),
         const SizedBox(height: 6),
-        Text(label, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFF7DD3FC))),
+        Text(label, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 14,
